@@ -1,0 +1,48 @@
+{
+  "name": "sparks-sdk",
+  "version": "0.0.1",
+  "description": "an agent for controllers in the sparks ecosystem",
+  "author": "SPARKS Foundation <operations@sparks.foundation>",
+  "license": "GPL-3.0-or-later",
+  "url": "https://github.com/sparksfoundation/sparks-identity/tree/master/libs/agent",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "rimraf dist && tsup",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.2.5",
+    "rimraf": "^3.0.2",
+    "tsup": "^6.7.0",
+    "typescript": "^5.1.3"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.3.1",
+    "blake3": "link:@noble/hashes/blake3",
+    "scrypt-pbkdf": "^1.1.1",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "tsup": {
+    "dts": true,
+    "bundle": false,
+    "treeshake": true,
+    "target": "node16",
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "entry": [
+      "src/**/*.ts"
+    ]
+  }
+}
