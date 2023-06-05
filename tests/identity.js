@@ -1,12 +1,13 @@
 import util from "tweetnacl-util";
-import { blake3 } from 'blake3';
+import { blake3 } from '@noble/hashes/blake3';
 import { Identity } from "../dist/agents/index.js";
 import * as forge from "../dist/forge/index.js";
 import assert from 'node:assert';
 import MockWindow from "./mocks/MockWindow.js";
-import { PostMessage } from "../dist/channels/index.js";
+import { PostMessage } from "../dist/connections/index.js";
 
 (async function () {
+  // INIT IDENTITY
   const identity = new Identity()
   let keyPairs, nextKeyPairs, password
   password = 'password'

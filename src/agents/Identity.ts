@@ -193,7 +193,6 @@ export class Identity implements IdentityInterface {
     this.#keyEventLog.push(rotationEvent);
   }
 
-  // todo -- add asymmetric key encryption options
   encrypt({ data, publicKey, sharedKey }: { data: object | string; publicKey?: string; sharedKey?: string; }): string {
     if (!this.#keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
@@ -225,7 +224,7 @@ export class Identity implements IdentityInterface {
     if (!this.#keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
     }
-    
+
     const uintDataAndNonce = util.decodeBase64(data);
     const nonce = uintDataAndNonce.slice(0, nacl.secretbox.nonceLength);
     const uintData = uintDataAndNonce.slice(nacl.secretbox.nonceLength, uintDataAndNonce.length);

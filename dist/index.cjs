@@ -2,7 +2,7 @@
 
 var Identity_js = require('./agents/Identity.js');
 var index_js = require('./forge/index.js');
-var PostMessage_js = require('./channels/PostMessage.js');
+var PostMessage_js = require('./connections/PostMessage.js');
 
 function _interopNamespace(e) {
   if (e && e.__esModule) return e;

@@ -145,7 +145,6 @@ class Identity {
     rotationEvent.selfAddressingIdentifier = signedEventHash;
     this.#keyEventLog.push(rotationEvent);
   }
-  // todo -- add asymmetric key encryption options
   encrypt({ data, publicKey, sharedKey }) {
     if (!this.#keyPairs) {
       throw new Error("No key pairs found, please import or incept identity");
