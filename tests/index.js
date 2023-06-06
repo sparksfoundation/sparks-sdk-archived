@@ -15,7 +15,6 @@ const verifier = new Identity(Random, Verifier, Blake3, Ed25519, X25519SalsaPoly
 const valid = verifier.verifyEventLog(user.keyEventLog);
 console.log(`eventlog valid`, valid);
 
-
 // mock window to test channel
 global.window = new MockWindow('http://localhost:3000');
 
