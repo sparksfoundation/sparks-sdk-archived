@@ -9,7 +9,8 @@
   "main": "index.js",
   "scripts": {
     "build": "rimraf dist && tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^20.2.5",
