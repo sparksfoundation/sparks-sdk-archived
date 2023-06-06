@@ -1,4 +1,6 @@
-export { Identity } from './agents/Identity.js';
-import * as index_js from './forge/index.js';
-export { index_js as forge };
-export { PostMessage } from './connections/PostMessage.js';
+export * from './agents/index.js';
+export * from './encrypt/index.js';
+export * from './sign/index.js';
+export * from './forge/index.js';
+export * from './channels/index.js';
+export * from './hash/index.js';

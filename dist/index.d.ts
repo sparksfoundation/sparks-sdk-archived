@@ -1,6 +1,9 @@
-export { Identity } from './agents/Identity.js';
-export { i as forge } from './index-6b9c0368.js';
-export { PostMessage } from './connections/PostMessage.js';
-import './forge/types.js';
-import './forge/password.js';
-import './forge/random.js';
+export { default as Identity } from './agents/Identity.js';
+export { default as Attester } from './agents/Attester.js';
+export { default as Verifier } from './agents/Verifier.js';
+export { default as X25519SalsaPoly } from './encrypt/X25519SalsaPoly.js';
+export { default as Ed25519 } from './sign/Ed25519.js';
+export { default as Password } from './forge/Password.js';
+export { default as Random } from './forge/Random.js';
+export { default as PostMessage } from './channels/PostMessage.js';
+export { default as Blake3 } from './hash/Blake3.js';

@@ -1,9 +1,7 @@
-import { Identity } from './Identity.js';
-
-class Attester extends Identity {
-  constructor() {
-    super();
+var Attester_default = (Base, symbols) => class Attester extends Base {
+  constructor(...args) {
+    super(...args);
   }
-}
+};
 
-export { Attester };
+export { Attester_default as default };

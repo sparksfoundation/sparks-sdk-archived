@@ -1,8 +1,8 @@
-import { Identity } from './Identity.js';
-import '../forge/types.js';
+declare const _default: (Base: any, symbols: any) => {
+    new (...args: any[]): {
+        [x: string]: any;
+    };
+    [x: string]: any;
+};
 
-declare class Attester extends Identity {
-    constructor();
-}
-
-export { Attester };
+export { _default as default };

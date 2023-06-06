@@ -1,11 +1,9 @@
 'use strict';
 
-var Identity_js = require('./Identity.js');
-
-class Attester extends Identity_js.Identity {
-  constructor() {
-    super();
+var Attester_default = (Base, symbols) => class Attester extends Base {
+  constructor(...args) {
+    super(...args);
   }
-}
+};
 
-exports.Attester = Attester;
+module.exports = Attester_default;

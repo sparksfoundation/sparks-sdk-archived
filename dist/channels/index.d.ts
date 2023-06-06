@@ -1,2 +1,1 @@
-export { PostMessage } from './PostMessage.js';
-import '../forge/types.js';
+export { default as PostMessage } from './PostMessage.js';

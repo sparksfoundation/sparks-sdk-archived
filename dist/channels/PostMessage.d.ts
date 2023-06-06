@@ -1,20 +1,15 @@
-import { PublicKeys } from '../forge/types.js';
-
-declare class PostMessage {
+declare class PostMessageChannel {
     #private;
     target: Window;
     origin: string;
-    publicKeys: PublicKeys;
-    static generateSharedKey({ keyPairs, publicKeys }: {
-        keyPairs: any;
-        publicKeys: any;
-    }): string;
-    constructor({ keyPairs, encrypt, decrypt, sign, verify }: {
+    publicKeys: any;
+    constructor({ keyPairs, encrypt, decrypt, sign, verify, computeSharedKey }: {
         keyPairs: any;
         encrypt: any;
         decrypt: any;
         sign: any;
         verify: any;
+        computeSharedKey: any;
     });
     accept({ url }: {
         url: any;
@@ -26,5 +21,12 @@ declare class PostMessage {
     send(data: any): Promise<unknown>;
     on(eventType: any, callback: any): void;
 }
+declare const _default: (Base: any, symbols: any) => {
+    new (...args: any[]): {
+        [x: string]: any;
+        postMessage(): PostMessageChannel;
+    };
+    [x: string]: any;
+};
 
-export { PostMessage };
+export { _default as default };

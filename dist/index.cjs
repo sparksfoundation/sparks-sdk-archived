@@ -1,37 +1,47 @@
 'use strict';
 
-var Identity_js = require('./agents/Identity.js');
-var index_js = require('./forge/index.js');
-var PostMessage_js = require('./connections/PostMessage.js');
-
-function _interopNamespace(e) {
-  if (e && e.__esModule) return e;
-  var n = Object.create(null);
-  if (e) {
-    Object.keys(e).forEach(function (k) {
-      if (k !== 'default') {
-        var d = Object.getOwnPropertyDescriptor(e, k);
-        Object.defineProperty(n, k, d.get ? d : {
-          enumerable: true,
-          get: function () { return e[k]; }
-        });
-      }
-    });
-  }
-  n.default = e;
-  return Object.freeze(n);
-}
-
-var index_js__namespace = /*#__PURE__*/_interopNamespace(index_js);
+var index_js = require('./agents/index.js');
+var index_js$1 = require('./encrypt/index.js');
+var index_js$2 = require('./sign/index.js');
+var index_js$3 = require('./forge/index.js');
+var index_js$4 = require('./channels/index.js');
+var index_js$5 = require('./hash/index.js');
 
 
 
-Object.defineProperty(exports, 'Identity', {
-  enumerable: true,
-  get: function () { return Identity_js.Identity; }
+Object.keys(index_js).forEach(function (k) {
+	if (k !== 'default' && !exports.hasOwnProperty(k)) Object.defineProperty(exports, k, {
+		enumerable: true,
+		get: function () { return index_js[k]; }
+	});
 });
-exports.forge = index_js__namespace;
-Object.defineProperty(exports, 'PostMessage', {
-  enumerable: true,
-  get: function () { return PostMessage_js.PostMessage; }
+Object.keys(index_js$1).forEach(function (k) {
+	if (k !== 'default' && !exports.hasOwnProperty(k)) Object.defineProperty(exports, k, {
+		enumerable: true,
+		get: function () { return index_js$1[k]; }
+	});
+});
+Object.keys(index_js$2).forEach(function (k) {
+	if (k !== 'default' && !exports.hasOwnProperty(k)) Object.defineProperty(exports, k, {
+		enumerable: true,
+		get: function () { return index_js$2[k]; }
+	});
+});
+Object.keys(index_js$3).forEach(function (k) {
+	if (k !== 'default' && !exports.hasOwnProperty(k)) Object.defineProperty(exports, k, {
+		enumerable: true,
+		get: function () { return index_js$3[k]; }
+	});
+});
+Object.keys(index_js$4).forEach(function (k) {
+	if (k !== 'default' && !exports.hasOwnProperty(k)) Object.defineProperty(exports, k, {
+		enumerable: true,
+		get: function () { return index_js$4[k]; }
+	});
+});
+Object.keys(index_js$5).forEach(function (k) {
+	if (k !== 'default' && !exports.hasOwnProperty(k)) Object.defineProperty(exports, k, {
+		enumerable: true,
+		get: function () { return index_js$5[k]; }
+	});
 });

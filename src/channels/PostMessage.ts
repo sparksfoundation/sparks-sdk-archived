@@ -1,33 +1,24 @@
-import util from "tweetnacl-util";
-import { KeyPairs, PublicKeys } from "../forge/types"
-import nacl from "tweetnacl";
 
-export class PostMessage {
-  #keyPairs: KeyPairs;
+class PostMessageChannel {
+  #keyPairs: any;
   #sharedKey: string;
   #listeners: Map<Function, Function>;
   #encrypt: Function;
   #decrypt: Function;
   #sign: Function;
   #verify: Function;
+  #computeSharedKey: Function
   target: Window;
   origin: string;
-  publicKeys: PublicKeys;
+  publicKeys: any;
 
-  static generateSharedKey({ keyPairs, publicKeys }) {
-    const baseEncryptionPublicKey = util.decodeBase64(publicKeys.encryption)
-    const baseEncryptionSecretKey = util.decodeBase64(keyPairs.encryption.secretKey)
-    const uintSharedKey = nacl.box.before(baseEncryptionPublicKey, baseEncryptionSecretKey)
-    const baseSharedKey = util.encodeBase64(uintSharedKey)
-    return baseSharedKey
-  }
-
-  constructor({ keyPairs, encrypt, decrypt, sign, verify }) {
+  constructor({ keyPairs, encrypt, decrypt, sign, verify, computeSharedKey }) {
     this.#keyPairs = keyPairs;
     this.#encrypt = encrypt;
     this.#decrypt = decrypt;
     this.#sign = sign;
     this.#verify = verify;
+    this.#computeSharedKey = computeSharedKey;
     this.#listeners = new Map();
     window.addEventListener('beforeunload', async () => {
       await this.disconnect()
@@ -54,7 +45,7 @@ export class PostMessage {
         this.target = window.opener;
         this.origin = event.origin;
         this.publicKeys = event.data.publicKeys;
-        this.#sharedKey = PostMessage.generateSharedKey({ keyPairs: this.#keyPairs, publicKeys: this.publicKeys });
+        this.#sharedKey = this.#computeSharedKey({ publicKey: this.publicKeys.encryption });
         this.target.postMessage({ type: 'connected' }, this.origin);
         window.removeEventListener('message', handler);
         resolve(this);
@@ -87,7 +78,7 @@ export class PostMessage {
         this.target = target;
         this.origin = origin;
         this.publicKeys = event.data.publicKeys;
-        this.#sharedKey = PostMessage.generateSharedKey({ keyPairs: this.#keyPairs, publicKeys: this.publicKeys });
+        this.#sharedKey = this.#computeSharedKey({ keyPairs: this.#keyPairs, publicKey: this.publicKeys.encryption });
         this.target.postMessage({ type: 'connected' }, this.origin);
         window.removeEventListener('message', handler);
         clearInterval(interval);
@@ -136,7 +127,7 @@ export class PostMessage {
   }
 
   on(eventType, callback) {
-    const allowed =  ['message', 'disconnected', 'connected']
+    const allowed = ['message', 'disconnected', 'connected']
     if (!allowed.includes(eventType)) return;
 
     const listener = (event) => {
@@ -157,5 +148,26 @@ export class PostMessage {
     };
     this.#listeners.set(callback, listener);
     window.addEventListener('message', listener);
+  }
+}
+
+export default (Base, symbols) => class PostMessage extends Base {
+  constructor(...args) {
+    super(...args)
+    this.channels = this.channels || []
+  }
+
+  postMessage() {
+    const channel = new PostMessageChannel({
+      keyPairs: this[symbols.keyPairs],
+      encrypt: this.encrypt.bind(this),
+      decrypt: this.decrypt.bind(this),
+      sign: this.sign.bind(this),
+      verify: this.verify.bind(this),
+      computeSharedKey: this.sharedKey.bind(this),
+    })
+
+    this.channels.push(channel)
+    return channel
   }
 }

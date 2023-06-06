@@ -1,3 +1,2 @@
-export { default as password } from './password.js';
-export { default as random } from './random.js';
-import './types.js';
+export { default as Password } from './Password.js';
+export { default as Random } from './Random.js';
