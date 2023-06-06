@@ -1,1 +1,1 @@
-export { PostMessage } from "./PostMessage.js";
+export { default as PostMessage  } from './PostMessage.js'
