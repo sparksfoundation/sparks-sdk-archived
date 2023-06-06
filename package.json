@@ -6,7 +6,7 @@
   "license": "GPL-3.0-or-later",
   "url": "https://github.com/sparksfoundation/sparks-identity/tree/master/libs/agent",
   "type": "module",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsup",
     "dev": "tsup --watch",
