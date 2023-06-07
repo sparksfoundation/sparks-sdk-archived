@@ -180,6 +180,8 @@ export abstract class Identity {
     this.keyPairs = keyPairs;
     const decrypted = this.decrypt({ data });
     const deepCopy = JSON.parse(JSON.stringify(decrypted));
+    // temp fix
+    delete deepCopy.postMessage;
     Object.assign(this, deepCopy);
   }
 

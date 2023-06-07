@@ -153,6 +153,7 @@ class Identity {
     this.keyPairs = keyPairs;
     const decrypted = this.decrypt({ data });
     const deepCopy = JSON.parse(JSON.stringify(decrypted));
+    delete deepCopy.postMessage;
     Object.assign(this, deepCopy);
   }
   /**
