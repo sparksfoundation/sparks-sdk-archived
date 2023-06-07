@@ -8,7 +8,7 @@ class MockWindow {
     MockWindow.windows[origin] = this;
   }
 
-  open(origin, name, specs) {
+  open(origin, target, specs) {
     if (MockWindow.windows[origin]) {
       MockWindow.windows[origin].opener = this;
       return MockWindow.windows[origin];
