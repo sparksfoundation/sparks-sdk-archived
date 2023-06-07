@@ -151,15 +151,15 @@ class PostMessageChannel {
   }
 }
 
-export default (Base, symbols) => class PostMessage extends Base {
+export default Base => class PostMessage extends Base {
   constructor(...args) {
     super(...args)
-    this.channels = this.channels || []
+    this.channels = []
   }
 
   postMessage() {
     const channel = new PostMessageChannel({
-      keyPairs: this[symbols.keyPairs],
+      keyPairs: this.keyPairs,
       encrypt: this.encrypt.bind(this),
       decrypt: this.decrypt.bind(this),
       sign: this.sign.bind(this),

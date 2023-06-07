@@ -134,14 +134,14 @@ class PostMessageChannel {
     window.addEventListener("message", listener);
   }
 }
-var PostMessage_default = (Base, symbols) => class PostMessage extends Base {
+var PostMessage_default = (Base) => class PostMessage extends Base {
   constructor(...args) {
     super(...args);
-    this.channels = this.channels || [];
+    this.channels = [];
   }
   postMessage() {
     const channel = new PostMessageChannel({
-      keyPairs: this[symbols.keyPairs],
+      keyPairs: this.keyPairs,
       encrypt: this.encrypt.bind(this),
       decrypt: this.decrypt.bind(this),
       sign: this.sign.bind(this),

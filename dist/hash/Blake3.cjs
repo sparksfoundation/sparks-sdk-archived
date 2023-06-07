@@ -7,7 +7,7 @@ function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
 var util__default = /*#__PURE__*/_interopDefault(util);
 
-var Blake3_default = (Base, symbols) => class Blake3 extends Base {
+var Blake3_default = (Base) => class Blake3 extends Base {
   constructor(...args) {
     super(...args);
   }

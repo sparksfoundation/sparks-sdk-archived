@@ -24,7 +24,7 @@ const generateKeyPairs = () => {
   };
 }
 
-export default (Base, symbols) => class Password extends Base {
+export default Base => class Password extends Base {
     #randomKeyPairs = [] as any[];
     constructor(...args) {
         super(...args);

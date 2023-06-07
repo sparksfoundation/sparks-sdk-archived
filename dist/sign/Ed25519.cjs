@@ -9,7 +9,7 @@ function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 var nacl__default = /*#__PURE__*/_interopDefault(nacl);
 var util__default = /*#__PURE__*/_interopDefault(util);
 
-var Ed25519_default = (Base, symbols) => class Ed25519 extends Base {
+var Ed25519_default = (Base) => class Ed25519 extends Base {
   constructor(...args) {
     super(...args);
   }
@@ -24,7 +24,7 @@ var Ed25519_default = (Base, symbols) => class Ed25519 extends Base {
       data = index_js.parseJSON(data);
     }
     const uintData = util__default.default.decodeUTF8(data);
-    const uintSecretKey = util__default.default.decodeBase64(this[symbols.keyPairs].signing.secretKey);
+    const uintSecretKey = util__default.default.decodeBase64(this.keyPairs.signing.secretKey);
     const signature = detached ? util__default.default.encodeBase64(nacl__default.default.sign.detached(uintData, uintSecretKey)) : util__default.default.encodeBase64(nacl__default.default.sign(uintData, uintSecretKey));
     return signature;
   }

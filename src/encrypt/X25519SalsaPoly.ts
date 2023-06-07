@@ -2,7 +2,7 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../utils/index.js";
 
-export default (Base, symbols) => class X25519SalsaPoly extends Base {
+export default Base => class X25519SalsaPoly extends Base {
   constructor(...args) {
     super(...args);
   }
@@ -13,11 +13,11 @@ export default (Base, symbols) => class X25519SalsaPoly extends Base {
    * @returns {string} sharedKey
    */
   sharedKey({ publicKey }: { publicKey: string; }): string {
-    if (!this[symbols.keyPairs]) {
+    if (!this.keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
     }
     const baseEncryptionPublicKey = util.decodeBase64(publicKey)
-    const baseEncryptionSecretKey = util.decodeBase64(this[symbols.keyPairs].encryption.secretKey)
+    const baseEncryptionSecretKey = util.decodeBase64(this.keyPairs.encryption.secretKey)
     const uintSharedKey = nacl.box.before(baseEncryptionPublicKey, baseEncryptionSecretKey)
     const baseSharedKey = util.encodeBase64(uintSharedKey)
     return baseSharedKey
@@ -31,7 +31,7 @@ export default (Base, symbols) => class X25519SalsaPoly extends Base {
    * @returns {string}
    */
   encrypt({ data, publicKey, sharedKey }: { data: object | string; publicKey?: string; sharedKey?: string; }): string {
-    if (!this[symbols.keyPairs]) {
+    if (!this.keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
     }
 
@@ -42,12 +42,12 @@ export default (Base, symbols) => class X25519SalsaPoly extends Base {
     let box;
     if (publicKey) {
       const publicKeyUint = util.decodeBase64(publicKey);
-      box = nacl.box(uintData, nonce, publicKeyUint, util.decodeBase64(this[symbols.keyPairs].encryption.secretKey));
+      box = nacl.box(uintData, nonce, publicKeyUint, util.decodeBase64(this.keyPairs.encryption.secretKey));
     } else if (sharedKey) {
       const sharedKeyUint = util.decodeBase64(sharedKey);
       box = nacl.box.after(uintData, nonce, sharedKeyUint);
     } else {
-      const secreKeyUint = util.decodeBase64(this[symbols.keyPairs].encryption.secretKey);
+      const secreKeyUint = util.decodeBase64(this.keyPairs.encryption.secretKey);
       box = nacl.secretbox(uintData, nonce, secreKeyUint);
     }
 
@@ -65,7 +65,7 @@ export default (Base, symbols) => class X25519SalsaPoly extends Base {
    * @returns {string}
    */
   decrypt({ data, publicKey, sharedKey }: { data: string; publicKey?: string; sharedKey?: string; }): string {
-    if (!this[symbols.keyPairs]) {
+    if (!this.keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
     }
 
@@ -76,12 +76,12 @@ export default (Base, symbols) => class X25519SalsaPoly extends Base {
     let decrypted;
     if (publicKey) {
       const publicKeyUint = util.decodeBase64(publicKey);
-      decrypted = nacl.box.open(uintData, nonce, publicKeyUint, util.decodeBase64(this[symbols.keyPairs].encryption.secretKey));
+      decrypted = nacl.box.open(uintData, nonce, publicKeyUint, util.decodeBase64(this.keyPairs.encryption.secretKey));
     } else if (sharedKey) {
       const sharedKeyUint = util.decodeBase64(sharedKey);
       decrypted = nacl.box.open.after(uintData, nonce, sharedKeyUint);
     } else {
-      const secreKeyUint = util.decodeBase64(this[symbols.keyPairs].encryption.secretKey);
+      const secreKeyUint = util.decodeBase64(this.keyPairs.encryption.secretKey);
       decrypted = nacl.secretbox.open(uintData, nonce, secreKeyUint);
     }
 

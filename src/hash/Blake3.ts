@@ -1,7 +1,7 @@
 import { blake3 } from '@noble/hashes/blake3';
 import util from 'tweetnacl-util';
 
-export default (Base, symbols) => class Blake3 extends Base {
+export default Base => class Blake3 extends Base {
   constructor(...args) {
     super(...args);
   }

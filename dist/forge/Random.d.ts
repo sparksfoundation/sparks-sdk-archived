@@ -1,4 +1,4 @@
-declare const _default: (Base: any, symbols: any) => {
+declare const _default: (Base: any) => {
     new (...args: any[]): {
         [x: string]: any;
         "__#1@#randomKeyPairs": any[];

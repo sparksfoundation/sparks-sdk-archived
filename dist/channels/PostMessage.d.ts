@@ -21,7 +21,7 @@ declare class PostMessageChannel {
     send(data: any): Promise<unknown>;
     on(eventType: any, callback: any): void;
 }
-declare const _default: (Base: any, symbols: any) => {
+declare const _default: (Base: any) => {
     new (...args: any[]): {
         [x: string]: any;
         postMessage(): PostMessageChannel;

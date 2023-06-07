@@ -46,30 +46,40 @@ const generateKeyPairs = async ({ password, salt }) => {
     };
   });
 };
-var Password_default = (Base, symbols) => class Password extends Base {
+var Password_default = (Base) => class Password extends Base {
   constructor(...args) {
     super(...args);
   }
   async incept({ password }) {
     let salt = util.encodeBase64(nacl.randomBytes(16));
     const keyPairs = await generateKeyPairs({ password, salt });
-    salt = generateSalt(keyPairs);
+    salt = generateSalt(keyPairs.signing.publicKey);
     const nextKeyPairs = await generateKeyPairs({ password, salt });
     super.incept({ keyPairs, nextKeyPairs });
+    await this.rotate({ password });
+  }
+  async import({ password, salt, data }) {
+    const keyPairs = await generateKeyPairs({ password, salt });
+    super.import({ keyPairs, data });
+  }
+  async export() {
+    const kel = this.keyEventLog;
+    const salt = await generateSalt(kel.length < 3 ? kel[0].signingKeys[0] : kel[kel.length - 3]);
+    const data = super.export();
+    return { data, salt };
   }
   async rotate({ password, newPassword }) {
-    const eventLog = this[symbols.keyEventLog];
-    const manyEvents = eventLog.length;
+    const eventLog = this.keyEventLog;
     let salt, nextKeyPairs, keyPairs, keyHash;
     if (!password)
       throw new Error("Password is required to rotate keys.");
-    salt = await generateSalt(manyEvents < 2 ? this[symbols.keyPairs] : eventLog[manyEvents - 2]);
+    salt = await generateSalt(eventLog.length < 2 ? eventLog[0].signingKeys[0] : eventLog[eventLog.length - 2]);
     keyPairs = await generateKeyPairs({ password, salt });
     keyHash = this.hash(keyPairs.signing.publicKey);
     if (keyHash !== eventLog[eventLog.length - 1].nextKeyCommitments[0]) {
       throw new Error("Key commitment does not match your previous commitment. If you are trying to change your password provide password & newPassword parameters.");
     }
-    salt = generateSalt(eventLog[manyEvents - 1]);
+    salt = generateSalt(eventLog[eventLog.length - 1]);
     nextKeyPairs = await generateKeyPairs({ password: newPassword || password, salt });
     super.rotate({ keyPairs, nextKeyPairs });
     if (newPassword) {
