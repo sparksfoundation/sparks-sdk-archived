@@ -1,9 +1,9 @@
-import { Agent, X25519SalsaPoly, Ed25519, Verifier, Blake3, Password, Random, PostMessage } from '../dist/index.js';
+import { CastingAgent, X25519SalsaPoly, Ed25519, Verifier, Blake3, Password, Random, PostMessage } from '../dist/index.js';
 import MockWindow from './mocks/MockWindow.js';
 
-const UserAgent = Agent(Ed25519, X25519SalsaPoly, Blake3, Password);
-const VerifierAgent = Agent(Random, Verifier, Blake3, Ed25519, X25519SalsaPoly);
-const CommsTest = Agent(Random, Ed25519, X25519SalsaPoly, Blake3, PostMessage);
+const UserAgent = CastingAgent(Ed25519, X25519SalsaPoly, Blake3, Password);
+const VerifierAgent = CastingAgent(Random, Verifier, Blake3, Ed25519, X25519SalsaPoly);
+const CommsTest = CastingAgent(Random, Ed25519, X25519SalsaPoly, Blake3, PostMessage);
 
 const user = new UserAgent();
 await user.incept({ password: 'password' });
