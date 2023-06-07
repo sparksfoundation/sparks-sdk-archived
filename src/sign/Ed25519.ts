@@ -15,7 +15,7 @@ export default Base => class Ed25519 extends Base {
    */
   sign({ data, detached = false }: { data: object | string; detached?: boolean }) {
     if (typeof data !== 'string') {
-      data = parseJSON(data);
+      data = JSON.stringify(data);
     }
     const uintData = util.decodeUTF8(data as string);
     const uintSecretKey = util.decodeBase64(this.keyPairs.signing.secretKey);
@@ -34,6 +34,8 @@ export default Base => class Ed25519 extends Base {
    * @returns {boolean|object|string}
    */
   verify({ publicKey, signature, data }: { publicKey: string, signature: string, data: object | string }) {
+    if (!publicKey || !signature) throw new Error('publicKey and signature are required')
+
     if (data) {
       if (typeof data !== 'string' && !(data instanceof Uint8Array)) {
         data = parseJSON(data) as string;
