@@ -2,7 +2,7 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../utils/index.js";
 
-export default (Base, symbols) => class Ed25519 extends Base {
+export default Base => class Ed25519 extends Base {
   constructor(...args) {
     super(...args);
   }
@@ -18,7 +18,7 @@ export default (Base, symbols) => class Ed25519 extends Base {
       data = parseJSON(data);
     }
     const uintData = util.decodeUTF8(data as string);
-    const uintSecretKey = util.decodeBase64(this[symbols.keyPairs].signing.secretKey);
+    const uintSecretKey = util.decodeBase64(this.keyPairs.signing.secretKey);
     const signature = detached
       ? util.encodeBase64(nacl.sign.detached(uintData, uintSecretKey))
       : util.encodeBase64(nacl.sign(uintData, uintSecretKey));

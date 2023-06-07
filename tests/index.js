@@ -1,7 +1,11 @@
-import { Identity, X25519SalsaPoly, Ed25519, Verifier, Blake3, Password, Random, PostMessage } from '../dist/index.js';
+import { Agent, X25519SalsaPoly, Ed25519, Verifier, Blake3, Password, Random, PostMessage } from '../dist/index.js';
 import MockWindow from './mocks/MockWindow.js';
 
-const user = new Identity(Ed25519, X25519SalsaPoly, Blake3, Password);
+const UserAgent = Agent(Ed25519, X25519SalsaPoly, Blake3, Password);
+const VerifierAgent = Agent(Random, Verifier, Blake3, Ed25519, X25519SalsaPoly);
+const CommsTest = Agent(Random, Ed25519, X25519SalsaPoly, Blake3, PostMessage);
+
+const user = new UserAgent();
 await user.incept({ password: 'password' });
 await user.rotate({ password: 'password', newPassword: 'password2' });
 await user.rotate({ password: 'password2' });
@@ -11,18 +15,18 @@ const encrypted = user.encrypt({ data: 'hello world' })
 const decrypted = user.decrypt({ data: encrypted })
 console.log(`encryption/decryption`, decrypted === 'hello world')
 
-const verifier = new Identity(Random, Verifier, Blake3, Ed25519, X25519SalsaPoly);
+const verifier = new VerifierAgent();
 const valid = verifier.verifyEventLog(user.keyEventLog);
 console.log(`eventlog valid`, valid);
 
 // mock window to test channel
 global.window = new MockWindow('http://localhost:3000');
 
-const alice = new Identity(Random, Ed25519, X25519SalsaPoly, Blake3, PostMessage);
+const alice = new CommsTest();
 alice.incept();
 const aliceChannel = alice.postMessage();
 
-const bob = new Identity(Random, Ed25519, X25519SalsaPoly, Blake3, PostMessage);
+const bob = new CommsTest();
 bob.incept();
 const bobChannel = bob.postMessage();
 

@@ -1,6 +1,6 @@
 'use strict';
 
-var Attester_default = (Base, symbols) => class Attester extends Base {
+var Attester_default = (Base) => class Attester extends Base {
   constructor(...args) {
     super(...args);
   }

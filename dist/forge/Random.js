@@ -21,7 +21,7 @@ const generateKeyPairs = () => {
     encryption: encryptionKeyPair()
   };
 };
-var Random_default = (Base, symbols) => class Password extends Base {
+var Random_default = (Base) => class Password extends Base {
   #randomKeyPairs = [];
   constructor(...args) {
     super(...args);

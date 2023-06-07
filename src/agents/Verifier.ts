@@ -1,4 +1,4 @@
-export default (Base, symbols) => class Verifier extends Base {
+export default Base => class Verifier extends Base {
   constructor(...args) {
       super(...args);
   }

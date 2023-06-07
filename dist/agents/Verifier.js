@@ -1,4 +1,4 @@
-var Verifier_default = (Base, symbols) => class Verifier extends Base {
+var Verifier_default = (Base) => class Verifier extends Base {
   constructor(...args) {
     super(...args);
   }
