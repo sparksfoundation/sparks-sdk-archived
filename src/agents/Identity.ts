@@ -1,3 +1,18 @@
+type KeriEvent = {
+  eventIndex: string,                // s: sequence number
+  eventType: string,                 // t: event type
+  signingThreshold: string,          // kt: minimum amount of signatures needed for this event to be valid (multisig)
+  signingKeys: Array<string>,        // k: list of signing keys
+  nextKeyCommitments: Array<string>, // n: next keys, added encryption because it makes sense imo
+  backerThreshold: string,           // bt: minimum amount of witnesses threshold - I think these are called backers now
+  backers: Array<string>,            // b: list of witnesses in this case the spark pwa-agent host's publickey there's no receipt at this step
+}
+
+type InceptionEvent = KeriEvent & {
+  identifier: string,                // i: The SAID (self-addressing identifier) which is also the AID
+  version: string
+}
+
 export abstract class Identity {
   abstract encrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract decrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
@@ -22,7 +37,7 @@ export abstract class Identity {
    * @param {string[]} backers - The list of backers to use for the inception event.
    * @throws {Error} If the identity has already been incepted.
    * @throws {Error} If no key pairs are provided.
-   * @throws {Error} If no next key pairs are provided. 
+   * @throws {Error} If no next key pairs are provided.
    * @todo -- add the receipt request and processing
    */
   incept({ keyPairs, nextKeyPairs, backers = [] }: { keyPairs: any, nextKeyPairs: any, backers?: string[] }) {
@@ -43,29 +58,30 @@ export abstract class Identity {
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey)
 
-    const inceptionEvent = {
-      identifier: identifier, // i: AID identifier prefix
-      eventIndex: '0', // s: sequence number
-      eventType: 'inception', // t: event type
-      signingThreshold: '1', // kt: minimum amount of signatures needed for this event to be valid (multisig)
-      signingKeys: [publicSigningKey], // k: list of signing keys
-      nextKeyCommitments: [nextKeyHash], // n: next keys, added encryption because it makes sense imo
-      backerThreshold: '1', // bt: minimum amount of witnesses threshold - I think these are called backers now
-      backers: [...backers], // b: list of witnesses in this case the spark pwa-agent host's publickey there's no receipt at this step
-    } as any; // todo -- fix this type
+    const event: KeriEvent = {
+      eventIndex: '0',
+      eventType: 'inception',
+      signingThreshold: '1',
+      signingKeys: [publicSigningKey],
+      nextKeyCommitments: [nextKeyHash],
+      backerThreshold: '1',
+      backers: [...backers],
+    };
 
-    // add the version and the SAID
-    const eventJSON = JSON.stringify(inceptionEvent);
+    const eventJSON = JSON.stringify(event);
     const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
     const hashedEvent = this.hash(eventJSON);
     const signedEventHash = this.sign({ data: hashedEvent, detached: true });
 
     // v: KERIvvSSSSSS_ KERI version SIZE _
-    inceptionEvent.version = version;
-    inceptionEvent.selfAddressingIdentifier = signedEventHash;
+    const inceptionEvent: InceptionEvent = {
+      ...event,
+      identifier: signedEventHash,
+      version: version,
+    }
 
     // todo -- queue the receipt request
-    this.identifier = identifier;
+    this.identifier = signedEventHash;
     this.keyEventLog = [inceptionEvent];
   }
 
