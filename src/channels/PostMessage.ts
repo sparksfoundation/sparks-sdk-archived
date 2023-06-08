@@ -28,6 +28,7 @@ export default Base => {
       options.sharedKey = this.sharedKey({ publicKey: publicKeys.encryption });
       const connection = new PostMessageChannel({ ...options, identity: this, onOpen, onClose, onMessage });
       this.postMessage.channels.push(connection);
+      if (onOpen) onOpen(connection);
 
       source.postMessage({
         type: 'sparks-channel:connection-confirmation',
@@ -37,9 +38,7 @@ export default Base => {
           encryption: this.keyPairs.encryption.publicKey,
         }
       }, origin);
-
       window.removeEventListener('message', handler);
-      if (onOpen) onOpen(connection);
     }
 
     window.addEventListener('message', handler);
@@ -120,7 +119,6 @@ export default Base => {
       this.onOpen = onOpen
       this.onClose = onClose
       this.onMessage = onMessage ? (data) => {
-        console.log(this)
         const { cid, mid, signature, ciphertext } = data;
         const verified = this.identity.verify({ data: ciphertext, signature, publicKey: this.publicKeys.signing });
         if (!verified) return;
