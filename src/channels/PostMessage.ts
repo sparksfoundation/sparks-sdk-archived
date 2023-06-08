@@ -9,7 +9,7 @@ export default Base => {
    * @param function before - function to run before connection is accepted returns boolean true to accept connection, false to reject
    * @returns {Promise<Channel>}
   */
-  function allow(this: typeof Base, { beforeOpen, onOpen, onClose, onMessage }: { beforeOpen?: Function, onOpen?: Function, onClose?: Function, onMessage?: Function }) {
+  function allow(mixin: typeof Base, { beforeOpen, onOpen, onClose, onMessage }: { beforeOpen?: Function, onOpen?: Function, onClose?: Function, onMessage?: Function }) {
     const handler = (event) => {
       const { data: { cid, type, publicKeys }, origin, source } = event;
       if (!cid || !publicKeys || !type || !origin || !source) return;
@@ -25,17 +25,17 @@ export default Base => {
 
       if (beforeOpen && !beforeOpen(options)) return;
 
-      options.sharedKey = this.sharedKey({ publicKey: publicKeys.encryption });
-      const connection = new PostMessageChannel({ ...options, identity: this, onOpen, onClose, onMessage });
-      this.postMessage.channels.push(connection);
+      options.sharedKey = mixin.sharedKey({ publicKey: publicKeys.encryption });
+      const connection = new PostMessageChannel({ ...options, identity: mixin, onOpen, onClose, onMessage });
+      mixin.postMessage.channels.push(connection);
       if (onOpen) onOpen(connection);
 
       source.postMessage({
         type: 'sparks-channel:connection-confirmation',
         cid: cid,
         publicKeys: {
-          signing: this.keyPairs.signing.publicKey,
-          encryption: this.keyPairs.encryption.publicKey,
+          signing: mixin.keyPairs.signing.publicKey,
+          encryption: mixin.keyPairs.encryption.publicKey,
         }
       }, origin);
       window.removeEventListener('message', handler);
@@ -47,7 +47,7 @@ export default Base => {
   /**
    * connects to a url and emits connection event
   */
-  function open(this: typeof Base, { url, beforeOpen, onOpen, onClose, onMessage }: { url: string, beforeOpen?: Function, onOpen?: Function, onClose?: Function, onMessage?: Function }) {
+  function open(mixin: typeof Base, { url, beforeOpen, onOpen, onClose, onMessage }: { url: string, beforeOpen?: Function, onOpen?: Function, onClose?: Function, onMessage?: Function }) {
     const origin = new URL(url).origin;
     const target = window.open(url, '_blank');
     if (!target) return;
@@ -58,8 +58,8 @@ export default Base => {
         type: 'sparks-channel:connection-request',
         cid: cid,
         publicKeys: {
-          signing: this.keyPairs.signing.publicKey,
-          encryption: this.keyPairs.encryption.publicKey,
+          signing: mixin.keyPairs.signing.publicKey,
+          encryption: mixin.keyPairs.encryption.publicKey,
         }
       }, origin);
     }, 1000);
@@ -77,11 +77,11 @@ export default Base => {
       }
 
       if (beforeOpen && !beforeOpen(options)) return;
-      options.sharedKey = this.sharedKey({ publicKey: publicKeys.encryption });
+      options.sharedKey = mixin.sharedKey({ publicKey: publicKeys.encryption });
       if (!options.sharedKey) throw new Error('Failed to compute shared key');
 
-      const connection = new PostMessageChannel({ ...options, identity: this, onOpen, onClose, onMessage });
-      this.postMessage.channels.push(connection);
+      const connection = new PostMessageChannel({ ...options, identity: mixin, onOpen, onClose, onMessage });
+      mixin.postMessage.channels.push(connection);
       window.removeEventListener('message', handler);
       clearInterval(interval);
       if (onOpen) onOpen(connection);
@@ -90,9 +90,9 @@ export default Base => {
     window.addEventListener('message', handler);
   }
 
-  function close(this: typeof Base) {
-    this.channels.forEach(channel => channel.disconnect())
-    this.channels = []
+  function close(mixin: typeof Base) {
+    mixin.channels.forEach(channel => channel.disconnect())
+    mixin.channels = []
   }
 
   class PostMessageChannel {
