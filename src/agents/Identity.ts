@@ -1,4 +1,5 @@
 type KeriEvent = {
+  identifier: string,                // i: AID identifier prefix
   eventIndex: string,                // s: sequence number
   eventType: string,                 // t: event type
   signingThreshold: string,          // kt: minimum amount of signatures needed for this event to be valid (multisig)
@@ -9,7 +10,7 @@ type KeriEvent = {
 }
 
 type KeriSAIDEvent = KeriEvent & {
-  identifier: string,                // i: The SAID (self-addressing identifier) which is also the AID
+  selfAddressingIdentifier: string,
   version: string
 }
 
@@ -59,6 +60,7 @@ export abstract class Identity {
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey)
 
     const inceptionEvent = this.createEvent({
+      identifier: identifier,
       eventIndex: '0',
       eventType: 'inception',
       signingThreshold: '1',
@@ -113,6 +115,7 @@ export abstract class Identity {
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
 
     const rotationEvent: KeriSAIDEvent = this.createEvent({
+      identifier: this.identifier,
       eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
       eventType: 'rotation',
       signingThreshold: oldKeyEvent.signingThreshold,
@@ -127,6 +130,7 @@ export abstract class Identity {
 
   createEvent(
     {
+      identifier,
       eventIndex,
       eventType,
       signingThreshold,
@@ -135,6 +139,7 @@ export abstract class Identity {
       backerThreshold,
       backers,
   }: {
+    identifier: string,
     eventIndex: string,
     eventType: string,
     signingThreshold: string,
@@ -144,7 +149,7 @@ export abstract class Identity {
     backers: Array<string>,
   }): KeriSAIDEvent {
     const event = {
-      identifier: this.identifier,
+      identifier: identifier,
       eventIndex: eventIndex,
       eventType: eventType,
       signingThreshold: signingThreshold,
@@ -161,7 +166,7 @@ export abstract class Identity {
 
     return {
       ...event,
-      identifier: signedEventHash,
+      selfAddressingIdentifier: signedEventHash,
       version: version,
     };
   }
