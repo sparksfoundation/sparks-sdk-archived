@@ -3,15 +3,35 @@ import util from "tweetnacl-util";
 
 export default Base => {
 
+  type ConnectionOptions = {
+    cid: string
+    origin: string
+    target: Window
+    publicKeys: string
+    sharedKey: string | undefined
+  };
+
+  type OnCloseCallback = (id: string) => void;
+  type OnOpenCallback = (conn: PostMessageChannel) => void;
+  type OnMessageCallback = (name: string) => void;
+  type BeforeOpenCallback = (options: ConnectionOptions) => boolean;
+
   /**
    * sets urls that user is willing to accept connections from
    * once a connection comes in it's added to the collection and emits connection event
    * @param function before - function to run before connection is accepted returns boolean true to accept connection, false to reject
    * @returns {Promise<Channel>}
   */
-  function allow(mixin: typeof Base, { beforeOpen, onOpen, onClose, onMessage }: { beforeOpen?: Function, onOpen?: Function, onClose?: Function, onMessage?: Function }) {
-    const handler = (event) => {
+  function allow(mixin: typeof Base, { beforeOpen, onOpen, onClose, onMessage }: {
+    beforeOpen?: BeforeOpenCallback,
+    onOpen?: OnOpenCallback,
+    onClose?: OnCloseCallback,
+    onMessage?: OnMessageCallback
+  }) {
+    // how does this event include data like cid, publicKeys etc?
+    const handler = event => {
       const { data: { cid, type, publicKeys }, origin, source } = event;
+      // data validation
       if (!cid || !publicKeys || !type || !origin || !source) return;
       if (type !== 'sparks-channel:connection-request') return;
 
@@ -23,14 +43,16 @@ export default Base => {
         sharedKey: undefined,
       }
 
+      // If there's before setup, do it and abort?
       if (beforeOpen && !beforeOpen(options)) return;
-
       options.sharedKey = mixin.sharedKey({ publicKey: publicKeys.encryption });
       const connection = new PostMessageChannel({ ...options, identity: mixin, onOpen, onClose, onMessage });
       mixin.postMessage.channels.push(connection);
       if (onOpen) onOpen(connection);
 
+      // this is where "data" is sent
       source.postMessage({
+        // change the below to be messageType
         type: 'sparks-channel:connection-confirmation',
         cid: cid,
         publicKeys: {
@@ -47,7 +69,13 @@ export default Base => {
   /**
    * connects to a url and emits connection event
   */
-  function open(mixin: typeof Base, { url, beforeOpen, onOpen, onClose, onMessage }: { url: string, beforeOpen?: Function, onOpen?: Function, onClose?: Function, onMessage?: Function }) {
+  function open(mixin: typeof Base, { url, beforeOpen, onOpen, onClose, onMessage }: {
+    url: string,
+    beforeOpen?: BeforeOpenCallback,
+    onOpen?: OnOpenCallback,
+    onClose?: OnCloseCallback,
+    onMessage?: OnMessageCallback
+  }) {
     const origin = new URL(url).origin;
     const target = window.open(url, '_blank');
     if (!target) return;
@@ -73,7 +101,7 @@ export default Base => {
         origin: origin,
         target: target,
         publicKeys: publicKeys,
-        sharedKey: undefined as string | undefined,
+        sharedKey: undefined,
       }
 
       if (beforeOpen && !beforeOpen(options)) return;
@@ -193,7 +221,7 @@ export default Base => {
 
       window.addEventListener('message', handler);
       window.addEventListener('beforeunload', async () => {
-        this.postMessage.channels.forEach(channel => channel.close())
+        this.postMessage.channels.forEach((channel: { close: () => any; }) => channel.close())
         this.postMessage.channels = []
       });
     }

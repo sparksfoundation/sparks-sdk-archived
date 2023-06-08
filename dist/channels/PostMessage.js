@@ -2,7 +2,7 @@ import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
 
 var PostMessage_default = (Base) => {
-  function allow({ beforeOpen, onOpen, onClose, onMessage }) {
+  function allow(mixin, { beforeOpen, onOpen, onClose, onMessage }) {
     const handler = (event) => {
       const { data: { cid, type, publicKeys }, origin, source } = event;
       if (!cid || !publicKeys || !type || !origin || !source)
@@ -18,24 +18,25 @@ var PostMessage_default = (Base) => {
       };
       if (beforeOpen && !beforeOpen(options))
         return;
-      options.sharedKey = this.sharedKey({ publicKey: publicKeys.encryption });
-      const connection = new PostMessageChannel({ ...options, identity: this, onOpen, onClose, onMessage });
-      this.postMessage.channels.push(connection);
+      options.sharedKey = mixin.sharedKey({ publicKey: publicKeys.encryption });
+      const connection = new PostMessageChannel({ ...options, identity: mixin, onOpen, onClose, onMessage });
+      mixin.postMessage.channels.push(connection);
       if (onOpen)
         onOpen(connection);
       source.postMessage({
+        // change the below to be messageType
         type: "sparks-channel:connection-confirmation",
         cid,
         publicKeys: {
-          signing: this.keyPairs.signing.publicKey,
-          encryption: this.keyPairs.encryption.publicKey
+          signing: mixin.keyPairs.signing.publicKey,
+          encryption: mixin.keyPairs.encryption.publicKey
         }
       }, origin);
       window.removeEventListener("message", handler);
     };
     window.addEventListener("message", handler);
   }
-  function open({ url, beforeOpen, onOpen, onClose, onMessage }) {
+  function open(mixin, { url, beforeOpen, onOpen, onClose, onMessage }) {
     const origin = new URL(url).origin;
     const target = window.open(url, "_blank");
     if (!target)
@@ -46,8 +47,8 @@ var PostMessage_default = (Base) => {
         type: "sparks-channel:connection-request",
         cid,
         publicKeys: {
-          signing: this.keyPairs.signing.publicKey,
-          encryption: this.keyPairs.encryption.publicKey
+          signing: mixin.keyPairs.signing.publicKey,
+          encryption: mixin.keyPairs.encryption.publicKey
         }
       }, origin);
     }, 1e3);
@@ -66,11 +67,11 @@ var PostMessage_default = (Base) => {
       };
       if (beforeOpen && !beforeOpen(options))
         return;
-      options.sharedKey = this.sharedKey({ publicKey: publicKeys.encryption });
+      options.sharedKey = mixin.sharedKey({ publicKey: publicKeys.encryption });
       if (!options.sharedKey)
         throw new Error("Failed to compute shared key");
-      const connection = new PostMessageChannel({ ...options, identity: this, onOpen, onClose, onMessage });
-      this.postMessage.channels.push(connection);
+      const connection = new PostMessageChannel({ ...options, identity: mixin, onOpen, onClose, onMessage });
+      mixin.postMessage.channels.push(connection);
       window.removeEventListener("message", handler);
       clearInterval(interval);
       if (onOpen)
@@ -78,9 +79,9 @@ var PostMessage_default = (Base) => {
     };
     window.addEventListener("message", handler);
   }
-  function close() {
-    this.channels.forEach((channel) => channel.disconnect());
-    this.channels = [];
+  function close(mixin) {
+    mixin.channels.forEach((channel) => channel.disconnect());
+    mixin.channels = [];
   }
   class PostMessageChannel {
     cid;
