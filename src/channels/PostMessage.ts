@@ -162,7 +162,7 @@ export default Base => {
       const ciphertext = this.identity.encrypt({ data, sharedKey: this.sharedKey });
       const signature = this.identity.sign({ data: ciphertext, detached: true });
       return new Promise((resolve, reject) => {
-        const handler = (event) => {
+        const handler = (event: { data: any; source: any; origin: any; }) => {
           const { data, source, origin } = event;
           if (
             data.mid === mid &&
@@ -181,7 +181,7 @@ export default Base => {
 
     async close() {
       return new Promise((resolve, reject) => {
-        const handleDisconnect = (event) => {
+        const handleDisconnect = (event: { source: any; origin: string; data: string; }) => {
           if (
             event.source === this.target &&
             event.origin === this.origin &&
