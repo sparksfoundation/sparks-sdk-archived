@@ -2,7 +2,8 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../utils/index.js";
 
-export default Base => class Ed25519 extends Base {
+const Ed25519 = Base => class Ed25519 extends Base {
+
   constructor(...args) {
     super(...args);
   }
@@ -56,3 +57,11 @@ export default Base => class Ed25519 extends Base {
     }
   }
 }
+
+Ed25519.type = 'sign';
+
+Ed25519.dependencies = {
+  derive: true,
+}
+
+export default Ed25519;
