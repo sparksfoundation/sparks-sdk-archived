@@ -14,7 +14,7 @@ type KeriSAIDEvent = KeriEvent & {
   version: string
 }
 
-export default abstract class Identity {
+export default abstract class BaseIdentity {
   abstract encrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract decrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract sign({ data, detached }: { data: string, detached: boolean }): string;

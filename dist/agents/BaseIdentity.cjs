@@ -1,4 +1,6 @@
-class Identity {
+'use strict';
+
+class BaseIdentity {
   identifier;
   keyPairs;
   keyEventLog;
@@ -201,4 +203,4 @@ class Identity {
   }
 }
 
-export { Identity as default };
+module.exports = BaseIdentity;

@@ -1,4 +1,4 @@
-import Identity from './Identity.js';
+import BaseIdentity from './BaseIdentity.js';
 
 function CastingAgent({
   agents = [],
@@ -42,7 +42,7 @@ function CastingAgent({
       }
     });
   });
-  return Mixins.reduce((base, mixin) => mixin(base), Identity);
+  return Mixins.reduce((base, mixin) => mixin(base), BaseIdentity);
 }
 
 export { CastingAgent as default };

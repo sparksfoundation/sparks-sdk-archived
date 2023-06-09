@@ -12,7 +12,7 @@ type KeriSAIDEvent = KeriEvent & {
     selfAddressingIdentifier: string;
     version: string;
 };
-declare abstract class Identity {
+declare abstract class BaseIdentity {
     abstract encrypt({ publicKey, data }: {
         sharedKey?: string;
         publicKey?: string;
@@ -109,4 +109,4 @@ declare abstract class Identity {
     is(): string[];
 }
 
-export { Identity as default };
+export { BaseIdentity as default };
