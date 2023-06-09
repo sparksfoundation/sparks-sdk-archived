@@ -14,7 +14,7 @@ type KeriSAIDEvent = KeriEvent & {
   version: string
 }
 
-export abstract class Identity {
+export default abstract class Identity {
   abstract encrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract decrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract sign({ data, detached }: { data: string, detached: boolean }): string;
@@ -30,6 +30,14 @@ export abstract class Identity {
     this.keyPairs = {};
     this.keyEventLog = [];
   }
+
+  protected get publicKeys() {
+    const signing = this.keyPairs.signing?.publicKey;
+    const encryption = this.keyPairs.encryption?.publicKey;
+    if (!signing || !encryption) return null;
+    return { signing, encryption };
+  }
+
 
   /**
    * Incept a new identity.
@@ -138,16 +146,16 @@ export abstract class Identity {
       nextKeyHash,
       backerThreshold,
       backers,
-  }: {
-    identifier: string,
-    eventIndex: string,
-    eventType: string,
-    signingThreshold: string,
-    publicSigningKey: string,
-    nextKeyHash: string,
-    backerThreshold: string,
-    backers: Array<string>,
-  }): KeriSAIDEvent {
+    }: {
+      identifier: string,
+      eventIndex: string,
+      eventType: string,
+      signingThreshold: string,
+      publicSigningKey: string,
+      nextKeyHash: string,
+      backerThreshold: string,
+      backers: Array<string>,
+    }): KeriSAIDEvent {
     const event = {
       identifier: identifier,
       eventIndex: eventIndex,
