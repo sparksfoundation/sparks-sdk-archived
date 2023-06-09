@@ -1,4 +1,14 @@
-type KeriEvent = {
+type KeyPair = {
+  publicKey: string;
+  secretKey: string;
+}
+
+type KeyPairs = {
+  encryption: KeyPair;
+  signing: KeyPair;
+}
+
+type KeriBaseEvent = {
   identifier: string,                // i: AID identifier prefix
   eventIndex: string,                // s: sequence number
   eventType: string,                 // t: event type
@@ -9,20 +19,20 @@ type KeriEvent = {
   backers: Array<string>,            // b: list of witnesses in this case the spark pwa-agent host's publickey there's no receipt at this step
 }
 
+// an inception event does not have a "previousEventDigest"
+// all other events do
 type OmitPreviousEvent<T = KeriSAIDEvent> = T extends KeriSAIDEvent ? Omit<T, 'previousEventDigest'> : never;
-
 type InceptionEvent = OmitPreviousEvent & {
   previousEventDigest: null,
 }
 
-type KeriSAIDEvent = KeriEvent & {
+type KeriSAIDEvent = KeriBaseEvent & {
   previousEventDigest: string,
   selfAddressingIdentifier: string,
   version: string,
 }
 
-// an inception event does not have a "previousEventDigest"
-// all other events do
+type KeriEvent = KeriSAIDEvent | InceptionEvent
 
 export default abstract class BaseIdentity {
   abstract encrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
@@ -31,13 +41,11 @@ export default abstract class BaseIdentity {
   abstract verify({ publicKey, signature, data }: { publicKey: string, signature: string, data: string | object }): void;
   abstract hash(data: string): string;
 
-  protected identifier: string | null;
-  protected keyPairs: any;
-  protected keyEventLog: any[];
+  protected identifier: string;
+  protected keyPairs: KeyPairs;
+  protected keyEventLog: KeriEvent[];
 
   constructor() {
-    this.identifier = null;
-    this.keyPairs = {};
     this.keyEventLog = [];
   }
 
@@ -116,7 +124,7 @@ export default abstract class BaseIdentity {
    * @throws {Error} If the identity has been destroyed.
    * @todo -- add the receipt request and processing
    */
-  rotate({ keyPairs, nextKeyPairs, backers = [] }: { keyPairs: any, nextKeyPairs: any, backers?: string[] }) {
+  rotate({ keyPairs, nextKeyPairs, backers = [] }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers?: string[] }) {
     if (!this.identifier || !this.keyEventLog?.length) {
       throw Error('Keys can not be rotated before inception');
     }
@@ -202,7 +210,7 @@ export default abstract class BaseIdentity {
       backers,
     }: {
       identifier: string,
-      oldKeyEvent: KeriSAIDEvent,
+      oldKeyEvent: KeriEvent,
       eventType: string,
       publicSigningKey: string,
       nextKeyCommitments: Array<string>,
@@ -233,7 +241,7 @@ export default abstract class BaseIdentity {
   }
 
   // todo -- error handling
-  import({ keyPairs, data }: { keyPairs: any, data: string }) {
+  import({ keyPairs, data }: { keyPairs: KeyPairs, data: string }) {
     this.keyPairs = keyPairs;
     const decrypted = this.decrypt({ data });
     const deepCopy = JSON.parse(JSON.stringify(decrypted));

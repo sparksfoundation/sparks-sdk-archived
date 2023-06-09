@@ -3,8 +3,6 @@ class BaseIdentity {
   keyPairs;
   keyEventLog;
   constructor() {
-    this.identifier = null;
-    this.keyPairs = {};
     this.keyEventLog = [];
   }
   get publicKeys() {

@@ -1,4 +1,12 @@
-type KeriEvent = {
+type KeyPair = {
+    publicKey: string;
+    secretKey: string;
+};
+type KeyPairs = {
+    encryption: KeyPair;
+    signing: KeyPair;
+};
+type KeriBaseEvent = {
     identifier: string;
     eventIndex: string;
     eventType: string;
@@ -8,11 +16,16 @@ type KeriEvent = {
     backerThreshold: string;
     backers: Array<string>;
 };
-type KeriSAIDEvent = KeriEvent & {
+type OmitPreviousEvent<T = KeriSAIDEvent> = T extends KeriSAIDEvent ? Omit<T, 'previousEventDigest'> : never;
+type InceptionEvent = OmitPreviousEvent & {
+    previousEventDigest: null;
+};
+type KeriSAIDEvent = KeriBaseEvent & {
     previousEventDigest: string;
     selfAddressingIdentifier: string;
     version: string;
 };
+type KeriEvent = KeriSAIDEvent | InceptionEvent;
 declare abstract class BaseIdentity {
     abstract encrypt({ publicKey, data }: {
         sharedKey?: string;
@@ -34,13 +47,13 @@ declare abstract class BaseIdentity {
         data: string | object;
     }): void;
     abstract hash(data: string): string;
-    protected identifier: string | null;
-    protected keyPairs: any;
-    protected keyEventLog: any[];
+    protected identifier: string;
+    protected keyPairs: KeyPairs;
+    protected keyEventLog: KeriEvent[];
     constructor();
     protected get publicKeys(): {
-        signing: any;
-        encryption: any;
+        signing: string;
+        encryption: string;
     } | null;
     /**
      * Incept a new identity.
@@ -70,8 +83,8 @@ declare abstract class BaseIdentity {
      * @todo -- add the receipt request and processing
      */
     rotate({ keyPairs, nextKeyPairs, backers }: {
-        keyPairs: any;
-        nextKeyPairs: any;
+        keyPairs: KeyPairs;
+        nextKeyPairs: KeyPairs;
         backers?: string[];
     }): void;
     /**
@@ -93,14 +106,14 @@ declare abstract class BaseIdentity {
     }): void;
     createEvent({ identifier, oldKeyEvent, eventType, publicSigningKey, nextKeyCommitments, backers, }: {
         identifier: string;
-        oldKeyEvent: KeriSAIDEvent;
+        oldKeyEvent: KeriEvent;
         eventType: string;
         publicSigningKey: string;
         nextKeyCommitments: Array<string>;
         backers: Array<string>;
     }): KeriSAIDEvent;
     import({ keyPairs, data }: {
-        keyPairs: any;
+        keyPairs: KeyPairs;
         data: string;
     }): void;
     /**
