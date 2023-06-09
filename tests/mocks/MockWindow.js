@@ -5,6 +5,7 @@ class MockWindow {
     this.origin = origin;
     this.messageListeners = [];
     this.opener = null;
+    this.location = { origin };
     MockWindow.windows[origin] = this;
   }
 

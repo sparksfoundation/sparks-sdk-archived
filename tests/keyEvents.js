@@ -1,7 +1,20 @@
-import { Agent, X25519SalsaPoly, Ed25519, Verifier, Blake3, Password, Random, PostMessage } from '../dist/index.js';
+import { CastingAgent, Verifier, Blake3, X25519SalsaPoly, Ed25519, Random, Password } from '../dist/index.js'
 
-const UserAgent = Agent(Ed25519, X25519SalsaPoly, Blake3, Password);
-const VerifierAgent = Agent(Random, Verifier, Blake3, Ed25519, X25519SalsaPoly);
+const UserAgent = new CastingAgent({
+  agents: [ Verifier ],
+  hash: Blake3,
+  sign: Ed25519,
+  encrypt: X25519SalsaPoly,
+  derive: Password,
+})
+
+const VerifierAgent = new CastingAgent({
+  agents: [ Verifier ],
+  hash: Blake3,
+  sign: Ed25519,
+  encrypt: X25519SalsaPoly,
+  derive: Random,
+})
 
 const user = new UserAgent();
 await user.incept({ password: 'password' });
