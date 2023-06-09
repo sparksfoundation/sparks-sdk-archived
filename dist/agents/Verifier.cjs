@@ -1,6 +1,6 @@
 'use strict';
 
-var Verifier_default = (Base) => class Verifier extends Base {
+const Verifier = (Base) => class Verifier extends Base {
   constructor(...args) {
     super(...args);
   }
@@ -31,5 +31,11 @@ var Verifier_default = (Base) => class Verifier extends Base {
     return valid;
   }
 };
+Verifier.type = "agent";
+Verifier.dependencies = {
+  hash: true,
+  sign: true
+};
+var Verifier_default = Verifier;
 
 module.exports = Verifier_default;

@@ -1,9 +1,10 @@
-export { default as Agent } from './agents/Agent.js';
+export { default as CastingAgent } from './agents/CastingAgent.js';
 export { default as Attester } from './agents/Attester.js';
 export { default as Verifier } from './agents/Verifier.js';
 export { default as X25519SalsaPoly } from './encrypt/X25519SalsaPoly.js';
 export { default as Ed25519 } from './sign/Ed25519.js';
-export { default as Password } from './forge/Password.js';
-export { default as Random } from './forge/Random.js';
+export { default as Password } from './derive/Password.js';
+export { default as Random } from './derive/Random.js';
 export { default as PostMessage } from './channels/PostMessage.js';
 export { default as Blake3 } from './hash/Blake3.js';
+import './agents/Identity.js';

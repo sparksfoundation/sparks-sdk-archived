@@ -23,8 +23,7 @@ const generateKeyPairs = () => {
     encryption: encryptionKeyPair(),
   };
 }
-
-export default Base => class Password extends Base {
+const Random = Base => class Random extends Base {
     #randomKeyPairs = [] as any[];
     constructor(...args) {
         super(...args);
@@ -44,3 +43,7 @@ export default Base => class Password extends Base {
       super.rotate({ keyPairs, nextKeyPairs });
     }
 };
+
+Random.type = 'derive';
+
+export default Random;

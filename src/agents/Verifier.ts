@@ -1,6 +1,6 @@
-export default Base => class Verifier extends Base {
+const Verifier = Base => class Verifier extends Base {
   constructor(...args) {
-      super(...args);
+    super(...args);
   }
 
   /**
@@ -35,3 +35,11 @@ export default Base => class Verifier extends Base {
     return valid;
   }
 }
+
+Verifier.type = 'agent';
+Verifier.dependencies = {
+  hash: true,
+  sign: true,
+};
+
+export default Verifier;

@@ -1,40 +1,54 @@
-import { Agent, X25519SalsaPoly, Ed25519, Blake3, Random, PostMessage } from '../dist/index.js';
+import { CastingAgent, X25519SalsaPoly, Ed25519, Blake3, Random, PostMessage } from '../dist/index.js';
 import MockWindow from './mocks/MockWindow.js';
 
-const CommsTest = Agent(Random, Ed25519, X25519SalsaPoly, Blake3, PostMessage);
+const CommsAgent = CastingAgent({
+  encrypt: X25519SalsaPoly,
+  sign: Ed25519,
+  hash: Blake3,
+  derive: Random,
+  channels: [PostMessage],
+});
 
 // mock window to test channel
 global.window = new MockWindow('http://localhost:3000');
 
-const website = new CommsTest();
+const website = new CommsAgent();
 website.incept();
 
 // website accepts alice's connection request
-website.postMessage.allow({
-    url: 'http://localhost:3000',
-    onOpen: conn => {
-        console.log('website connected')
-    },
-    onMessage: name => console.log(`hello: ${name}!`),
-    onClose: id => console.log(`closed: ${id}!`),
+website.postMessage.open({
+  onOpen: (id, conn) => {
+    console.log('Website connected')
+    setTimeout(() => {
+      conn.message('Website')
+    }, 60)
+  },
+  onMessage: (data, conn) => {
+    console.log(`Hi from Website: ${data}!`)
+  },
+  onClose: (id, conn) => {
+    console.log('closed from Website', id)
+  },
 })
 
-const alice = new CommsTest();
+const alice = new CommsAgent();
 alice.incept();
 
 alice.postMessage.open({
-    url: 'http://localhost:3000',
-    onOpen: conn => {
-        console.log('alice connected')
-        conn.message('Alice').then((signature) => {
-            const data = alice.verify({ signature, publicKey: conn.publicKeys.signing })
-            const verified = data.cid === conn.cid && data.message === 'Alice'
-            console.log(verified)
-        })
-        conn.close()
-    },
-    onClose: name => console.log(`closed: ${name}!`),
-    onMessage: id => console.log(`hello: ${id}!`),
+  target: 'http://localhost:3000',
+  onOpen: (id, conn) => {
+    console.log('Alice connected')
+    conn.message('Alice').then((signature) => {
+      const data = alice.verify({ signature, publicKey: conn.publicKeys.signing })
+      const verified = data.cid === conn.cid && data.message === 'Alice'
+      console.log(`message verified:`, verified)
+      conn.close()
+    })
+  },
+  onClose: (id, conn) => {
+    console.log('closed from Alice', id)
+  },
+  onMessage: (data, conn) => {
+    console.log(`Hi from Alice: ${data}!`)
+  }
 })
-
-console.log('passed: all tests')

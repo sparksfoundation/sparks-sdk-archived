@@ -1,7 +1,8 @@
 import { blake3 } from '@noble/hashes/blake3';
 import util from 'tweetnacl-util';
 
-export default Base => class Blake3 extends Base {
+const Blake3 = Base => class Blake3 extends Base {
+
   constructor(...args) {
     super(...args);
   }
@@ -16,3 +17,7 @@ export default Base => class Blake3 extends Base {
     return util.encodeBase64(blake3(stringData));
   }
 }
+
+Blake3.type = 'hash';
+
+export default Blake3;
