@@ -45,9 +45,8 @@ class PostMessageChannel {
     this.sharedKey = sharedKey;
     this.onOpen = onOpen;
     this.onClose = onClose;
-    this.onMessage = onMessage ? (data) => {
-      if (this.closed)
-        return;
+    this.closed = false;
+    const messageHandler = onMessage ? (data, conn) => {
       const { cid: cid2, mid, signature, ciphertext } = data;
       const verified = this.ctx.verify({ data: ciphertext, signature, publicKey: this.publicKeys.signing });
       if (!verified)
@@ -55,8 +54,29 @@ class PostMessageChannel {
       const message = this.ctx.decrypt({ data: ciphertext, sharedKey: this.sharedKey });
       const signed = this.ctx.sign({ data: { cid: cid2, message } });
       this.target.postMessage({ cid: cid2, mid, signature: signed, type: "sparks-channel:message-confirmation" }, this.origin);
-      onMessage(message);
+      if (!this.closed)
+        onMessage(message, conn);
     } : void 0;
+    const handler = (event) => {
+      const { data, origin: origin2 } = event;
+      const { cid: cid2, type } = data;
+      if (!cid2 || !type || !origin2)
+        return;
+      const isClosed = type === "sparks-channel:closed";
+      const isMessage = type === "sparks-channel:message";
+      if (isClosed && onClose) {
+        onClose(cid2, this);
+      } else if (isMessage && messageHandler) {
+        messageHandler(data, this);
+      }
+    };
+    const close = this.close.bind(this);
+    this.close = async () => {
+      await close();
+      window.removeEventListener("message", handler);
+    };
+    window.addEventListener("message", handler);
+    window.addEventListener("beforeunload", close);
   }
   async message(data) {
     const mid = util__default.default.encodeBase64(nacl__default.default.randomBytes(16));
@@ -65,17 +85,16 @@ class PostMessageChannel {
     return new Promise((resolve, reject) => {
       const handler = (event) => {
         const { data: data2, source, origin } = event;
-        console.log(data2, mid);
         if (data2.mid === mid && source === this.target && origin === this.origin && data2.type === "sparks-channel:message-confirmation") {
-          window.removeEventListener("message", handler);
-          if (!this.closed)
+          if (this.closed)
             return reject("channel closed");
           else
             resolve(data2.signature);
+          window.removeEventListener("message", handler);
         }
       };
-      this.target.postMessage({ cid: this.cid, mid, type: "sparks-channel:message", ciphertext, signature }, this.origin);
       window.addEventListener("message", handler);
+      this.target.postMessage({ cid: this.cid, mid, type: "sparks-channel:message", ciphertext, signature }, this.origin);
     });
   }
   async close() {
@@ -86,8 +105,8 @@ class PostMessageChannel {
           resolve(true);
         }
       };
-      this.target.postMessage({ cid: this.cid, type: "sparks-channel:closed" }, this.origin);
       window.addEventListener("message", handleDisconnect);
+      this.target.postMessage({ cid: this.cid, type: "sparks-channel:closed" }, this.origin);
       this.closed = true;
     });
   }
@@ -108,27 +127,6 @@ class PostMessageManager {
         computeSharedKey: ctx.computeSharedKey.bind(ctx)
       });
     };
-    const handler = (event) => {
-      const { data, origin } = event;
-      const { cid, type } = data;
-      if (!cid || !type || !origin)
-        return;
-      const isClosed = type === "sparks-channel:closed";
-      const isMessage = type === "sparks-channel:message";
-      const channel = this.channels.find((channel2) => channel2.cid === cid);
-      if (isClosed && !!channel && channel.onClose) {
-        channel.onClose(cid, channel);
-      } else if (isMessage && !!channel && channel.onMessage) {
-        channel.onMessage(data, channel);
-      }
-    };
-    const close = this.close.bind(this);
-    this.close = async () => {
-      await close();
-      window.removeEventListener("message", handler);
-    };
-    window.addEventListener("message", handler);
-    window.addEventListener("beforeunload", close);
   }
   async close() {
     this.channels.forEach((channel) => channel.close());

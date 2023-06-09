@@ -52,17 +52,41 @@ class PostMessageChannel {
     this.sharedKey = sharedKey
     this.onOpen = onOpen
     this.onClose = onClose
+    this.closed = false
 
-    this.onMessage = onMessage ? (data) => {
-      if (this.closed) return;
+    const messageHandler = onMessage ? (data, conn) => {
       const { cid, mid, signature, ciphertext } = data;
       const verified = this.ctx.verify({ data: ciphertext, signature, publicKey: this.publicKeys.signing });
       if (!verified) return;
       const message = this.ctx.decrypt({ data: ciphertext, sharedKey: this.sharedKey });
-      const signed = this.ctx.sign({ data: { cid, message } })
-      this.target.postMessage({ cid, mid, signature: signed, type: 'sparks-channel:message-confirmation' }, this.origin)
-      onMessage(message);
+      const signed = this.ctx.sign({ data: { cid, message } });
+      this.target.postMessage({ cid, mid, signature: signed, type: 'sparks-channel:message-confirmation' }, this.origin);
+      if (!this.closed) onMessage(message, conn);
     } : undefined
+
+    // todo -- either handle everything here or move it to the channel
+    // channels should hanve their own global listeners tbh
+    const handler = (event) => {
+      const { data, origin } = event;
+      const { cid, type } = data;
+      if (!cid || !type || !origin) return;
+      const isClosed = type === 'sparks-channel:closed';
+      const isMessage = type === 'sparks-channel:message';
+      if (isClosed && onClose) {
+        onClose(cid, this)
+      } else if (isMessage && messageHandler) {
+        messageHandler(data, this)
+      }
+    };
+
+    const close = this.close.bind(this)
+    this.close = async () => {
+      await close()
+      window.removeEventListener('message', handler);
+    }
+
+    window.addEventListener('message', handler);
+    window.addEventListener('beforeunload', close);
   }
 
   async message(data) {
@@ -72,20 +96,19 @@ class PostMessageChannel {
     return new Promise((resolve, reject) => {
       const handler = (event: { data: any; source: any; origin: any; }) => {
         const { data, source, origin } = event;
-          console.log(data, mid)
         if (
           data.mid === mid &&
           source === this.target &&
           origin === this.origin &&
           data.type === 'sparks-channel:message-confirmation'
         ) {
-          window.removeEventListener('message', handler);
-          if (!this.closed) return reject('channel closed')
+          if (this.closed) return reject('channel closed');
           else resolve(data.signature);
+          window.removeEventListener('message', handler);
         }
       };
-      this.target.postMessage({ cid: this.cid, mid: mid, type: 'sparks-channel:message', ciphertext, signature }, this.origin);
       window.addEventListener('message', handler);
+      this.target.postMessage({ cid: this.cid, mid: mid, type: 'sparks-channel:message', ciphertext, signature }, this.origin);
     });
   }
 
@@ -101,8 +124,8 @@ class PostMessageChannel {
           resolve(true);
         }
       };
-      this.target.postMessage({ cid: this.cid, type: 'sparks-channel:closed' }, this.origin);
       window.addEventListener('message', handleDisconnect);
+      this.target.postMessage({ cid: this.cid, type: 'sparks-channel:closed' }, this.origin);
       this.closed = true
     });
   }
@@ -125,31 +148,6 @@ class PostMessageManager {
         computeSharedKey: ctx.computeSharedKey.bind(ctx),
       })
     }
-    
-    // todo -- either handle everything here or move it to the channel
-    // channels should hanve their own global listeners tbh
-    const handler = (event) => {
-      const { data, origin } = event;
-      const { cid, type } = data;
-      if (!cid || !type || !origin) return;
-      const isClosed = type === 'sparks-channel:closed';
-      const isMessage = type === 'sparks-channel:message';
-      const channel = this.channels.find(channel => channel.cid === cid);
-      if (isClosed && !!channel && channel.onClose) {
-        channel.onClose(cid, channel)
-      } else if (isMessage && !!channel && channel.onMessage) {
-        channel.onMessage(data, channel)
-      }
-    };
-
-    const close = this.close.bind(this)
-    this.close = async () => {
-      await close()
-      window.removeEventListener('message', handler);
-    }
-
-    window.addEventListener('message', handler);
-    window.addEventListener('beforeunload', close);
   }
 
   async close() {
@@ -194,7 +192,7 @@ class PostMessageManager {
       } else if (requesting) {
         if (!sharedKey) throw new Error('Failed to compute shared key');
         // let's send a confirmation back to the source
-        
+
         source.postMessage({
           type: 'sparks-channel:connection-confirmation',
           cid,

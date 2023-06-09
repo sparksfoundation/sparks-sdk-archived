@@ -8,9 +8,6 @@ dependencies:
   '@noble/hashes':
     specifier: ^1.3.1
     version: 1.3.1
-  blake3:
-    specifier: link:@noble/hashes/blake3
-    version: link:@noble/hashes/blake3
   scrypt-pbkdf:
     specifier: ^1.1.1
     version: 1.1.1
