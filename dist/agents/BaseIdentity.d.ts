@@ -9,6 +9,7 @@ type KeriEvent = {
     backers: Array<string>;
 };
 type KeriSAIDEvent = KeriEvent & {
+    previousEventDigest: string;
     selfAddressingIdentifier: string;
     version: string;
 };
@@ -73,14 +74,12 @@ declare abstract class BaseIdentity {
         nextKeyPairs: any;
         backers?: string[];
     }): void;
-    createEvent({ identifier, eventIndex, eventType, signingThreshold, publicSigningKey, nextKeyHash, backerThreshold, backers, }: {
+    createEvent({ identifier, oldKeyEvent, eventType, publicSigningKey, nextKeyHash, backers, }: {
         identifier: string;
-        eventIndex: string;
+        oldKeyEvent: KeriSAIDEvent;
         eventType: string;
-        signingThreshold: string;
         publicSigningKey: string;
         nextKeyHash: string;
-        backerThreshold: string;
         backers: Array<string>;
     }): KeriSAIDEvent;
     /**

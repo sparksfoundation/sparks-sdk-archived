@@ -40,16 +40,26 @@ class BaseIdentity {
     const identifier = `B${this.keyPairs.signing.publicKey.replace(/=$/, "")}`;
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
-    const inceptionEvent = this.createEvent({
+    const event = {
       identifier,
       eventIndex: "0",
       eventType: "inception",
       signingThreshold: "1",
-      publicSigningKey,
-      nextKeyHash,
+      signingKeys: [publicSigningKey],
+      nextKeyCommitments: [nextKeyHash],
       backerThreshold: "1",
-      backers
-    });
+      backers: [...backers]
+    };
+    const eventJSON = JSON.stringify(event);
+    const version = "KERI10JSON" + eventJSON.length.toString(16).padStart(6, "0") + "_";
+    const hashedEvent = this.hash(eventJSON);
+    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
+    const inceptionEvent = {
+      ...event,
+      previousEventDigest: null,
+      selfAddressingIdentifier: signedEventHash,
+      version
+    };
     this.identifier = inceptionEvent.identifier;
     this.keyEventLog = [inceptionEvent];
   }
@@ -89,34 +99,39 @@ class BaseIdentity {
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
     const rotationEvent = this.createEvent({
       identifier: this.identifier,
-      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
+      oldKeyEvent,
       eventType: "rotation",
-      signingThreshold: oldKeyEvent.signingThreshold,
       publicSigningKey,
       nextKeyHash,
-      backerThreshold: oldKeyEvent.backerThreshold,
       backers
     });
     this.keyEventLog.push(rotationEvent);
+    this.keyEventLog.forEach((event) => {
+      console.log(`KEY EVENT identifier: ${event.identifier}
+`);
+      console.log(`KEY EVENT SAID: ${event.selfAddressingIdentifier}
+`);
+      console.log(`KEY EVENT Previous digest: ${event.previousEventDigest}
+`);
+    });
+    console.log("----------------------------------------------");
   }
   createEvent({
     identifier,
-    eventIndex,
+    oldKeyEvent,
     eventType,
-    signingThreshold,
     publicSigningKey,
     nextKeyHash,
-    backerThreshold,
     backers
   }) {
     const event = {
       identifier,
-      eventIndex,
+      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
       eventType,
-      signingThreshold,
+      signingThreshold: oldKeyEvent.signingThreshold,
       signingKeys: [publicSigningKey],
       nextKeyCommitments: [nextKeyHash],
-      backerThreshold,
+      backerThreshold: oldKeyEvent.backerThreshold,
       backers: [...backers]
     };
     const eventJSON = JSON.stringify(event);
@@ -125,6 +140,7 @@ class BaseIdentity {
     const signedEventHash = this.sign({ data: hashedEvent, detached: true });
     return {
       ...event,
+      previousEventDigest: oldKeyEvent.selfAddressingIdentifier,
       selfAddressingIdentifier: signedEventHash,
       version
     };

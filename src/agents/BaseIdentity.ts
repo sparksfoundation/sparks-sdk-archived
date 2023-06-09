@@ -9,10 +9,20 @@ type KeriEvent = {
   backers: Array<string>,            // b: list of witnesses in this case the spark pwa-agent host's publickey there's no receipt at this step
 }
 
-type KeriSAIDEvent = KeriEvent & {
-  selfAddressingIdentifier: string,
-  version: string
+type OmitPreviousEvent<T = KeriSAIDEvent> = T extends KeriSAIDEvent ? Omit<T, 'previousEventDigest'> : never;
+
+type InceptionEvent = OmitPreviousEvent & {
+  previousEventDigest: null,
 }
+
+type KeriSAIDEvent = KeriEvent & {
+  previousEventDigest: string,
+  selfAddressingIdentifier: string,
+  version: string,
+}
+
+// an inception event does not have a "previousEventDigest"
+// all other events do
 
 export default abstract class BaseIdentity {
   abstract encrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
@@ -66,16 +76,28 @@ export default abstract class BaseIdentity {
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey)
 
-    const inceptionEvent = this.createEvent({
+    const event = {
       identifier: identifier,
       eventIndex: '0',
       eventType: 'inception',
       signingThreshold: '1',
-      publicSigningKey: publicSigningKey,
-      nextKeyHash: nextKeyHash,
+      signingKeys: [publicSigningKey],
+      nextKeyCommitments: [nextKeyHash],
       backerThreshold: '1',
-      backers: backers,
-    })
+      backers: [...backers],
+    };
+
+    const eventJSON = JSON.stringify(event);
+    const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
+    const hashedEvent = this.hash(eventJSON);
+    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
+
+    const inceptionEvent: InceptionEvent = {
+      ...event,
+      previousEventDigest: null,
+      selfAddressingIdentifier: signedEventHash,
+      version: version,
+    };
 
     // todo -- queue the receipt request
     this.identifier = inceptionEvent.identifier;
@@ -123,59 +145,14 @@ export default abstract class BaseIdentity {
 
     const rotationEvent: KeriSAIDEvent = this.createEvent({
       identifier: this.identifier,
-      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
+      oldKeyEvent: oldKeyEvent,
       eventType: 'rotation',
-      signingThreshold: oldKeyEvent.signingThreshold,
       publicSigningKey: publicSigningKey,
       nextKeyHash: nextKeyHash,
-      backerThreshold: oldKeyEvent.backerThreshold,
       backers: backers,
     })
     // todo queue witness receipt request
     this.keyEventLog.push(rotationEvent);
-  }
-
-  createEvent(
-    {
-      identifier,
-      eventIndex,
-      eventType,
-      signingThreshold,
-      publicSigningKey,
-      nextKeyHash,
-      backerThreshold,
-      backers,
-    }: {
-      identifier: string,
-      eventIndex: string,
-      eventType: string,
-      signingThreshold: string,
-      publicSigningKey: string,
-      nextKeyHash: string,
-      backerThreshold: string,
-      backers: Array<string>,
-    }): KeriSAIDEvent {
-    const event = {
-      identifier: identifier,
-      eventIndex: eventIndex,
-      eventType: eventType,
-      signingThreshold: signingThreshold,
-      signingKeys: [publicSigningKey],
-      nextKeyCommitments: [nextKeyHash],
-      backerThreshold: backerThreshold,
-      backers: [...backers],
-    };
-
-    const eventJSON = JSON.stringify(event);
-    const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
-    const hashedEvent = this.hash(eventJSON);
-    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-
-    return {
-      ...event,
-      selfAddressingIdentifier: signedEventHash,
-      version: version,
-    };
   }
 
   /**
@@ -220,6 +197,46 @@ export default abstract class BaseIdentity {
 
     // todo queue witness receipt request
     this.keyEventLog.push(rotationEvent);
+  }
+
+  createEvent(
+    {
+      identifier,
+      oldKeyEvent,
+      eventType,
+      publicSigningKey,
+      nextKeyHash,
+      backers,
+    }: {
+      identifier: string,
+      oldKeyEvent: KeriSAIDEvent,
+      eventType: string,
+      publicSigningKey: string,
+      nextKeyHash: string,
+      backers: Array<string>,
+    }): KeriSAIDEvent {
+    const event = {
+      identifier: identifier,
+      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
+      eventType: eventType,
+      signingThreshold: oldKeyEvent.signingThreshold,
+      signingKeys: [publicSigningKey],
+      nextKeyCommitments: [nextKeyHash],
+      backerThreshold: oldKeyEvent.backerThreshold,
+      backers: [...backers],
+    };
+
+    const eventJSON = JSON.stringify(event);
+    const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
+    const hashedEvent = this.hash(eventJSON);
+    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
+
+    return {
+      ...event,
+      previousEventDigest: oldKeyEvent.selfAddressingIdentifier,
+      selfAddressingIdentifier: signedEventHash,
+      version: version,
+    };
   }
 
   // todo -- error handling
