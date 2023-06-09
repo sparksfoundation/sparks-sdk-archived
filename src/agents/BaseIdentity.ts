@@ -148,9 +148,10 @@ export default abstract class BaseIdentity {
       oldKeyEvent: oldKeyEvent,
       eventType: 'rotation',
       publicSigningKey: publicSigningKey,
-      nextKeyHash: nextKeyHash,
+      nextKeyCommitments: [nextKeyHash],
       backers: backers,
     })
+
     // todo queue witness receipt request
     this.keyEventLog.push(rotationEvent);
   }
@@ -176,24 +177,14 @@ export default abstract class BaseIdentity {
     const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
     const publicSigningKey = this.keyPairs.signing.publicKey;
 
-    const rotationEvent = {
+    const rotationEvent: KeriSAIDEvent = this.createEvent({
       identifier: this.identifier,
-      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
+      oldKeyEvent: oldKeyEvent,
       eventType: 'destruction',
-      signingThreshold: oldKeyEvent.signingThreshold,
-      signingKeys: [publicSigningKey],
+      publicSigningKey: publicSigningKey,
       nextKeyCommitments: [],
-      backerThreshold: oldKeyEvent.backerThreshold,
-      backers: [...backers],
-    } as any; // todo -- fix this type
-
-    const eventJSON = JSON.stringify(rotationEvent);
-    const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
-    const hashedEvent = this.hash(eventJSON);
-    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-
-    rotationEvent.version = version;
-    rotationEvent.selfAddressingIdentifier = signedEventHash;
+      backers: backers,
+    })
 
     // todo queue witness receipt request
     this.keyEventLog.push(rotationEvent);
@@ -205,14 +196,14 @@ export default abstract class BaseIdentity {
       oldKeyEvent,
       eventType,
       publicSigningKey,
-      nextKeyHash,
+      nextKeyCommitments,
       backers,
     }: {
       identifier: string,
       oldKeyEvent: KeriSAIDEvent,
       eventType: string,
       publicSigningKey: string,
-      nextKeyHash: string,
+      nextKeyCommitments: Array<string>,
       backers: Array<string>,
     }): KeriSAIDEvent {
     const event = {
@@ -221,7 +212,7 @@ export default abstract class BaseIdentity {
       eventType: eventType,
       signingThreshold: oldKeyEvent.signingThreshold,
       signingKeys: [publicSigningKey],
-      nextKeyCommitments: [nextKeyHash],
+      nextKeyCommitments: nextKeyCommitments,
       backerThreshold: oldKeyEvent.backerThreshold,
       backers: [...backers],
     };

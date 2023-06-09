@@ -74,14 +74,6 @@ declare abstract class BaseIdentity {
         nextKeyPairs: any;
         backers?: string[];
     }): void;
-    createEvent({ identifier, oldKeyEvent, eventType, publicSigningKey, nextKeyHash, backers, }: {
-        identifier: string;
-        oldKeyEvent: KeriSAIDEvent;
-        eventType: string;
-        publicSigningKey: string;
-        nextKeyHash: string;
-        backers: Array<string>;
-    }): KeriSAIDEvent;
     /**
      * Destroy an identity.
      * @param {string[]} backers - The list of backers to use for the destruction event.
@@ -93,6 +85,14 @@ declare abstract class BaseIdentity {
     destroy(args?: {
         backers?: string[];
     }): void;
+    createEvent({ identifier, oldKeyEvent, eventType, publicSigningKey, nextKeyCommitments, backers, }: {
+        identifier: string;
+        oldKeyEvent: KeriSAIDEvent;
+        eventType: string;
+        publicSigningKey: string;
+        nextKeyCommitments: Array<string>;
+        backers: Array<string>;
+    }): KeriSAIDEvent;
     import({ keyPairs, data }: {
         keyPairs: any;
         data: string;

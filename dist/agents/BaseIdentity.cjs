@@ -104,48 +104,10 @@ class BaseIdentity {
       oldKeyEvent,
       eventType: "rotation",
       publicSigningKey,
-      nextKeyHash,
+      nextKeyCommitments: [nextKeyHash],
       backers
     });
     this.keyEventLog.push(rotationEvent);
-    this.keyEventLog.forEach((event) => {
-      console.log(`KEY EVENT identifier: ${event.identifier}
-`);
-      console.log(`KEY EVENT SAID: ${event.selfAddressingIdentifier}
-`);
-      console.log(`KEY EVENT Previous digest: ${event.previousEventDigest}
-`);
-    });
-    console.log("----------------------------------------------");
-  }
-  createEvent({
-    identifier,
-    oldKeyEvent,
-    eventType,
-    publicSigningKey,
-    nextKeyHash,
-    backers
-  }) {
-    const event = {
-      identifier,
-      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
-      eventType,
-      signingThreshold: oldKeyEvent.signingThreshold,
-      signingKeys: [publicSigningKey],
-      nextKeyCommitments: [nextKeyHash],
-      backerThreshold: oldKeyEvent.backerThreshold,
-      backers: [...backers]
-    };
-    const eventJSON = JSON.stringify(event);
-    const version = "KERI10JSON" + eventJSON.length.toString(16).padStart(6, "0") + "_";
-    const hashedEvent = this.hash(eventJSON);
-    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-    return {
-      ...event,
-      previousEventDigest: oldKeyEvent.selfAddressingIdentifier,
-      selfAddressingIdentifier: signedEventHash,
-      version
-    };
   }
   /**
    * Destroy an identity.
@@ -166,23 +128,44 @@ class BaseIdentity {
     }
     const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
     const publicSigningKey = this.keyPairs.signing.publicKey;
-    const rotationEvent = {
+    const rotationEvent = this.createEvent({
       identifier: this.identifier,
-      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
+      oldKeyEvent,
       eventType: "destruction",
+      publicSigningKey,
+      nextKeyCommitments: [],
+      backers
+    });
+    this.keyEventLog.push(rotationEvent);
+  }
+  createEvent({
+    identifier,
+    oldKeyEvent,
+    eventType,
+    publicSigningKey,
+    nextKeyCommitments,
+    backers
+  }) {
+    const event = {
+      identifier,
+      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
+      eventType,
       signingThreshold: oldKeyEvent.signingThreshold,
       signingKeys: [publicSigningKey],
-      nextKeyCommitments: [],
+      nextKeyCommitments,
       backerThreshold: oldKeyEvent.backerThreshold,
       backers: [...backers]
     };
-    const eventJSON = JSON.stringify(rotationEvent);
+    const eventJSON = JSON.stringify(event);
     const version = "KERI10JSON" + eventJSON.length.toString(16).padStart(6, "0") + "_";
     const hashedEvent = this.hash(eventJSON);
     const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-    rotationEvent.version = version;
-    rotationEvent.selfAddressingIdentifier = signedEventHash;
-    this.keyEventLog.push(rotationEvent);
+    return {
+      ...event,
+      previousEventDigest: oldKeyEvent.selfAddressingIdentifier,
+      selfAddressingIdentifier: signedEventHash,
+      version
+    };
   }
   // todo -- error handling
   import({ keyPairs, data }) {
