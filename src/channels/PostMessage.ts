@@ -93,6 +93,7 @@ class PostMessageChannel {
     const mid = util.encodeBase64(nacl.randomBytes(16));
     const ciphertext = this.ctx.encrypt({ data, sharedKey: this.sharedKey });
     const signature = this.ctx.sign({ data: ciphertext, detached: true });
+
     return new Promise((resolve, reject) => {
       const handler = (event: { data: any; source: any; origin: any; }) => {
         const { data, source, origin } = event;
@@ -107,8 +108,8 @@ class PostMessageChannel {
           window.removeEventListener('message', handler);
         }
       };
-      window.addEventListener('message', handler);
       this.target.postMessage({ cid: this.cid, mid: mid, type: 'sparks-channel:message', ciphertext, signature }, this.origin);
+      window.addEventListener('message', handler);
     });
   }
 
@@ -162,6 +163,7 @@ class PostMessageManager {
     const { encrypt, decrypt, sign, verify } = args;
     if (!computeSharedKey) throw new Error('computeSharedKey is required');
     const channelId = util.encodeBase64(nacl.randomBytes(16))
+    let requestInterval
 
     // let's setup a handler to manage connection request or confirmation
     const handler = (event) => {
@@ -180,38 +182,47 @@ class PostMessageManager {
       if (confirming) {
         if (!sharedKey) throw new Error('Failed to compute shared key');
 
-        // create channel, alert the target, add channel, remove listener/interval and callback
-        // if the cid !== channelId we know it's the initiator so set it up
-        const channel = new PostMessageChannel({ cid, origin, target: source, publicKeys, sharedKey, onOpen, onMessage, onClose, encrypt, decrypt, sign, verify });
-        this.channels.push(channel);
-        if (onOpen) onOpen(cid, channel);
+        // let's setup the channel if it doesn't exist
+        if (!this.channels.find(channel => channel.cid === cid)) {
+          const channel = new PostMessageChannel({ cid, origin, target: source, publicKeys, sharedKey, onOpen, onMessage, onClose, encrypt, decrypt, sign, verify });
+          this.channels.push(channel);
+          if (onOpen) onOpen(cid, channel);
+        }
 
-        window.removeEventListener('message', handler);
+        clearInterval(requestInterval);
         source.postMessage({ cid, type: 'sparks-channel:connection-confirmation', publicKeys: ourPublicKeys }, origin);
+        window.removeEventListener('message', handler);
 
       } else if (requesting) {
         if (!sharedKey) throw new Error('Failed to compute shared key');
         // let's send a confirmation back to the source
-
         source.postMessage({
           type: 'sparks-channel:connection-confirmation',
           cid,
-          publicKeys,
+          publicKeys: ourPublicKeys,
         }, origin);
-        window.removeEventListener('message', handler);
+
+        // setup the requester's channel first
+        const channel = new PostMessageChannel({ cid, origin, target: source, publicKeys, sharedKey, onOpen, onMessage, onClose, encrypt, decrypt, sign, verify });
+        this.channels.push(channel);
+        if (onOpen) onOpen(cid, channel);
       }
     }
     window.addEventListener('message', handler);
 
     // if has a target we can initiate the connection request
     // if the target is a string open a window
-    const targetWindow = typeof target === 'string' ? window.open(target, '_blank') : target;
-    if (targetWindow) {
-      targetWindow.postMessage({
-        type: 'sparks-channel:connection-request',
-        cid: channelId,
-        publicKeys: ourPublicKeys,
-      }, targetWindow.location.origin);
+    if (!!target && typeof target === 'string') {
+      const targetOrigin = new URL(target).origin;
+      const targetWindow = window.open(target, '_blank');
+      if (!targetWindow) throw new Error('Failed to open window');
+      requestInterval = setInterval(() => {
+        targetWindow.postMessage({
+          type: 'sparks-channel:connection-request',
+          cid: channelId,
+          publicKeys: ourPublicKeys,
+        }, targetOrigin);
+      }, 1000);
     }
   }
 }
