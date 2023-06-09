@@ -36,7 +36,7 @@ declare abstract class Identity {
     protected identifier: string | null;
     protected keyPairs: any;
     protected keyEventLog: any[];
-    protected constructor();
+    constructor();
     protected get publicKeys(): {
         signing: any;
         encryption: any;
