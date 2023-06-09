@@ -7,6 +7,14 @@ class Identity {
     this.keyPairs = {};
     this.keyEventLog = [];
   }
+  get publicKeys() {
+    var _a, _b;
+    const signing = (_a = this.keyPairs.signing) == null ? void 0 : _a.publicKey;
+    const encryption = (_b = this.keyPairs.encryption) == null ? void 0 : _b.publicKey;
+    if (!signing || !encryption)
+      return null;
+    return { signing, encryption };
+  }
   /**
    * Incept a new identity.
    * @param {object} keyPairs - The key pairs to use for the inception event.
@@ -14,7 +22,7 @@ class Identity {
    * @param {string[]} backers - The list of backers to use for the inception event.
    * @throws {Error} If the identity has already been incepted.
    * @throws {Error} If no key pairs are provided.
-   * @throws {Error} If no next key pairs are provided. 
+   * @throws {Error} If no next key pairs are provided.
    * @todo -- add the receipt request and processing
    */
   incept({ keyPairs, nextKeyPairs, backers = [] }) {
@@ -32,31 +40,17 @@ class Identity {
     const identifier = `B${this.keyPairs.signing.publicKey.replace(/=$/, "")}`;
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
-    const inceptionEvent = {
+    const inceptionEvent = this.createEvent({
       identifier,
-      // i: AID identifier prefix
       eventIndex: "0",
-      // s: sequence number
       eventType: "inception",
-      // t: event type
       signingThreshold: "1",
-      // kt: minimum amount of signatures needed for this event to be valid (multisig)
-      signingKeys: [publicSigningKey],
-      // k: list of signing keys
-      nextKeyCommitments: [nextKeyHash],
-      // n: next keys, added encryption because it makes sense imo
+      publicSigningKey,
+      nextKeyHash,
       backerThreshold: "1",
-      // bt: minimum amount of witnesses threshold - I think these are called backers now
-      backers: [...backers]
-      // b: list of witnesses in this case the spark pwa-agent host's publickey there's no receipt at this step
-    };
-    const eventJSON = JSON.stringify(inceptionEvent);
-    const version = "KERI10JSON" + eventJSON.length.toString(16).padStart(6, "0") + "_";
-    const hashedEvent = this.hash(eventJSON);
-    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-    inceptionEvent.version = version;
-    inceptionEvent.selfAddressingIdentifier = signedEventHash;
-    this.identifier = identifier;
+      backers
+    });
+    this.identifier = inceptionEvent.identifier;
     this.keyEventLog = [inceptionEvent];
   }
   /**
@@ -93,23 +87,47 @@ class Identity {
     const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
-    const rotationEvent = {
+    const rotationEvent = this.createEvent({
       identifier: this.identifier,
       eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
       eventType: "rotation",
       signingThreshold: oldKeyEvent.signingThreshold,
+      publicSigningKey,
+      nextKeyHash,
+      backerThreshold: oldKeyEvent.backerThreshold,
+      backers
+    });
+    this.keyEventLog.push(rotationEvent);
+  }
+  createEvent({
+    identifier,
+    eventIndex,
+    eventType,
+    signingThreshold,
+    publicSigningKey,
+    nextKeyHash,
+    backerThreshold,
+    backers
+  }) {
+    const event = {
+      identifier,
+      eventIndex,
+      eventType,
+      signingThreshold,
       signingKeys: [publicSigningKey],
       nextKeyCommitments: [nextKeyHash],
-      backerThreshold: oldKeyEvent.backerThreshold,
+      backerThreshold,
       backers: [...backers]
     };
-    const eventJSON = JSON.stringify(rotationEvent);
+    const eventJSON = JSON.stringify(event);
     const version = "KERI10JSON" + eventJSON.length.toString(16).padStart(6, "0") + "_";
     const hashedEvent = this.hash(eventJSON);
     const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-    rotationEvent.version = version;
-    rotationEvent.selfAddressingIdentifier = signedEventHash;
-    this.keyEventLog.push(rotationEvent);
+    return {
+      ...event,
+      selfAddressingIdentifier: signedEventHash,
+      version
+    };
   }
   /**
    * Destroy an identity.
@@ -183,4 +201,4 @@ class Identity {
   }
 }
 
-export { Identity };
+export { Identity as default };

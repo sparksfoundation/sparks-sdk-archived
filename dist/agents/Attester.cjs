@@ -1,9 +1,11 @@
 'use strict';
 
-var Attester_default = (Base) => class Attester extends Base {
+const Attester = (Base) => class Attester extends Base {
   constructor(...args) {
     super(...args);
   }
 };
+Attester.type = "agent";
+var Attester_default = Attester;
 
 module.exports = Attester_default;

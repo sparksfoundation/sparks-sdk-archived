@@ -9,7 +9,7 @@ function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 var nacl__default = /*#__PURE__*/_interopDefault(nacl);
 var util__default = /*#__PURE__*/_interopDefault(util);
 
-var Ed25519_default = (Base) => class Ed25519 extends Base {
+const Ed25519 = (Base) => class Ed25519 extends Base {
   constructor(...args) {
     super(...args);
   }
@@ -57,5 +57,10 @@ var Ed25519_default = (Base) => class Ed25519 extends Base {
     }
   }
 };
+Ed25519.type = "sign";
+Ed25519.dependencies = {
+  derive: true
+};
+var Ed25519_default = Ed25519;
 
 module.exports = Ed25519_default;

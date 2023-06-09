@@ -1,8 +1,11 @@
-declare const _default: (Base: any) => {
-    new (...args: any[]): {
+declare const Attester: {
+    (Base: any): {
+        new (...args: any[]): {
+            [x: string]: any;
+        };
         [x: string]: any;
     };
-    [x: string]: any;
+    type: string;
 };
 
-export { _default as default };
+export { Attester as default };

@@ -2,7 +2,7 @@ import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
 import { parseJSON } from '../utils/index.js';
 
-var X25519SalsaPoly_default = (Base) => class X25519SalsaPoly extends Base {
+const X25519SalsaPoly = (Base) => class X25519SalsaPoly extends Base {
   constructor(...args) {
     super(...args);
   }
@@ -11,7 +11,7 @@ var X25519SalsaPoly_default = (Base) => class X25519SalsaPoly extends Base {
    * @param {string} publicKey 
    * @returns {string} sharedKey
    */
-  sharedKey({ publicKey }) {
+  computeSharedKey({ publicKey }) {
     if (!this.keyPairs) {
       throw new Error("No key pairs found, please import or incept identity");
     }
@@ -84,5 +84,10 @@ var X25519SalsaPoly_default = (Base) => class X25519SalsaPoly extends Base {
     return result;
   }
 };
+X25519SalsaPoly.type = "encrypt";
+X25519SalsaPoly.dependencies = {
+  derive: ["Password", "Random"]
+};
+var X25519SalsaPoly_default = X25519SalsaPoly;
 
 export { X25519SalsaPoly_default as default };

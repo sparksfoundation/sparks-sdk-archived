@@ -1,3 +1,17 @@
+type KeriEvent = {
+    identifier: string;
+    eventIndex: string;
+    eventType: string;
+    signingThreshold: string;
+    signingKeys: Array<string>;
+    nextKeyCommitments: Array<string>;
+    backerThreshold: string;
+    backers: Array<string>;
+};
+type KeriSAIDEvent = KeriEvent & {
+    selfAddressingIdentifier: string;
+    version: string;
+};
 declare abstract class Identity {
     abstract encrypt({ publicKey, data }: {
         sharedKey?: string;
@@ -23,6 +37,10 @@ declare abstract class Identity {
     protected keyPairs: any;
     protected keyEventLog: any[];
     protected constructor();
+    protected get publicKeys(): {
+        signing: any;
+        encryption: any;
+    } | null;
     /**
      * Incept a new identity.
      * @param {object} keyPairs - The key pairs to use for the inception event.
@@ -55,6 +73,16 @@ declare abstract class Identity {
         nextKeyPairs: any;
         backers?: string[];
     }): void;
+    createEvent({ identifier, eventIndex, eventType, signingThreshold, publicSigningKey, nextKeyHash, backerThreshold, backers, }: {
+        identifier: string;
+        eventIndex: string;
+        eventType: string;
+        signingThreshold: string;
+        publicSigningKey: string;
+        nextKeyHash: string;
+        backerThreshold: string;
+        backers: Array<string>;
+    }): KeriSAIDEvent;
     /**
      * Destroy an identity.
      * @param {string[]} backers - The list of backers to use for the destruction event.
@@ -81,4 +109,4 @@ declare abstract class Identity {
     is(): string[];
 }
 
-export { Identity };
+export { Identity as default };
