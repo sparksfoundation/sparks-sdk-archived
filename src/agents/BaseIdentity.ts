@@ -139,21 +139,14 @@ export default abstract class BaseIdentity {
     }
 
     this.keyPairs = keyPairs;
-    const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
-    const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
 
-    const rotationEvent: KeriSAIDEvent = this.createEvent({
+    this.rotateKeys({
       identifier: this.identifier,
-      oldKeyEvent: oldKeyEvent,
       eventType: 'rotation',
-      publicSigningKey: publicSigningKey,
       nextKeyCommitments: [nextKeyHash],
-      backers: backers,
+      backers: backers
     })
-
-    // todo queue witness receipt request
-    this.keyEventLog.push(rotationEvent);
   }
 
   /**
@@ -174,19 +167,28 @@ export default abstract class BaseIdentity {
       throw new Error('Identity has already been destroyed');
     }
 
+    this.rotateKeys({
+      identifier: this.identifier,
+      eventType: 'destruction',
+      nextKeyCommitments: [],
+      backers: backers
+    })
+  }
+
+  rotateKeys({ identifier, eventType, nextKeyCommitments, backers }) {
     const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
     const publicSigningKey = this.keyPairs.signing.publicKey;
 
     const rotationEvent: KeriSAIDEvent = this.createEvent({
-      identifier: this.identifier,
+      identifier: identifier,
       oldKeyEvent: oldKeyEvent,
-      eventType: 'destruction',
+      eventType: eventType,
       publicSigningKey: publicSigningKey,
-      nextKeyCommitments: [],
+      nextKeyCommitments: nextKeyCommitments,
       backers: backers,
     })
 
-    // todo queue witness receipt request
+    // TODO: queue witness receipt request
     this.keyEventLog.push(rotationEvent);
   }
 

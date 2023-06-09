@@ -96,18 +96,13 @@ class BaseIdentity {
       throw new Error("Key commitment does not match the current key commitment");
     }
     this.keyPairs = keyPairs;
-    const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
-    const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
-    const rotationEvent = this.createEvent({
+    this.rotateKeys({
       identifier: this.identifier,
-      oldKeyEvent,
       eventType: "rotation",
-      publicSigningKey,
       nextKeyCommitments: [nextKeyHash],
       backers
     });
-    this.keyEventLog.push(rotationEvent);
   }
   /**
    * Destroy an identity.
@@ -126,14 +121,22 @@ class BaseIdentity {
     if (this.keyEventLog[this.keyEventLog.length - 1].eventType === "destruction") {
       throw new Error("Identity has already been destroyed");
     }
+    this.rotateKeys({
+      identifier: this.identifier,
+      eventType: "destruction",
+      nextKeyCommitments: [],
+      backers
+    });
+  }
+  rotateKeys({ identifier, eventType, nextKeyCommitments, backers }) {
     const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const rotationEvent = this.createEvent({
-      identifier: this.identifier,
+      identifier,
       oldKeyEvent,
-      eventType: "destruction",
+      eventType,
       publicSigningKey,
-      nextKeyCommitments: [],
+      nextKeyCommitments,
       backers
     });
     this.keyEventLog.push(rotationEvent);

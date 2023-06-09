@@ -85,6 +85,12 @@ declare abstract class BaseIdentity {
     destroy(args?: {
         backers?: string[];
     }): void;
+    rotateKeys({ identifier, eventType, nextKeyCommitments, backers }: {
+        identifier: any;
+        eventType: any;
+        nextKeyCommitments: any;
+        backers: any;
+    }): void;
     createEvent({ identifier, oldKeyEvent, eventType, publicSigningKey, nextKeyCommitments, backers, }: {
         identifier: string;
         oldKeyEvent: KeriSAIDEvent;
