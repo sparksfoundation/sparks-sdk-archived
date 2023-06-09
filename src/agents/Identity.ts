@@ -25,7 +25,7 @@ export default abstract class Identity {
   protected keyPairs: any;
   protected keyEventLog: any[];
 
-  protected constructor() {
+  constructor() {
     this.identifier = null;
     this.keyPairs = {};
     this.keyEventLog = [];
@@ -37,7 +37,6 @@ export default abstract class Identity {
     if (!signing || !encryption) return null;
     return { signing, encryption };
   }
-
 
   /**
    * Incept a new identity.
