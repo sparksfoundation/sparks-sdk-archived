@@ -1,8 +1,16 @@
-declare const _default: (Base: any) => {
-    new (...args: any[]): {
+declare const PostMessage: {
+    (Base: any): {
+        new (...args: any[]): {
+            [x: string]: any;
+        };
         [x: string]: any;
     };
-    [x: string]: any;
+    type: string;
+    dependencies: {
+        encrypt: boolean;
+        hash: boolean;
+        sign: boolean;
+    };
 };
 
-export { _default as default };
+export { PostMessage as default };

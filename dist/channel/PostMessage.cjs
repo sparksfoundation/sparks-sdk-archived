@@ -79,6 +79,7 @@ class PostMessageChannel {
     window.addEventListener("beforeunload", close);
   }
   async message(data) {
+    console.log("hello", this.target, this.origin);
     const mid = util__default.default.encodeBase64(nacl__default.default.randomBytes(16));
     const ciphertext = this.ctx.encrypt({ data, sharedKey: this.sharedKey });
     const signature = this.ctx.sign({ data: ciphertext, detached: true });
@@ -93,8 +94,8 @@ class PostMessageChannel {
           window.removeEventListener("message", handler);
         }
       };
-      window.addEventListener("message", handler);
       this.target.postMessage({ cid: this.cid, mid, type: "sparks-channel:message", ciphertext, signature }, this.origin);
+      window.addEventListener("message", handler);
     });
   }
   async close() {
@@ -140,6 +141,7 @@ class PostMessageManager {
     if (!computeSharedKey)
       throw new Error("computeSharedKey is required");
     const channelId = util__default.default.encodeBase64(nacl__default.default.randomBytes(16));
+    let requestInterval;
     const handler = (event) => {
       const { data: { cid, type, publicKeys }, origin, source } = event;
       const confirming = type === "sparks-channel:connection-confirmation";
@@ -158,12 +160,16 @@ class PostMessageManager {
       if (confirming) {
         if (!sharedKey)
           throw new Error("Failed to compute shared key");
+        const exists = this.channels.find((channel2) => channel2.cid === cid);
+        if (exists)
+          return;
         const channel = new PostMessageChannel({ cid, origin, target: source, publicKeys, sharedKey, onOpen, onMessage, onClose, encrypt, decrypt, sign, verify });
         this.channels.push(channel);
         if (onOpen)
           onOpen(cid, channel);
-        window.removeEventListener("message", handler);
+        clearInterval(requestInterval);
         source.postMessage({ cid, type: "sparks-channel:connection-confirmation", publicKeys: ourPublicKeys }, origin);
+        window.removeEventListener("message", handler);
       } else if (requesting) {
         if (!sharedKey)
           throw new Error("Failed to compute shared key");
@@ -172,17 +178,21 @@ class PostMessageManager {
           cid,
           publicKeys
         }, origin);
-        window.removeEventListener("message", handler);
       }
     };
     window.addEventListener("message", handler);
-    const targetWindow = typeof target === "string" ? window.open(target, "_blank") : target;
-    if (targetWindow) {
-      targetWindow.postMessage({
-        type: "sparks-channel:connection-request",
-        cid: channelId,
-        publicKeys: ourPublicKeys
-      }, targetWindow.location.origin);
+    if (!!target && typeof target === "string") {
+      const targetOrigin = new URL(target).origin;
+      const targetWindow = window.open(target, "_blank");
+      if (!targetWindow)
+        throw new Error("Failed to open window");
+      requestInterval = setInterval(() => {
+        targetWindow.postMessage({
+          type: "sparks-channel:connection-request",
+          cid: channelId,
+          publicKeys: ourPublicKeys
+        }, targetOrigin);
+      }, 1e3);
     }
   }
 }

@@ -4,7 +4,7 @@ var index_js = require('./agents/index.js');
 var index_js$1 = require('./encrypt/index.js');
 var index_js$2 = require('./sign/index.js');
 var index_js$3 = require('./derive/index.js');
-var index_js$4 = require('./channel/index.js');
+var index_js$4 = require('./channels/index.js');
 var index_js$5 = require('./hash/index.js');
 
 
