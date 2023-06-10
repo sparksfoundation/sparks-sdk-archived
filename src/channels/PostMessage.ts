@@ -221,7 +221,7 @@ class PostMessageManager {
           type: 'sparks-channel:connection-request',
           cid: channelId,
           publicKeys: ourPublicKeys,
-        }, origin);
+        }, targetOrigin);
       }, 1000);
     }
   }

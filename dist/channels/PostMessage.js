@@ -126,7 +126,7 @@ class PostMessageManager {
     this.channels = [];
   }
   open(args) {
-    const { target } = args;
+    const { target, url } = args;
     const { beforeOpen, onOpen, onClose, onMessage } = args;
     const { computeSharedKey, publicKeys: ourPublicKeys } = args;
     const { encrypt, decrypt, sign, verify } = args;
@@ -176,10 +176,10 @@ class PostMessageManager {
       }
     };
     window.addEventListener("message", handler);
-    if (!!target && typeof target === "string") {
-      const targetOrigin = new URL(target).origin;
-      const targetWindow = window.open(target, "_blank");
-      if (!targetWindow)
+    if (!!url && typeof url === "string") {
+      const targetOrigin = new URL(url).origin;
+      const targetWindow = target || window.open(url, "_blank");
+      if (!targetWindow || !targetOrigin)
         throw new Error("Failed to open window");
       requestInterval = setInterval(() => {
         targetWindow.postMessage({

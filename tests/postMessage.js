@@ -35,7 +35,7 @@ const alice = new CommsAgent();
 alice.incept();
 
 alice.postMessage.open({
-  target: 'http://localhost:3000',
+  url: 'http://localhost:3000',
   onOpen: (id, conn) => {
     console.log('Alice connected')
     conn.message('Alice').then((signature) => {
