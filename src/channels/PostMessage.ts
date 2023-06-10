@@ -61,7 +61,7 @@ class PostMessageChannel {
       const message = this.ctx.decrypt({ data: ciphertext, sharedKey: this.sharedKey });
       const signed = this.ctx.sign({ data: { cid, message } });
       this.target.postMessage({ cid, mid, signature: signed, type: 'sparks-channel:message-confirmation' }, this.origin);
-      if (!this.closed) onMessage(message, conn);
+      if (!this.closed && onMessage) onMessage(message, conn);
     } : undefined
 
     // todo -- either handle everything here or move it to the channel
@@ -72,18 +72,13 @@ class PostMessageChannel {
       if (!cid || !type || !origin) return;
       const isClosed = type === 'sparks-channel:closed';
       const isMessage = type === 'sparks-channel:message';
-      if (isClosed && onClose) {
-        onClose(cid, this)
-      } else if (isMessage && messageHandler) {
+      if (isClosed) {
+        this.target.postMessage({ cid: this.cid, type: 'sparks-channel:closed-confirmation' }, this.origin);
+        if (onClose) onClose(cid, this);
+      } if (isMessage && messageHandler) {
         messageHandler(data, this)
       }
     };
-
-    const close = this.close.bind(this)
-    this.close = async () => {
-      await close()
-      window.removeEventListener('message', handler);
-    }
 
     window.addEventListener('message', handler);
     window.addEventListener('beforeunload', close);
@@ -93,7 +88,7 @@ class PostMessageChannel {
     const mid = util.encodeBase64(nacl.randomBytes(16));
     const ciphertext = this.ctx.encrypt({ data, sharedKey: this.sharedKey });
     const signature = this.ctx.sign({ data: ciphertext, detached: true });
-
+    
     return new Promise((resolve, reject) => {
       const handler = (event: { data: any; source: any; origin: any; }) => {
         const { data, source, origin } = event;
@@ -115,18 +110,18 @@ class PostMessageChannel {
 
   async close() {
     return new Promise((resolve, reject) => {
-      const handleDisconnect = (event: { source: any; origin: string; data: string; }) => {
+      const handleDisconnect = (event: { source: any; origin: string; data: any; }) => {
         if (
           event.source === this.target &&
           event.origin === this.origin &&
-          event.data === 'sparks-channel:closed-confirmation'
+          event.data?.type === 'sparks-channel:closed-confirmation'
         ) {
-          window.removeEventListener('message', handleDisconnect);
           resolve(true);
+          window.removeEventListener('message', handleDisconnect);
         }
       };
-      window.addEventListener('message', handleDisconnect);
       this.target.postMessage({ cid: this.cid, type: 'sparks-channel:closed' }, this.origin);
+      window.addEventListener('message', handleDisconnect);
       this.closed = true
     });
   }
@@ -181,7 +176,6 @@ class PostMessageManager {
       // they're confirming we can setup the channel
       if (confirming) {
         if (!sharedKey) throw new Error('Failed to compute shared key');
-
         // let's setup the channel if it doesn't exist
         if (!this.channels.find(channel => channel.cid === cid)) {
           const channel = new PostMessageChannel({ cid, origin, target: source, publicKeys, sharedKey, onOpen, onMessage, onClose, encrypt, decrypt, sign, verify });
@@ -221,7 +215,7 @@ class PostMessageManager {
           type: 'sparks-channel:connection-request',
           cid: channelId,
           publicKeys: ourPublicKeys,
-        }, origin);
+        }, targetOrigin);
       }, 1000);
     }
   }

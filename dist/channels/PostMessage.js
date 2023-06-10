@@ -47,7 +47,7 @@ class PostMessageChannel {
       const message = this.ctx.decrypt({ data: ciphertext, sharedKey: this.sharedKey });
       const signed = this.ctx.sign({ data: { cid: cid2, message } });
       this.target.postMessage({ cid: cid2, mid, signature: signed, type: "sparks-channel:message-confirmation" }, this.origin);
-      if (!this.closed)
+      if (!this.closed && onMessage)
         onMessage(message, conn);
     } : void 0;
     const handler = (event) => {
@@ -57,16 +57,14 @@ class PostMessageChannel {
         return;
       const isClosed = type === "sparks-channel:closed";
       const isMessage = type === "sparks-channel:message";
-      if (isClosed && onClose) {
-        onClose(cid2, this);
-      } else if (isMessage && messageHandler) {
+      if (isClosed) {
+        this.target.postMessage({ cid: this.cid, type: "sparks-channel:closed-confirmation" }, this.origin);
+        if (onClose)
+          onClose(cid2, this);
+      }
+      if (isMessage && messageHandler) {
         messageHandler(data, this);
       }
-    };
-    const close = this.close.bind(this);
-    this.close = async () => {
-      await close();
-      window.removeEventListener("message", handler);
     };
     window.addEventListener("message", handler);
     window.addEventListener("beforeunload", close);
@@ -93,13 +91,14 @@ class PostMessageChannel {
   async close() {
     return new Promise((resolve, reject) => {
       const handleDisconnect = (event) => {
-        if (event.source === this.target && event.origin === this.origin && event.data === "sparks-channel:closed-confirmation") {
-          window.removeEventListener("message", handleDisconnect);
+        var _a;
+        if (event.source === this.target && event.origin === this.origin && ((_a = event.data) == null ? void 0 : _a.type) === "sparks-channel:closed-confirmation") {
           resolve(true);
+          window.removeEventListener("message", handleDisconnect);
         }
       };
-      window.addEventListener("message", handleDisconnect);
       this.target.postMessage({ cid: this.cid, type: "sparks-channel:closed" }, this.origin);
+      window.addEventListener("message", handleDisconnect);
       this.closed = true;
     });
   }
@@ -126,7 +125,7 @@ class PostMessageManager {
     this.channels = [];
   }
   open(args) {
-    const { target } = args;
+    const { target, url } = args;
     const { beforeOpen, onOpen, onClose, onMessage } = args;
     const { computeSharedKey, publicKeys: ourPublicKeys } = args;
     const { encrypt, decrypt, sign, verify } = args;
@@ -176,10 +175,10 @@ class PostMessageManager {
       }
     };
     window.addEventListener("message", handler);
-    if (!!target && typeof target === "string") {
-      const targetOrigin = new URL(target).origin;
-      const targetWindow = window.open(target, "_blank");
-      if (!targetWindow)
+    if (!!url && typeof url === "string") {
+      const targetOrigin = new URL(url).origin;
+      const targetWindow = target || window.open(url, "_blank");
+      if (!targetWindow || !targetOrigin)
         throw new Error("Failed to open window");
       requestInterval = setInterval(() => {
         targetWindow.postMessage({
