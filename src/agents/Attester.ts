@@ -1,10 +1,8 @@
+import { Agent } from '../types/index.js'
 
-const Attester = Base => class Attester extends Base {
-    constructor(...args) {
-        super(...args);
-    }
+export class Attester extends Agent {
+  attest() {
+    console.log('attester')
+    return 'attester'
+  }
 }
-
-Attester.type = 'agent';
-
-export default Attester;
