@@ -84,19 +84,18 @@ export abstract class Channel {
   abstract onMessage(args: MessagePayload): void | never;                                   // called when a message is received from the other side or throws an error
 }
 
-// ChannelFactory is an abstract class that represents a factory for creating channels of a specific type
-export abstract class ChannelFactory {
-  abstract open(args: ChannelFactoryOptions): Channel | never;  // returns a channel or throws an error
-}
+// if work on this start here and work your way up
 
-// Mixin: ChannelManager is an abstract class that represents a mixin which contains a ChannelFactory of a specific type
-export abstract class ChannelManager {
-  constructor(args: { [key: string]: ChannelFactory }) {
-    const propertyKeys = Object.keys(args);
-    const managerKey = propertyKeys.find((key) => args[key] instanceof Object && "channels" in args[key]);
-    if (!managerKey) {
-      throw new Error("At least one property must be a ChannelFactory.");
-    }
-    this[managerKey] = args[managerKey];
-  }
+/**
+ * ChannelManager Interface
+ * it provides a method for opening a channel
+ * it provides a method for closing all channels
+ * it should serve as the obvserver for all channels
+ * it should manage listeners and callbacks
+ * to extend it to provide other channel factory types, 
+ */
+export interface ChannelManager {
+  channels: Channel[];                                  // the channels that have been opened by this factory
+  open(args: ChannelFactoryOptions): void;              // starts the process of opening a channel
+  close(): void | never;                                // closes all open channels
 }
