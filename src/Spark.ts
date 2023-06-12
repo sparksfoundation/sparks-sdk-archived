@@ -20,14 +20,6 @@ const COLLECTIONS = {
 };
 
 export class Spark {
-  private controller: typeof Controller;
-  private signer: typeof Signer;
-  private cipher: typeof Cipher;
-  private hasher: typeof Hasher;
-  private storage: typeof Storage;
-  private agents: { [key: string]: typeof Agent };
-  private channels: { [key: string]: typeof Channel };
-
   constructor(options) {
     Object.keys(options).forEach(prop => {
       if (SINGLETONS[prop]) {
