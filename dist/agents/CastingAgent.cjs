@@ -1,10 +1,10 @@
 'use strict';
 
-var Identity = require('./Identity.js');
+var BaseIdentity = require('./BaseIdentity.js');
 
 function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
-var Identity__default = /*#__PURE__*/_interopDefault(Identity);
+var BaseIdentity__default = /*#__PURE__*/_interopDefault(BaseIdentity);
 
 function CastingAgent({
   agents = [],
@@ -48,7 +48,7 @@ function CastingAgent({
       }
     });
   });
-  return Mixins.reduce((base, mixin) => mixin(base), Identity__default.default);
+  return Mixins.reduce((base, mixin) => mixin(base), BaseIdentity__default.default);
 }
 
 module.exports = CastingAgent;

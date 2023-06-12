@@ -1,4 +1,12 @@
-type KeriEvent = {
+type KeyPair = {
+    publicKey: string;
+    secretKey: string;
+};
+type KeyPairs = {
+    encryption: KeyPair;
+    signing: KeyPair;
+};
+type KeriBaseEvent = {
     identifier: string;
     eventIndex: string;
     eventType: string;
@@ -8,11 +16,17 @@ type KeriEvent = {
     backerThreshold: string;
     backers: Array<string>;
 };
-type KeriSAIDEvent = KeriEvent & {
+type OmitPreviousEvent<T = KeriSAIDEvent> = T extends KeriSAIDEvent ? Omit<T, 'previousEventDigest'> : never;
+type InceptionEvent = OmitPreviousEvent & {
+    previousEventDigest: null;
+};
+type KeriSAIDEvent = KeriBaseEvent & {
+    previousEventDigest: string;
     selfAddressingIdentifier: string;
     version: string;
 };
-declare abstract class Identity {
+type KeriEvent = KeriSAIDEvent | InceptionEvent;
+declare abstract class BaseIdentity {
     abstract encrypt({ publicKey, data }: {
         sharedKey?: string;
         publicKey?: string;
@@ -33,13 +47,13 @@ declare abstract class Identity {
         data: string | object;
     }): void;
     abstract hash(data: string): string;
-    protected identifier: string | null;
-    protected keyPairs: any;
-    protected keyEventLog: any[];
+    protected identifier: string;
+    protected keyPairs: KeyPairs;
+    protected keyEventLog: KeriEvent[];
     constructor();
     protected get publicKeys(): {
-        signing: any;
-        encryption: any;
+        signing: string;
+        encryption: string;
     } | null;
     /**
      * Incept a new identity.
@@ -69,20 +83,10 @@ declare abstract class Identity {
      * @todo -- add the receipt request and processing
      */
     rotate({ keyPairs, nextKeyPairs, backers }: {
-        keyPairs: any;
-        nextKeyPairs: any;
+        keyPairs: KeyPairs;
+        nextKeyPairs: KeyPairs;
         backers?: string[];
     }): void;
-    createEvent({ identifier, eventIndex, eventType, signingThreshold, publicSigningKey, nextKeyHash, backerThreshold, backers, }: {
-        identifier: string;
-        eventIndex: string;
-        eventType: string;
-        signingThreshold: string;
-        publicSigningKey: string;
-        nextKeyHash: string;
-        backerThreshold: string;
-        backers: Array<string>;
-    }): KeriSAIDEvent;
     /**
      * Destroy an identity.
      * @param {string[]} backers - The list of backers to use for the destruction event.
@@ -94,8 +98,22 @@ declare abstract class Identity {
     destroy(args?: {
         backers?: string[];
     }): void;
+    rotateKeys({ identifier, eventType, nextKeyCommitments, backers }: {
+        identifier: any;
+        eventType: any;
+        nextKeyCommitments: any;
+        backers: any;
+    }): void;
+    createEvent({ identifier, oldKeyEvent, eventType, publicSigningKey, nextKeyCommitments, backers, }: {
+        identifier: string;
+        oldKeyEvent: KeriEvent;
+        eventType: string;
+        publicSigningKey: string;
+        nextKeyCommitments: Array<string>;
+        backers: Array<string>;
+    }): KeriSAIDEvent;
     import({ keyPairs, data }: {
-        keyPairs: any;
+        keyPairs: KeyPairs;
         data: string;
     }): void;
     /**
@@ -109,4 +127,4 @@ declare abstract class Identity {
     is(): string[];
 }
 
-export { Identity as default };
+export { BaseIdentity as default };

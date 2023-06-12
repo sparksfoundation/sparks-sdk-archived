@@ -1,4 +1,14 @@
-type KeriEvent = {
+type KeyPair = {
+  publicKey: string;
+  secretKey: string;
+}
+
+type KeyPairs = {
+  encryption: KeyPair;
+  signing: KeyPair;
+}
+
+type KeriBaseEvent = {
   identifier: string,                // i: AID identifier prefix
   eventIndex: string,                // s: sequence number
   eventType: string,                 // t: event type
@@ -9,25 +19,33 @@ type KeriEvent = {
   backers: Array<string>,            // b: list of witnesses in this case the spark pwa-agent host's publickey there's no receipt at this step
 }
 
-type KeriSAIDEvent = KeriEvent & {
-  selfAddressingIdentifier: string,
-  version: string
+// an inception event does not have a "previousEventDigest"
+// all other events do
+type OmitPreviousEvent<T = KeriSAIDEvent> = T extends KeriSAIDEvent ? Omit<T, 'previousEventDigest'> : never;
+type InceptionEvent = OmitPreviousEvent & {
+  previousEventDigest: null,
 }
 
-export default abstract class Identity {
+type KeriSAIDEvent = KeriBaseEvent & {
+  previousEventDigest: string,
+  selfAddressingIdentifier: string,
+  version: string,
+}
+
+type KeriEvent = KeriSAIDEvent | InceptionEvent
+
+export default abstract class BaseIdentity {
   abstract encrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract decrypt({ publicKey, data }: { sharedKey?: string, publicKey?: string, data: string }): string;
   abstract sign({ data, detached }: { data: string, detached: boolean }): string;
   abstract verify({ publicKey, signature, data }: { publicKey: string, signature: string, data: string | object }): void;
   abstract hash(data: string): string;
 
-  protected identifier: string | null;
-  protected keyPairs: any;
-  protected keyEventLog: any[];
+  protected identifier: string;
+  protected keyPairs: KeyPairs;
+  protected keyEventLog: KeriEvent[];
 
   constructor() {
-    this.identifier = null;
-    this.keyPairs = {};
     this.keyEventLog = [];
   }
 
@@ -66,16 +84,28 @@ export default abstract class Identity {
     const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey)
 
-    const inceptionEvent = this.createEvent({
+    const event = {
       identifier: identifier,
       eventIndex: '0',
       eventType: 'inception',
       signingThreshold: '1',
-      publicSigningKey: publicSigningKey,
-      nextKeyHash: nextKeyHash,
+      signingKeys: [publicSigningKey],
+      nextKeyCommitments: [nextKeyHash],
       backerThreshold: '1',
-      backers: backers,
-    })
+      backers: [...backers],
+    };
+
+    const eventJSON = JSON.stringify(event);
+    const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
+    const hashedEvent = this.hash(eventJSON);
+    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
+
+    const inceptionEvent: InceptionEvent = {
+      ...event,
+      previousEventDigest: null,
+      selfAddressingIdentifier: signedEventHash,
+      version: version,
+    };
 
     // todo -- queue the receipt request
     this.identifier = inceptionEvent.identifier;
@@ -94,7 +124,7 @@ export default abstract class Identity {
    * @throws {Error} If the identity has been destroyed.
    * @todo -- add the receipt request and processing
    */
-  rotate({ keyPairs, nextKeyPairs, backers = [] }: { keyPairs: any, nextKeyPairs: any, backers?: string[] }) {
+  rotate({ keyPairs, nextKeyPairs, backers = [] }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers?: string[] }) {
     if (!this.identifier || !this.keyEventLog?.length) {
       throw Error('Keys can not be rotated before inception');
     }
@@ -117,65 +147,14 @@ export default abstract class Identity {
     }
 
     this.keyPairs = keyPairs;
-    const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
-    const publicSigningKey = this.keyPairs.signing.publicKey;
     const nextKeyHash = this.hash(nextKeyPairs.signing.publicKey);
 
-    const rotationEvent: KeriSAIDEvent = this.createEvent({
+    this.rotateKeys({
       identifier: this.identifier,
-      eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
       eventType: 'rotation',
-      signingThreshold: oldKeyEvent.signingThreshold,
-      publicSigningKey: publicSigningKey,
-      nextKeyHash: nextKeyHash,
-      backerThreshold: oldKeyEvent.backerThreshold,
-      backers: backers,
-    })
-    // todo queue witness receipt request
-    this.keyEventLog.push(rotationEvent);
-  }
-
-  createEvent(
-    {
-      identifier,
-      eventIndex,
-      eventType,
-      signingThreshold,
-      publicSigningKey,
-      nextKeyHash,
-      backerThreshold,
-      backers,
-    }: {
-      identifier: string,
-      eventIndex: string,
-      eventType: string,
-      signingThreshold: string,
-      publicSigningKey: string,
-      nextKeyHash: string,
-      backerThreshold: string,
-      backers: Array<string>,
-    }): KeriSAIDEvent {
-    const event = {
-      identifier: identifier,
-      eventIndex: eventIndex,
-      eventType: eventType,
-      signingThreshold: signingThreshold,
-      signingKeys: [publicSigningKey],
       nextKeyCommitments: [nextKeyHash],
-      backerThreshold: backerThreshold,
-      backers: [...backers],
-    };
-
-    const eventJSON = JSON.stringify(event);
-    const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
-    const hashedEvent = this.hash(eventJSON);
-    const signedEventHash = this.sign({ data: hashedEvent, detached: true });
-
-    return {
-      ...event,
-      selfAddressingIdentifier: signedEventHash,
-      version: version,
-    };
+      backers: backers
+    })
   }
 
   /**
@@ -196,34 +175,73 @@ export default abstract class Identity {
       throw new Error('Identity has already been destroyed');
     }
 
+    this.rotateKeys({
+      identifier: this.identifier,
+      eventType: 'destruction',
+      nextKeyCommitments: [],
+      backers: backers
+    })
+  }
+
+  rotateKeys({ identifier, eventType, nextKeyCommitments, backers }) {
     const oldKeyEvent = this.keyEventLog[this.keyEventLog.length - 1];
     const publicSigningKey = this.keyPairs.signing.publicKey;
 
-    const rotationEvent = {
-      identifier: this.identifier,
+    const rotationEvent: KeriSAIDEvent = this.createEvent({
+      identifier: identifier,
+      oldKeyEvent: oldKeyEvent,
+      eventType: eventType,
+      publicSigningKey: publicSigningKey,
+      nextKeyCommitments: nextKeyCommitments,
+      backers: backers,
+    })
+
+    // TODO: queue witness receipt request
+    this.keyEventLog.push(rotationEvent);
+  }
+
+  createEvent(
+    {
+      identifier,
+      oldKeyEvent,
+      eventType,
+      publicSigningKey,
+      nextKeyCommitments,
+      backers,
+    }: {
+      identifier: string,
+      oldKeyEvent: KeriEvent,
+      eventType: string,
+      publicSigningKey: string,
+      nextKeyCommitments: Array<string>,
+      backers: Array<string>,
+    }): KeriSAIDEvent {
+    const event = {
+      identifier: identifier,
       eventIndex: (parseInt(oldKeyEvent.eventIndex) + 1).toString(),
-      eventType: 'destruction',
+      eventType: eventType,
       signingThreshold: oldKeyEvent.signingThreshold,
       signingKeys: [publicSigningKey],
-      nextKeyCommitments: [],
+      nextKeyCommitments: nextKeyCommitments,
       backerThreshold: oldKeyEvent.backerThreshold,
       backers: [...backers],
-    } as any; // todo -- fix this type
+    };
 
-    const eventJSON = JSON.stringify(rotationEvent);
+    const eventJSON = JSON.stringify(event);
     const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
     const hashedEvent = this.hash(eventJSON);
     const signedEventHash = this.sign({ data: hashedEvent, detached: true });
 
-    rotationEvent.version = version;
-    rotationEvent.selfAddressingIdentifier = signedEventHash;
-
-    // todo queue witness receipt request
-    this.keyEventLog.push(rotationEvent);
+    return {
+      ...event,
+      previousEventDigest: oldKeyEvent.selfAddressingIdentifier,
+      selfAddressingIdentifier: signedEventHash,
+      version: version,
+    };
   }
 
   // todo -- error handling
-  import({ keyPairs, data }: { keyPairs: any, data: string }) {
+  import({ keyPairs, data }: { keyPairs: KeyPairs, data: string }) {
     this.keyPairs = keyPairs;
     const decrypted = this.decrypt({ data });
     const deepCopy = JSON.parse(JSON.stringify(decrypted));

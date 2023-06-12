@@ -7,4 +7,4 @@ export { default as Password } from './derive/Password.js';
 export { default as Random } from './derive/Random.js';
 export { default as PostMessage } from './channels/PostMessage.js';
 export { default as Blake3 } from './hash/Blake3.js';
-import './agents/Identity.js';
+import './agents/BaseIdentity.js';
