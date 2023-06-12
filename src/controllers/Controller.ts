@@ -3,7 +3,6 @@ import {
   EncryptionKeyPair,
   IController,
   Identifier,
-  ImportArgs,
   InceptionArgs,
   KeriDeletionEventArgs,
   KeriEvent,
@@ -69,7 +68,11 @@ export class Controller implements IController {
       backers: [...backers],
     } as KeriInceptionEventArgs);
 
-    if (!inceptionEvent) throw new Error('Inception failed')
+    if (!inceptionEvent) {
+      // force null the keyPairs
+      this.keyPairs = undefined as any;
+      throw new Error('Inception failed');
+    }
 
     const { identifier } = inceptionEvent;
     this.identifier = identifier;
@@ -109,7 +112,6 @@ export class Controller implements IController {
   }
 
   protected async keyEvent(args: KeriEventArgs) {
-    // todo -- validate args and throw errors
     const { eventType, backers = [] } = args || {};
     const { keyPairs, nextKeyPairs } = (args || {}) as KeriInceptionEventArgs | KeriRotationEventArgs;
     const lastEvent = this.keyEventLog[this.keyEventLog.length - 1];

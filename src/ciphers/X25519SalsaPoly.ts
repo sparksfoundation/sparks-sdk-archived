@@ -12,7 +12,7 @@ export class X25519SalsaPoly extends Cipher {
     super(spark);
   }
 
-  sharedKey({ publicKey }: { publicKey: string; }): string {
+  async sharedKey({ publicKey }) {
     if (!this.spark.controller.encryptionKeys) {
       throw new Error('No key pairs found, please import or incept identity')
     }
@@ -23,7 +23,7 @@ export class X25519SalsaPoly extends Cipher {
     return baseSharedKey
   }
 
-  encrypt({ data, publicKey, sharedKey }: { data: object | string; publicKey?: string; sharedKey?: string; }): string {
+  async encrypt({ data, publicKey, sharedKey }) {
     if (!this.spark.controller.encryptionKeys) {
       throw new Error('No key pairs found, please import or incept identity')
     }
@@ -50,7 +50,7 @@ export class X25519SalsaPoly extends Cipher {
     return util.encodeBase64(encrypted);
   }
 
-  decrypt({ data, publicKey, sharedKey }: { data: string; publicKey?: string; sharedKey?: string; }): string {
+  async decrypt({ data, publicKey, sharedKey }) {
     if (!this.spark.controller.keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
     }

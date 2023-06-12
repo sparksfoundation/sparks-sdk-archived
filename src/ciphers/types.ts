@@ -1,8 +1,13 @@
 export type SharedEncryptionKey = string;
 
-export interface Cipher {
-  constructor: (spark: any) => void; // TODO define spark interface
-
+/**
+ * Cipher interface
+ * responsible for symmetric and asymmetric encrypting & decrypting operations.
+ * must also implement a method for computing a shared key.
+ * relies on controller's keyPairs and inbound public keys.
+ * extend Cipher class to provide other cipher algorithms.
+ */
+export interface ICipher {
   /**
    * Encrypts data using X25519SalsaPoly
    * @param {object|string} data
@@ -10,7 +15,7 @@ export interface Cipher {
    * @param {string} sharedKey
    * @returns {string}
    */
-  encrypt: (data: string) => Promise<string>;
+  encrypt: (args: { data: object | string; publicKey?: string; sharedKey?: string; }) => Promise<string> | never;
 
   /**
    * Decrypts data using X25519SalsaPoly
@@ -19,12 +24,12 @@ export interface Cipher {
    * @param {string} sharedKey
    * @returns {string}
    */
-  decrypt: (data: string) => Promise<string>;
+  decrypt: (args: { data: string; publicKey?: string; sharedKey?: string; }) => Promise<string> | never;
 
   /**
    * Computes a shared key using X25519SalsaPoly
    * @param {string} publicKey 
    * @returns {string} sharedKey
    */
-  shareKey: (publicKey: string) => Promise<string>;
+  shareKey: (args: { publicKey: string; }) => Promise<string> | never;
 }
