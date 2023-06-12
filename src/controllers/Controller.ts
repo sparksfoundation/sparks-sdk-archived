@@ -69,7 +69,7 @@ export class Controller implements IController {
     } as KeriInceptionEventArgs);
 
     if (!inceptionEvent) {
-      // force null the keyPairs
+      // force null the keyPairs - todo review this feels funny
       this.keyPairs = undefined as any;
       throw new Error('Inception failed');
     }
@@ -169,6 +169,7 @@ export class Controller implements IController {
     return keyEvent as KeriKeyEvent;
   }
 
+  // todo - some thinking around how to handle this given dynamic agents
   async import({ keyPairs, data }) {
     throw new Error('Not implemented');
     // todo -- do import
