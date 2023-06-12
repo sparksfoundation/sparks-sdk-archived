@@ -1,29 +1,34 @@
-export type KeyPairs = {
-    encryption: {
-        publicKey: string;
-        secretKey: string;
-    };
-    signing: {
-        publicKey: string;
-        secretKey: string;
-    };
-};
+import { IChannel, IChannelManager } from "./types";
 
-export type ComputeSharedKey = ({ publicKey }: { publicKey: string }) => string;
+export class Channel implements IChannel {
+    public cid: string;
+    public target: any;
+    public sharedKey: string;
 
-export interface Channel {
-    cid: string;
-    publicKey: string;
-    sharedKey: string;
-    close: (args: any) => void;
-    send: (args: any) => void;
-    onMessage: (args: any) => void;
-    onOpen: (args: any) => void;
-    onClose: (args: any) => void;
+    constructor() {
+    }
+    
+    public async open(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    public async close(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    public async send(): Promise<void> {
+        return Promise.resolve();
+    }
 }
 
-export interface ChannelManager {
-    channels: Channel[];
-    open: (options: { target?: Window, onOpen: Function, onClose: Function, beforeOpen: Function, [key: string]: any }) => void;
-    close: (args: any) => void;
+export class ChannelManager implements IChannelManager {
+    public channels: IChannel[] = [];
+
+    public async open(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    public async close(): Promise<void> {
+        return Promise.resolve();
+    }
 }

@@ -1,1 +1,1 @@
-export { default as PostMessage  } from './PostMessage.js'
+export * from './Channel.js'
