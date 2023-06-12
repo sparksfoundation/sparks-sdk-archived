@@ -3,7 +3,7 @@ import { Agent } from './agents/index.js';
 import { Signer } from './signers/index.js';
 import { Cipher } from './ciphers/index.js';
 import { Hasher } from './hashers/index.js';
-import { Channel } from './channels/index.js';
+import { ChannelFactory } from './channels/index.js';
 import { Storage } from './storage/index.js';
 
 const SINGLETONS = {
@@ -16,7 +16,7 @@ const SINGLETONS = {
 
 const COLLECTIONS = {
   agents: Agent,
-  channels: Channel,
+  channels: ChannelFactory,
 };
 
 export class Spark {
@@ -25,17 +25,25 @@ export class Spark {
       if (SINGLETONS[prop]) {
         const mixin = new options[prop](this);
         const valid = mixin && mixin instanceof SINGLETONS[prop];
-        const name = SINGLETONS[prop].name;
-        if (!valid) throw new Error(`${prop} must be an instance of ${name}`);
+        const typeName = SINGLETONS[prop].name;
+        if (!valid) throw new Error(`${prop} must be an instance of ${typeName}`);
         this[prop] = mixin;
+        Object.defineProperties(mixin, {
+          spark: { enumerable: false, writable: false, }
+        })
       } else if (COLLECTIONS[prop]) {
         this[prop] = {}
         options[prop].forEach(clazz => {
           const name = clazz.name;
           const mixin = new clazz(this);
           const valid = mixin && mixin instanceof COLLECTIONS[prop];
-          if (!valid) throw new Error(`${prop} must be an instance of ${name}`);
-          this[prop][name.toLowerCase()] = mixin;
+          const typeName = COLLECTIONS[prop].name;
+          if (!valid) throw new Error(`${prop} must be an instance of ${typeName}`);
+          const camel = name.charAt(0).toLowerCase() + name.slice(1);
+          this[prop][camel] = mixin;
+          Object.defineProperties(mixin, {
+            spark: { enumerable: false, writable: false, }
+          })
         })
       } else {
         throw new Error(`invalid option ${prop}`);

@@ -1,14 +1,7 @@
 import util from "tweetnacl-util";
 import { Signer } from "./Signer.js";
 import nacl from "tweetnacl";
-
-function parseJSON(data) {
-  try {
-    return JSON.parse(data);
-  } catch (e) {
-    return null;
-  }
-}
+import { parseJSON } from "../utilities/index.js";
 
 export class Ed25519 extends Signer {
   async sign({ data, detached = false }) {

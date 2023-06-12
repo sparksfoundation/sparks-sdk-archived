@@ -1,3 +1,8 @@
+
+// make this a function that returns a different window based on the context it's called in
+// eg. global.window = new MockWindow('http://localhost:3000'); -> one instance
+// from alice window.open => another instance
+
 class MockWindow {
   static windows = {};
 

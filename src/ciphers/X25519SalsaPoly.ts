@@ -1,11 +1,7 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { Cipher } from "./Cipher.js";
-
-function parseJSON(data) {
-  try { return JSON.parse(data); } 
-  catch (e) { return null; }
-}
+import { parseJSON } from "../utilities/index.js";
 
 export class X25519SalsaPoly extends Cipher {
   constructor(spark) {

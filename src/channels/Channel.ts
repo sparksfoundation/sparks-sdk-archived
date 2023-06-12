@@ -1,37 +1,59 @@
-import { ChannelCallbacks, CloseChannelArgs, IChannel, IChannelManager, OpenChannelArgs } from "./types";
+import { 
+    IChannelFactory, 
+    IChannel, 
+    CreateChannelArgs, 
+    ChannelPublicEvents, 
+    ChannelEventCallback, 
+    ChannelOpenedReceipt, 
+    ChannelClosedReceipt, 
+    MessageSentReceipt, 
+    SendMessageArgs 
+} from "./types.js";
+import { randomNonce } from "../utilities/index.js";
+
 
 export class Channel implements IChannel {
     public cid: string;
     public target: any;
-    public sharedKey: string;
-    public callbacks: ChannelCallbacks;
-
-    public async open(): Promise<void> {
-        return Promise.resolve();
-    }
-
-    public async close(): Promise<void> {
-        return Promise.resolve();
-    }
-
-    public async send(): Promise<void> {
-        return Promise.resolve();
-    }
-}
-
-export class ChannelManager implements IChannelManager {
     protected spark: any;
-    public channels: IChannel[] = [];
+    public sharedKey: string;
 
-    constructor(spark) {
+    constructor({ spark, target }) {
+        this.cid = randomNonce(16);
+        this.target = target;
         this.spark = spark;
     }
 
-    public async open(args: OpenChannelArgs): Promise<void> {
+    public async open(): Promise<ChannelOpenedReceipt | void> {
+        throw new Error('Not implemented');
         return Promise.resolve();
     }
 
-    public async close(args: CloseChannelArgs): Promise<void> {
+    public async close(): Promise<ChannelClosedReceipt | void> {
+        throw new Error('Not implemented');
         return Promise.resolve();
+    }
+
+    public async send(args: SendMessageArgs): Promise<MessageSentReceipt | void> {
+        throw new Error('Not implemented');
+        return Promise.resolve();
+    }
+
+    public on(event: ChannelPublicEvents, callback: ChannelEventCallback): void {
+        throw new Error('Not implemented');
+        return;
+    }
+}
+
+export class ChannelFactory implements IChannelFactory {
+    protected spark: any;
+    constructor(spark) {
+        this.spark = spark;
+        // handle private events here
+    }
+
+    public create(args: CreateChannelArgs): IChannel | never {
+        throw new Error('Not implemented');
+        return new Channel({} as any);
     }
 }
