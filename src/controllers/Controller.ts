@@ -29,12 +29,6 @@ export class Controller implements IController {
   constructor(spark) {
     this.spark = spark;
     this.keyEventLog = [];
-    this.incept = this.incept.bind(this);
-    this.rotate = this.rotate.bind(this);
-    this.import = this.import.bind(this);
-    this.delete = this.delete.bind(this);
-    this.export = this.export.bind(this);
-    this.keyEvent = this.keyEvent.bind(this);
   }
 
   get encryptionKeys() {
