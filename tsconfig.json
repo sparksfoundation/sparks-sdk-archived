@@ -27,6 +27,6 @@
   ],
   "include": [
     "src/**/*",
-    "lib/index.d.ts"
-, "old/agents/BaseIdentity.ts"  ],
+    "lib/index.d.ts"  
+  ],
 }

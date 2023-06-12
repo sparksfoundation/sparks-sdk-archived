@@ -1,46 +1,72 @@
-import { Agent, Channel, Controller, Derive, Encrypt, Hash, MixinType, Sign } from "./types/index.js";
+import { Controller } from './controllers/index.js';
+import { Agent } from './agents/index.js';
+import { Signer } from './signers/index.js';
+import { Cipher } from './ciphers/index.js';
+import { Hasher } from './hashers/index.js';
+import { Channel } from './channels/index.js';
+import { Storage } from './storage/index.js';
 
-interface Constructor<T> {
-  new(...args: any[]): T;
-  type: MixinType;
-}
+export class Spark {
+  private controller: typeof Controller;
+  private signer: typeof Signer;
+  private cipher: typeof Cipher;
+  private hasher: typeof Hasher;
+  private storage: typeof Storage;
+  private agents: { [key: string]: typeof Agent };
+  private channels: { [key: string]: typeof Channel };
 
-function mixin<TBase, TMixin>(base: TBase, mixin: TMixin): TBase & TMixin {
-  const derivedCtor = base as any;
-  const baseCtor = mixin as any;
+  constructor(options) {
+    this.controller = options.controller ? new options.controller(this) : null;
+    if (this.controller && !(this.controller instanceof Controller)) {
+      throw new Error('controller must be an instance of Controller')
+    }
 
-  Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-    Object.defineProperty(
-      derivedCtor.prototype,
-      name,
-      Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
-      Object.create(null)
-    );
-  });
-  return derivedCtor as TBase & TMixin;
-}
+    this.signer = options.signer ? new options.signer(this) : null;
+    if (this.signer && !(this.signer instanceof Signer)) {
+      throw new Error('signer must be an instance of Signer')
+    }
 
-export function Spark({
-  controller = undefined,
-  agents = [],
-  derive = undefined,
-  sign = undefined,
-  hash = undefined,
-  encrypt = undefined,
-  storage = undefined,
-  channels = [],
-}: {
-  controller?: Constructor<Controller>,
-  agents?: Constructor<Agent>[],
-  derive?: Constructor<Derive>,
-  sign?: Constructor<Sign>,
-  hash?: Constructor<Hash>,
-  encrypt?: Constructor<Encrypt>,
-  storage?: Constructor<Storage>,
-  channels?: Constructor<Channel>[],
-}) {
-  const allProps = [controller, ...agents, derive, encrypt, hash, sign, storage, ...channels]
-  const allMixins = allProps.filter((c): c is Constructor<any> => c !== undefined);
-  const Clazz = allMixins.reduce((acc, curr) => mixin(acc, curr), Agent as any);
-  return Clazz as Constructor<any> & typeof allMixins[number];
+    this.cipher = options.cipher ? new options.cipher(this) : null;
+    if (this.cipher && !(this.cipher instanceof Cipher)) {
+      throw new Error('cipher must be an instance of Cipher')
+    }
+
+    this.hasher = options.hasher ? new options.hasher(this) : null;
+    if (this.hasher && !(this.hasher instanceof Hasher)) {
+      throw new Error('hasher must be an instance of Hasher')
+    }
+
+    this.storage = options.storage ? new options.storage(this) : null;
+    if (this.storage && !(this.storage instanceof Storage)) {
+      throw new Error('storage must be an instance of Storage')
+    }
+
+    if (options.agents?.length) {
+      this.agents = {}
+      options.agents.map(agent => {
+        const name = agent.name.toLowerCase();
+        if (this.agents[name]) {
+          throw new Error(`agent name ${name} already exists`)
+        }
+        this.agents[name] = new agent(this);
+        if (!(this.agents[name] instanceof Agent)) {
+          throw new Error('channel must be an instance of Agent')
+        }
+      })
+    }
+
+    if (options.channels?.length) {
+      this.channels = {}
+      options.channels.map(channel => {
+        const name = channel.name.toLowerCase();
+        if (this.channels[name]) {
+          throw new Error(`channel name ${name} already exists`)
+        }
+        this.channels[name] = new channel(this);
+        if (!(this.channels[name] instanceof Channel)) {
+          throw new Error('channel must be an instance of Channel')
+        }
+      })
+    }
+  }
 }

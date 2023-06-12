@@ -1,8 +1,5 @@
-import { Agent } from '../types/index.js'
+import { Agent } from "./Agent.js";
 
 export class Attester extends Agent {
-  attest() {
-    console.log('attester')
-    return 'attester'
-  }
+
 }
