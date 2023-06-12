@@ -1,13 +1,11 @@
-import { IChannel, IChannelManager } from "./types";
+import { ChannelCallbacks, CloseChannelArgs, IChannel, IChannelManager, OpenChannelArgs } from "./types";
 
 export class Channel implements IChannel {
     public cid: string;
     public target: any;
     public sharedKey: string;
+    public callbacks: ChannelCallbacks;
 
-    constructor() {
-    }
-    
     public async open(): Promise<void> {
         return Promise.resolve();
     }
@@ -22,13 +20,18 @@ export class Channel implements IChannel {
 }
 
 export class ChannelManager implements IChannelManager {
+    protected spark: any;
     public channels: IChannel[] = [];
 
-    public async open(): Promise<void> {
+    constructor(spark) {
+        this.spark = spark;
+    }
+
+    public async open(args: OpenChannelArgs): Promise<void> {
         return Promise.resolve();
     }
 
-    public async close(): Promise<void> {
+    public async close(args: CloseChannelArgs): Promise<void> {
         return Promise.resolve();
     }
 }
