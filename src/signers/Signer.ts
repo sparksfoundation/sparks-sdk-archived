@@ -13,8 +13,8 @@ export class Signer implements ISigner {
     return ''
   }
   
-  public async verify({ publicKey, signature, data }) {
+  public async verify({ publicKey, signature, data }: { publicKey: string, signature: string, data?: string | object }) {
     throw new Error('verify not implemented');
-    return false as boolean;
+    return false;
   }
 }
