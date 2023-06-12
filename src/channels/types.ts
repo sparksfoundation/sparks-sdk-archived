@@ -1,6 +1,6 @@
 import { SharedEncryptionKey } from "../ciphers/types";
 
-export type MessageOptions = {
+export type MessageArgs = {
   data: string | object;              // data to send to the other side
   receipt: boolean;                   // whether to wait for a receipt
 };
@@ -25,11 +25,11 @@ export type MessageError = {
   timestamp: number;                  // timestamp of when the error occurred
 };
 
-export type ChannelCloseOptions = {
+export type ChannelCloseArgs = {
   receipt: boolean;                   // whether to wait for a receipt
 };
 
-export type ChannelClosedPayload = {
+export type ChannelOnClosePayload = {
   cid: string;                        // unique id for this channel
   closed: number;                     // timestamp of when the channel was closed
   signature: string;                  // signature of the channel id
@@ -41,9 +41,16 @@ export type ChannelClosedReceipt = {
   signature: string;                  // signature of the channel id
 };
 
-export type ChannelOpenedPayload = {
+export type ChannelBeforePayload = {
   cid: string;                        // unique id for this channel
-  channel: Channel;                   // the channel that was opened
+  channel: IChannel;                   // the channel that was opened
+  opened: number;                     // timestamp of when the channel was opened
+  signature: string;                  // signature of the channel id
+};
+
+export type ChannelOnOpenPayload = {
+  cid: string;                        // unique id for this channel
+  channel: IChannel;                  // the channel that was opened
   opened: number;                     // timestamp of when the channel was opened
   signature: string;                  // signature of the channel id
 };
@@ -54,37 +61,31 @@ export type ChannelError = {
   timestamp: number;                  // timestamp of when the error occurred
 };  
 
-export type ChannelTarget = any;
-
-export type ChannelOptions = {
-  target?: ChannelTarget;                                                       // if provided it's an intiator, if not it's a responder
-  onOpen?: (connection: Channel) => void;                                       // called when the channel is opened by the other side
-  onClose?: (connection: Channel) => void;                                      // called when the channel is closed by the other side
-  onMessage?: (connection: Channel, message: MessagePayload) => void;           // called when a message is received from the other side
-  onError?: (connection: Channel, error: MessageError | ChannelError) => void;  // called when an error occurs
-};
-
-export type ChannelFactoryOptions = {
-  target?: ChannelTarget;                                                       // if provided it's an intiator, if not it's a responder
-  onOpen?: (connection: Channel) => void;                                       // called when the channel is opened by the other side
-  onClose?: (connection: Channel) => void;                                      // called when the channel is closed by the other side
-  onMessage?: (connection: Channel, message: MessagePayload) => void;           // called when a message is received from the other side
-  onError?: (connection: Channel, error: MessageError | ChannelError) => void;  // called when an error occurs
-};
-
-// Channel is an abstract class that represents a channel of communication
-export abstract class Channel {
-  abstract cid: string;                                                                     // the unique id for the channel
-  abstract target: ChannelTarget;                                                           // the target of the channel
-  abstract sharedKey: SharedEncryptionKey;                                                  // the shared key for the channel
-  abstract send(args: MessageOptions): Promise<MessageReceipt> | void | never;              // returns a promise if receipt is true or throws an error
-  abstract close(args: ChannelCloseOptions): Promise<ChannelClosedReceipt> | void | never;  // returns a promise if receipt is true or throws an error 
-  abstract onOpen(args: ChannelOpenedPayload): void | never;                                // called when the channel is opened by the other side or throws an error
-  abstract onClose(args: ChannelClosedPayload): void | never;                               // called when the channel is closed by the other side or throws an error
-  abstract onMessage(args: MessagePayload): void | never;                                   // called when a message is received from the other side or throws an error
+export interface IChannel {
+  cid: string;                                                                      // the unique id for the channel
+  target: ChannelTarget;                                                            // the target of the channel
+  sharedKey: SharedEncryptionKey;                                                   // the shared key for the channel
+  send(args: MessageArgs): Promise<MessageReceipt | void> | never;                  // returns a promise if receipt is true or throws an error
+  close(args: ChannelCloseArgs): Promise<ChannelClosedReceipt | void> | never;      // returns a promise if receipt is true or throws an error
 }
 
-// if work on this start here and work your way up
+export type ChannelTarget = { [key: string]: any }; // target options for the channel
+export type ChannelSend = (args: MessageArgs) => Promise<MessageReceipt> | void | never;
+export type ChannelClose = (args: ChannelCloseArgs) => Promise<ChannelClosedReceipt> | void | never;
+export type ChannelBefore = (args: ChannelBeforePayload) => void | never;
+export type ChannelOnOpen = (args: ChannelOnOpenPayload) => void | never;
+export type ChannelOnClose = (args: ChannelOnClosePayload) => void | never;
+export type ChannelOnMessage = (args: MessagePayload) => void | never;
+export type ChannelOnError = (args: MessageError | ChannelError) => void | never;
+
+export type OpenChannelArgs = {
+  target?: ChannelTarget;               // if provided it's an intiator, if not it's a responder
+  beforeOpen?: ChannelOnOpen;           // called before the channel is opened by the other side
+  onOpen?: ChannelOnOpen;               // called when the channel is opened by the other side
+  onClose?: ChannelOnClose;             // called when the channel is closed by the other side
+  onMessage?: ChannelOnMessage;         // called when a message is received from the other side
+  onError?: ChannelOnError;             // called when an error occurs
+};
 
 /**
  * ChannelManager Interface
@@ -94,8 +95,8 @@ export abstract class Channel {
  * it should manage listeners and callbacks
  * to extend it to provide other channel factory types, 
  */
-export interface ChannelManager {
-  channels: Channel[];                                  // the channels that have been opened by this factory
-  open(args: ChannelFactoryOptions): void;              // starts the process of opening a channel
-  close(): void | never;                                // closes all open channels
+export interface IChannelManager {
+  channels: IChannel[];                 // the channels that have been opened by this factory
+  open(args: OpenChannelArgs): void;    // starts the process of opening a channel
+  close(): void | never;                // closes all open channels
 }
