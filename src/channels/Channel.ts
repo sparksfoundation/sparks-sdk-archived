@@ -7,7 +7,8 @@ import {
     ChannelOpenedReceipt, 
     ChannelClosedReceipt, 
     MessageSentReceipt, 
-    SendMessageArgs 
+    SendMessageArgs, 
+    ChannelPrivateEvents
 } from "./types.js";
 import { randomNonce } from "../utilities/index.js";
 
@@ -43,6 +44,10 @@ export class Channel implements IChannel {
         throw new Error('Not implemented');
         return;
     }
+
+    public confirm(event: ChannelPrivateEvents, args: any): void {}
+
+    public reject(event: ChannelPrivateEvents, args: any): void {}
 }
 
 export class ChannelFactory implements IChannelFactory {

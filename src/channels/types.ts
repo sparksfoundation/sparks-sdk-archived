@@ -69,6 +69,8 @@ export interface IChannel {
   open(): Promise<ChannelOpenedReceipt | void> | never;                             // returns a promise if receipt is true or throws an error
   send(args: SendMessageArgs): Promise<MessageSentReceipt | void> | never;          // returns a promise if receipt is true or throws an error
   close(): Promise<ChannelClosedReceipt | void> | never;                            // returns a promise if receipt is true or throws an error
+  confirm(event: ChannelPrivateEvents, args: any): void; // todo fix type                   // returns a promise if receipt is true or throws an error
+  reject(event: ChannelPrivateEvents, args: any): void; // todo fix type                    // returns a promise if receipt is true or throws an error
 }
 
 export type RequestChannelArgs = { [key: string]: any };  // target options for the channel

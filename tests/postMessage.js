@@ -1,8 +1,7 @@
 import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, User, Verifier, PostMessage } from '../dist/index.js';
 import MockWindow from './mocks/MockWindow.js';
-let passed
 
-//global.window = new MockWindow('http://localhost:3000');
+globalThis.window = new MockWindow('http://localhost:3000');
 
 const website = new Spark({
   agents: [ User, Verifier ],
@@ -14,6 +13,8 @@ const website = new Spark({
 });
 
 await website.controller.incept();
+
+globalThis.window = new MockWindow('http://localhost:4000');
 
 const alice = new Spark({
   agents: [ User, Verifier ],
@@ -28,4 +29,4 @@ const channel = website.channels.postMessage.create({
   request: { origin: 'http://localhost:3000', publicKey: website.controller.signingKeys.publicKey },
 })
 
-channel.open()
+const res = await channel.open();
