@@ -2,7 +2,7 @@ import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, User, Verifier, PostMe
 import MockWindow from './mocks/MockWindow.js';
 let passed
 
-global.window = new MockWindow('http://localhost:3000');
+//global.window = new MockWindow('http://localhost:3000');
 
 const website = new Spark({
   agents: [ User, Verifier ],
