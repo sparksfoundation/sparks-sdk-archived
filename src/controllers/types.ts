@@ -34,7 +34,7 @@ export type KeyPairs = {
   signing: SigningKeyPair;                                  // base64 signing public and secret keys
 }
 
-export type KeriEventIndex = number;                        // s: sequence number      
+export type KeriEventIndex = number;                        // s: sequence number
 export enum KeriEventType {                                 // t: event type
   INCEPTION = 'inception',
   ROTATION = 'rotation',
@@ -44,7 +44,7 @@ export type SigningThreshold = number;                      // kt: minimum amoun
 export type SigningKeys = SigningPublicKey[];               // k: list of signing key
 export type NextKeyCommitments = SingingPublicKeyHash[];    // n: next keys
 export type Backer = SigningPublicKey;                      // b: individual backer
-export type BackerThreshold = number;                       // bt: minimum amount of backers threshold 
+export type BackerThreshold = number;                       // bt: minimum amount of backers threshold
 export type Backers = Backer[];                             // b: list of backers in this case the spark pwa-agent host's publickey there's no receipt at this ste
 export type SelfAddressingIdentifier = string;              // d: self-addressing identifier
 export type Version = string;                               // v: version
@@ -94,7 +94,9 @@ export type KeriRotationEvent = KeriEvent & {
   eventType: KeriEventType.ROTATION;
 }
 
-export type KeriDeletionEvent = KeriRotationEvent;
+export type KeriDeletionEvent = KeriRotationEvent & {
+  eventType: KeriEventType.DELETION;
+}
 
 export type KeriKeyEvent = KeriInceptionEvent | KeriRotationEvent | KeriDeletionEvent;
 
@@ -125,7 +127,7 @@ export type ImportArgs = {
  * must implement methods for incepting, rotating, deleting, importing and exporting
  * relies on a cipher for encryption and decryption, a hasher for hashing and a signer
  * also provides and import and export method for backing up or restoring data
- * this is the main interface for the spark Identity 
+ * this is the main interface for the spark Identity
  * extend Controller class provide custom key derivation functionality
  */
 export interface IController {
