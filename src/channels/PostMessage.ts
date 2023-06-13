@@ -12,9 +12,10 @@ const EVENTS = {
 }
 
 export class PostMessageChannel extends Channel {
-  protected confirmCallbacks: Map<string, Function> = new Map();
+  protected disconnectConfirmationCallback: Function | undefined;
+  protected messageConfirmationCallbacks: Map<string, Function> = new Map();
+  protected eventCallbacks: Map<string, Function> = new Map();
   protected timeouts: Map<string, NodeJS.Timeout> = new Map();
-  protected callbacks: Map<string, Function> = new Map();
 
   constructor(args) {
     super(args);
@@ -24,74 +25,109 @@ export class PostMessageChannel extends Channel {
     return new Promise(async (resolve, reject) => {
       const sender = this.spark.controller.identifier;
       const encrypted = await this.spark.cipher.encrypt({ data, sharedKey: this.sharedKey });
-      const ciphertext = await this.spark.signer.sign({ data: encrypted });
       const timestamp = getTimestamp();
-      const message = new EncryptedMessage({ sender, ciphertext, timestamp });
-      
-      this.confirmCallbacks.set(message.mid, (args) => {
+      const messageId = randomNonce(16);
+      const ciphertext = await this.spark.signer.sign({ data: { messageId, sender, encrypted, timestamp } });
+
+      this.messageConfirmationCallbacks.set(messageId, (args) => {
         const { mid } = args;
         clearTimeout(this.timeouts.get(mid));
         this.timeouts.delete(mid);
-        resolve(void 0);
+        const { receipt } = args;
+        resolve(receipt);
       })
 
-      this.timeouts.set(message.mid, setTimeout(() => {
-        this.confirmCallbacks.delete(message.mid);
-        reject({ message: 'message confirmation timeout' });
+      this.timeouts.set(messageId, setTimeout(() => {
+        this.messageConfirmationCallbacks.delete(messageId);
+        reject({ message: 'message sent but could not get receipt' });
       }, CONFIRMATION_TIMEOUT));
 
-      this.target.source.postMessage({ cid: this.cid, type: EVENTS.MESSAGE, message }, this.target.origin);
+      this.target.source.postMessage({ cid: this.cid, type: EVENTS.MESSAGE, ciphertext }, this.target.origin);
     });
   }
 
-  close() { }
-
-  // todo - finish the confirmation and allow rejection from callbacks and confirms
-  confirm(args) {
-    const { type, mid, ...data } = args;
-    const isEvent = type === EVENTS.MESSAGE_CONFIRMATION || type === EVENTS.DISCONNECT_CONFIRMATION;
-    const confirm = this.confirmCallbacks.get(mid);
-    if (isEvent && confirm && type === EVENTS.MESSAGE_CONFIRMATION) {
-      console.log('confirming', !!confirm)
-      const { mid } = args;
-      if (this.confirmCallbacks.has(mid)) {
-        const callback = this.confirmCallbacks.get(mid);
-        if (callback) callback(args);
+  disconnect() {
+    return new Promise((resolve, reject) => {
+      this.disconnectConfirmationCallback = (args) => {
+        clearTimeout(this.timeouts.get(this.cid));
+        this.timeouts.delete(this.cid);
+        const { receipt } = args;
+        resolve(receipt);
       }
-    }
+
+      this.timeouts.set(this.cid, setTimeout(() => {
+        this.messageConfirmationCallbacks.clear();
+        this.disconnectConfirmationCallback = undefined;
+        reject({ message: 'channel closed but could not get confirmation' });
+      }, CONFIRMATION_TIMEOUT));
+
+      this.target.source.postMessage({ cid: this.cid, type: EVENTS.DISCONNECT }, this.target.origin);
+    });
   }
 
+  // this calls registered callbacks for confirmation events that we initiated
+  confirm(args) {
+    const { type, mid, ...data } = args;
+    let callback: Function | undefined = undefined;
+    if (type === EVENTS.DISCONNECT_CONFIRMATION) {
+      callback = this.disconnectConfirmationCallback;
+      clearTimeout(this.timeouts.get(this.cid));
+    } else if (type === EVENTS.MESSAGE_CONFIRMATION) {
+      callback = this.messageConfirmationCallbacks.get(mid);
+      this.messageConfirmationCallbacks.delete(mid);
+      clearTimeout(this.timeouts.get(mid));
+      this.timeouts.delete(mid);
+    }
+    if (callback) callback(data);
+  }
+
+  // this calls registered callbacks for events that we received
   async callback(args) {
     const { type, ...data } = args;
     const isEvent = type === EVENTS.MESSAGE || type === EVENTS.DISCONNECT;
-    const callback = this.callbacks.get(type);
+    const callback = this.eventCallbacks.get(type);
     if (isEvent && callback && type === EVENTS.MESSAGE) {
-      const { mid, sender, ciphertext, timestamp } = data;
+      const { ciphertext } = data;
       const opened = await this.spark.signer.verify({ signature: ciphertext, publicKey: this.target.publicKey });
-      const decrypted = await this.spark.cipher.decrypt({ data: opened, sharedKey: this.sharedKey });
+      if (!opened) return; // if we can't open the signature fail quietly
+
+      const { messageId: mid, sender, encrypted, timestamp } = opened;
+      const decrypted = await this.spark.cipher.decrypt({ data: encrypted, sharedKey: this.sharedKey });
       const message = new DecryptedMessage({ cid: this.cid, mid, ciphertext, sender, content: decrypted, timestamp });
       callback(message);
-      const encrypted = await this.spark.cipher.encrypt({ data: message, sharedKey: this.sharedKey });
-      const receipt = await this.spark.signer.sign({ data: encrypted });
-      this.target.source.postMessage({ cid: this.cid, mid, type: EVENTS.MESSAGE_CONFIRMATION, receipt }, this.target.origin);
-    } else if (isEvent && callback && type === EVENTS.DISCONNECT) {
 
+      // send confirmation
+      let receipt = await this.spark.cipher.encrypt({ data: { type: EVENTS.MESSAGE_CONFIRMATION, message }, sharedKey: this.sharedKey });
+      receipt = await this.spark.signer.sign({ data: receipt });
+
+      this.target.source.postMessage({ cid: this.cid, mid, type: EVENTS.MESSAGE_CONFIRMATION, receipt }, this.target.origin);
+    } else if (isEvent && type === EVENTS.DISCONNECT && callback) {
+      // clear all the callbacks
+      this.eventCallbacks.clear();
+      this.messageConfirmationCallbacks.clear();
+      this.disconnectConfirmationCallback = undefined;
+      clearTimeout(this.timeouts.get(this.cid))
+      this.timeouts.clear();
+      callback(data);
+
+      // send confirmation
+      let receipt = await this.spark.cipher.encrypt({ data: { type: EVENTS.DISCONNECT_CONFIRMATION, cid: this.cid }, sharedKey: this.sharedKey });
+      receipt = await this.spark.signer.sign({ data: receipt });
+      this.target.source.postMessage({ cid: this.cid, type: EVENTS.DISCONNECT_CONFIRMATION, receipt }, this.target.origin);
     }
   }
 
   on(event, callback) {
     if (event === EVENTS.MESSAGE || event === EVENTS.DISCONNECT) {
-      this.callbacks.set(event, callback);
+      this.eventCallbacks.set(event, callback);
     }
   }
 }
 
-
-
 export class PostMessage extends ChannelFactory {
   private channels: Map<string, PostMessageChannel> = new Map();
-  private confirmCallbacks: Map<string, Function> = new Map();
-  private requestCallback: Function;
+  private connectionConfirmationCallbacks: Map<string, Function> = new Map();
+  private connectionRequestCallback: Function;
   private timeouts: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(args) {
@@ -100,10 +136,10 @@ export class PostMessage extends ChannelFactory {
     const handleConnectionRequest = async (event) => {
       const { data, source } = event;
       const { origin, publicKeys, cid } = data;
-      const callback = this.requestCallback;
+      const callback = this.connectionRequestCallback;
       const sharedKey = await this.spark.cipher.sharedKey({ publicKey: publicKeys.encryption });
       if (!callback) return; // if no callback is registered, we're not listening for requests
-      
+
       new Promise(async (resolve, reject) => {
         const isValid = cid && origin && sharedKey && callback;
         if (!isValid) reject({ message: 'connection failed' });
@@ -126,43 +162,62 @@ export class PostMessage extends ChannelFactory {
     }
 
     const handleConnectionConfirmation = async (event) => {
-      
+
       const { data, source } = event;
       const { origin, publicKeys, cid } = data;
-      const callback = this.confirmCallbacks.get(cid);
+      const callback = this.connectionConfirmationCallbacks.get(cid);
       if (!callback) return;
       callback({ cid, publicKeys, origin, source })
     }
 
     const handleMessage = async (event) => {
       const { data, } = event;
-      const { message, cid } = data;
-      const { sender, } = message;
+      const { ciphertext, cid } = data;
       const channel = this.channels.get(cid);
-      const isSelf = this.spark.controller.identifier === sender; // needed for testing
-      if (channel && !isSelf) channel.callback({ type: EVENTS.MESSAGE, ...message })      
+      const isSelf = channel?.target.publicKey === this.spark.controller.publicKeys.signing; // needed for node environment
+      if (channel && !isSelf) channel.callback({ type: EVENTS.MESSAGE, ciphertext })
     }
 
     const handleMessageConfirmation = async (event) => {
       const { data, } = event;
       const { receipt, mid, cid } = data;
       const channel = this.channels.get(cid);
-      const isSelf = this.spark.controller.identifier === receipt.sender; // needed for testing
-      if (channel && !isSelf) channel.confirm({ type: EVENTS.MESSAGE_CONFIRMATION, ...data });
+      const isSelf = channel?.target.publicKey === this.spark.controller.publicKeys.signing; // needed for node environment
+      if (channel && !isSelf) channel.confirm({ type: EVENTS.MESSAGE_CONFIRMATION, mid, receipt });
+    }
+
+    const handleDisconnect = async (event) => {
+      const { data, } = event;
+      const { cid } = data;
+      const channel = this.channels.get(cid);
+      const isSelf = channel?.target.publicKey === this.spark.controller.publicKeys.signing; // needed for node environment
+      if (channel && !isSelf) channel.callback({ type: EVENTS.DISCONNECT, ...data })
+    }
+
+    const handleDisconnectConfirmation = async (event) => {
+      const { data, } = event;
+      const { receipt, cid } = data;
+      const channel = this.channels.get(cid);
+      const isSelf = channel?.target.publicKey === this.spark.controller.publicKeys.signing; // needed for node environment
+      if (channel && !isSelf) channel.confirm({ type: EVENTS.DISCONNECT_CONFIRMATION, receipt });
     }
 
     const handler = async (event) => {
       const { data: { type, cid }, source } = event;
       if (!source || !cid) return;
       const channel = this.channels.get(cid);
-      if (type === EVENTS.CONNECTION_REQUEST && !channel) {               // inbound request with receive callback in place
+      if (type === EVENTS.CONNECTION_REQUEST && !channel) {               // inbound connection request we're receiving
         handleConnectionRequest(event);
       } else if (type === EVENTS.CONNECT_CONFIRMATION && !channel) {      // confirming an outbound request we initiated
         handleConnectionConfirmation(event);
-      } else if (type === EVENTS.MESSAGE && channel) {                    // inbound message -> we're the receiver
+      } else if (type === EVENTS.MESSAGE && channel) {                    // inbound message we're receiving
         handleMessage(event);
       } else if (type === EVENTS.MESSAGE_CONFIRMATION && channel) {       // confirming an outbound message we initiated
         handleMessageConfirmation(event);
+      } else if (type === EVENTS.DISCONNECT && channel) {                 // inbound disconnect we're receiving
+        handleDisconnect(event);
+      } else if (type === EVENTS.DISCONNECT_CONFIRMATION && channel) {    // confirming an outbound disconnect we initiated
+        handleDisconnectConfirmation(event);
       }
     };
 
@@ -177,9 +232,11 @@ export class PostMessage extends ChannelFactory {
     const cid = randomNonce(16);
     const message = { type: EVENTS.CONNECTION_REQUEST, origin, publicKeys, cid };
     const source = window.open(targetOrigin);
+
     return new Promise((resolve, reject) => {
       if (!source) return reject({ message: 'connection failed' });
-      this.confirmCallbacks.set(cid, async (args) => {
+
+      this.connectionConfirmationCallbacks.set(cid, async (args) => {
         const { cid, publicKeys, origin, source } = args;
         const sharedKey = await this.spark.cipher.sharedKey({ publicKey: publicKeys.encryption });
         if (!sharedKey || !origin || !source || !cid) return reject({ message: 'connection failed' });
@@ -199,6 +256,6 @@ export class PostMessage extends ChannelFactory {
   }
 
   recieve(callback) {
-    this.requestCallback = callback;
+    this.connectionRequestCallback = callback;
   }
 }

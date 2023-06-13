@@ -9,7 +9,11 @@ await website.controller.incept();
 const websiteChannel = website.channels.postMessage.recieve(async (opts, resolve, reject) => {
   const conn = await resolve()
   conn.on('message', (msg) => {
-    console.log(msg)
+    console.log('recieved at', msg)
+  })
+
+  conn.on('disconnect', (res) => {
+    console.log('disconnected', res)
   })
 })
 
@@ -18,4 +22,12 @@ await alice.controller.incept();
 
 const channel = await alice.channels.postMessage.connect('http://localhost:3000')
 
-const res = await channel.send('hey')
+const receipt = await channel.send('hey')
+console.log('sent', receipt)
+
+const encrypted = await alice.signer.verify({ signature: receipt, publicKey: channel.target.publicKey })
+const decrypted = await alice.cipher.decrypt({ data: encrypted, sharedKey: channel.sharedKey })
+
+console.log('confirmed recieved at', decrypted)
+const res = await channel.disconnect()
+console.log('disconnected', res)

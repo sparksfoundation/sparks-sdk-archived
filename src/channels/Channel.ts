@@ -23,16 +23,12 @@ export class Channel {
 }
 
 export class EncryptedMessage {
-  public mid: string;
-  public sender: string;
   public ciphertext: string;
   public timestamp: number;
   constructor({ sender, ciphertext, timestamp }) {
     if (!sender || !ciphertext || !timestamp) {
       throw new Error('invalid message');
     }
-    this.mid = randomNonce(16);
-    this.sender = sender;
     this.ciphertext = ciphertext;
     this.timestamp = timestamp;
   }
