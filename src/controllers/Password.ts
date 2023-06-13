@@ -10,27 +10,22 @@ const generateSalt = (data) => {
 }
 
 const signingKeyPair = async ({ password, salt }) => {
-  const options = { N: 16384, r: 8, p: 1 };
-  const buffer = await scrypt.scrypt(
-    password,
-    salt,
-    nacl.box.secretKeyLength / 2,
-    options,
-  );
-  const seed = [...new Uint8Array(buffer)]
-    .map((x) => x.toString(16).padStart(2, '0'))
-    .join('');
-
-  const uint8Seed = util.decodeUTF8(seed);
-  const uint8Keypair = nacl.sign.keyPair.fromSeed(uint8Seed);
-
-  return {
-    publicKey: util.encodeBase64(uint8Keypair.publicKey),
-    secretKey: util.encodeBase64(uint8Keypair.secretKey),
-  };
+  return generateKeyPair({
+    password: password,
+    salt: salt,
+    naclFunc: nacl.sign.keyPair.fromSeed
+  });
 };
 
 const encryptionKeyPair = async ({ password, salt }) => {
+  return generateKeyPair({
+    password: password,
+    salt: salt,
+    naclFunc: nacl.box.keyPair.fromSecretKey
+  });
+};
+
+const generateKeyPair = async ({ password, salt, naclFunc }) => {
   const options = { N: 16384, r: 8, p: 1 };
   const buffer = await scrypt.scrypt(
     password,
@@ -43,7 +38,7 @@ const encryptionKeyPair = async ({ password, salt }) => {
     .join('');
 
   const uint8Seed = util.decodeUTF8(seed);
-  const uint8Keypair = nacl.box.keyPair.fromSecretKey(uint8Seed);
+  const uint8Keypair = naclFunc(uint8Seed);
 
   return {
     publicKey: util.encodeBase64(uint8Keypair.publicKey),
