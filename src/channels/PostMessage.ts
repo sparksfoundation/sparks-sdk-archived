@@ -259,3 +259,94 @@ export class PostMessage extends ChannelFactory {
     this.connectionRequestCallback = callback;
   }
 }
+
+/*
+  CONNECTION FLOWS
+  alice requests connection { cid, identifiers, publicKeys, origin, timestamp, signature } 
+
+  bob computes shared key, signs timestamp and sends back { cid, identifiers, publicKeys, origin, timestamp, signature, receipt: { cid, timestamp, identifiers/publicSigningKeys }}
+  
+  alice sets up a connection and signs a receipt signature of encrypted { cid, timestamp, identifiers/publicSigningKeys }
+  alice's promise resolves
+
+  bob receives receipt and verifies signature, sets up connection
+  bob's callback is called after receiving receipt
+*/
+
+/*
+  MESSAGE FLOWS
+  alice sends message signature(encrypted({ mid, cid, contents, timestamp })) -> non-repudation from signature & untampered w/encryption
+  bob receives message, opens signature, decrypts sends receipt signature(encrypted(mid)) -> message id is enough as it's unknown without intact receipt of original message
+  bob's callback is called
+
+  alice receives receipt, opens signature, decrypts, verifies mid, confirms receipt
+  alice's promise resolves
+*/
+
+/*
+  DISCONNECT FLOWS
+  alice sends disconnect signature(encrypted({ cid, timestamp })) -> non-repudation from signature & untampered w/encryption
+  bob receives disconnect, opens signature, decrypts sends receipt signature(encrypted(cid)) -> cid is enough as it's unknown without intact receipt of original disconnect
+  bob's callback is called
+
+  alice receives receipt, opens signature, decrypts, verifies cid, confirms receipt
+  alice's promise resolves
+*/
+
+class TestChannel {
+  send(data) { }
+  close() { }
+  onmessage() { }
+  onclose() { }
+}
+
+// if the time the request hits receiver is greater deny connection
+const CONNECTION_THRESHOLD = 10000;
+const CONFIRMATION_TIMEOUT = 10000;
+const CHANNEL_EVENT = {
+  CONNECTION_REQUEST: 'connection-request',
+  CONNECTION_CONFIRMATION: 'connection-confirmation',
+  MESSAGE: 'message',
+  MESSAGE_CONFIRMATION: 'message-confirmation',
+  DISCONNECT: 'disconnect',
+  DISCONNECT_CONFIRMATION: 'disconnect-confirmation',
+}
+
+class Test {
+  // store messages that hit before handshake is complete
+  private preConnectionMessageQueue: Map<string, any> = new Map();
+
+  // promises are resolved with just receipts at initiators end
+  private connectPromises: Map<string, Function> = new Map();
+  private disconnectPromises: Map<string, Function> = new Map();
+  private messagePromises: Map<string, Function> = new Map();
+
+  // callbacks are triggered with payloads and receipts at receivers' end "onmessage, onconnect, ondisconnect, onerror"
+  private connectCallbacks: Map<string, Function> = new Map();
+  private disconnectCallbacks: Map<string, Function> = new Map();
+  private messageCallbacks: Map<string, Function> = new Map();
+
+  // timeouts
+  private connectTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private disconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private messageTimeouts: Map<string, NodeJS.Timeout> = new Map();
+
+  // channels
+  private channels: Map<string, PostMessageChannel> = new Map();
+
+  constructor() {
+    const handler = async (event) => {
+
+    };
+
+    window.addEventListener('message', handler);
+  }
+
+  connect() {
+
+  }
+
+  receive() {
+
+  }
+}
