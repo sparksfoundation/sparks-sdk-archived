@@ -133,13 +133,11 @@ export class Controller implements IController {
       if (isDeleted) throw new Error('Identity has already been deleted');
     }
 
-    const identifier = this.identifier || `B${keyPairs.signing.publicKey.replace(/=$/, '')}`
     const nextKeyCommitments = [await this.spark.hasher.hash(nextKeyPairs.signing.publicKey)]
     const eventIndex = this.keyEventLog.length
     const signingKeys = [keyPairs.signing.publicKey]
 
     const event = {
-      identifier,
       eventIndex,
       eventType,
       signingThreshold: 1,
@@ -153,6 +151,7 @@ export class Controller implements IController {
     const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
     const hashedEvent = await this.spark.hasher.hash(eventJSON);
     const signedEventHash = await this.spark.signer.sign({ data: hashedEvent, detached: true });
+    const identifier = this.identifier || `B${signedEventHash}`;
 
     if (eventType === KeriEventType.ROTATION) {
       const previousEventDigest: string = this.keyEventLog[this.keyEventLog.length - 1].selfAddressingIdentifier;
@@ -162,6 +161,7 @@ export class Controller implements IController {
 
     const keyEvent = {
       ...event,
+      identifier: identifier,
       selfAddressingIdentifier: signedEventHash,
       version: version,
     };
