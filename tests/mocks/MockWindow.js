@@ -11,6 +11,10 @@ class MockWindow {
     this.messageListeners = [];
     this.opener = null;
     this.location = { origin };
+    this.open = this.open.bind(this);
+    this.addEventListener = this.addEventListener.bind(this);
+    this.removeEventListener = this.removeEventListener.bind(this);
+    this.postMessage = this.postMessage.bind(this);
     MockWindow.windows[origin] = this;
   }
 
@@ -18,15 +22,17 @@ class MockWindow {
     if (MockWindow.windows[origin]) {
       MockWindow.windows[origin].opener = this;
       return MockWindow.windows[origin];
+    } else {
+      MockWindow.windows[origin] = new MockWindow(origin);
+      MockWindow.windows[origin].opener = this;
+      return MockWindow.windows[origin];
     }
-    this.name = name;
-    this.origin = origin;
-    return this;
   }
 
   addEventListener(event, callback) {
     if (event === 'message') {
-      this.messageListeners.push(callback);
+      const window = MockWindow.windows[this.origin];
+      window.messageListeners.push(callback);
     }
   }
 
@@ -40,13 +46,16 @@ class MockWindow {
   }
 
   postMessage(message, origin) {
-    if (origin === this.origin) {
+    const window = MockWindow.windows[origin];
+    if (window) {
       const event = {
         data: message,
         origin: this.origin,
         source: this,
       };
-      this.messageListeners.forEach(callback => callback(event));
+      window.messageListeners.forEach(callback => {
+        callback(event)
+      });
     }
   }
 }

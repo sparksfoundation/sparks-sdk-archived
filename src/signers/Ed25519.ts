@@ -5,10 +5,8 @@ import { parseJSON } from "../utilities/index.js";
 
 export class Ed25519 extends Signer {
   async sign({ data, detached = false }) {
-    if (typeof data !== 'string') {
-      data = JSON.stringify(data);
-    }
-    const uintData = util.decodeUTF8(data as string);
+    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+    const uintData = util.decodeUTF8(dataString as string);
     const uintSecretKey = util.decodeBase64(this.spark.controller.signingKeys.secretKey);
     const signature = detached
       ? util.encodeBase64(nacl.sign.detached(uintData, uintSecretKey))

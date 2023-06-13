@@ -5,7 +5,7 @@ import util from "tweetnacl-util";
  * 
  * @returns a timestamp in milliseconds since epoch in terms of UTC
  */
-export function timestamp() {
+export function getTimestamp() {
     const now = new Date()
     return now.getTime() + now.getTimezoneOffset() * 60 * 1000;
 }

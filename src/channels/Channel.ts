@@ -1,64 +1,66 @@
-import { 
-    IChannelFactory, 
-    IChannel, 
-    CreateChannelArgs, 
-    ChannelPublicEvents, 
-    ChannelEventCallback, 
-    ChannelOpenedReceipt, 
-    ChannelClosedReceipt, 
-    MessageSentReceipt, 
-    SendMessageArgs, 
-    ChannelPrivateEvents
-} from "./types.js";
 import { randomNonce } from "../utilities/index.js";
 
+export class Channel {
+  protected spark: any; // todo type
+  public sharedKey: string;
+  public cid: string;
+  public target: {
+    publicKey: string;
+    source: Window;
+    origin: string;
+  };
 
-export class Channel implements IChannel {
-    public cid: string;
-    public target: any;
-    protected spark: any;
-    public sharedKey: string;
+  constructor({ spark, cid, sharedKey, publicKey, origin, source }) {
+    this.cid = cid;
+    this.spark = spark;
+    this.sharedKey = sharedKey;
+    this.target = { source, origin, publicKey };
+  }
 
-    constructor({ spark, target }) {
-        this.cid = randomNonce(16);
-        this.target = target;
-        this.spark = spark;
-    }
-
-    public async open(): Promise<ChannelOpenedReceipt | void> {
-        throw new Error('Not implemented');
-        return Promise.resolve();
-    }
-
-    public async close(): Promise<ChannelClosedReceipt | void> {
-        throw new Error('Not implemented');
-        return Promise.resolve();
-    }
-
-    public async send(args: SendMessageArgs): Promise<MessageSentReceipt | void> {
-        throw new Error('Not implemented');
-        return Promise.resolve();
-    }
-
-    public on(event: ChannelPublicEvents, callback: ChannelEventCallback): void {
-        throw new Error('Not implemented');
-        return;
-    }
-
-    public confirm(event: ChannelPrivateEvents, args: any): void {}
-
-    public reject(event: ChannelPrivateEvents, args: any): void {}
+  send(data) {
+    throw new Error('not implemented');
+  }
 }
 
-export class ChannelFactory implements IChannelFactory {
-    protected spark: any;
-    constructor(spark) {
-        this.spark = spark;
-        // handle private events here
+export class EncryptedMessage {
+  public mid: string;
+  public sender: string;
+  public ciphertext: string;
+  public timestamp: number;
+  constructor({ sender, ciphertext, timestamp }) {
+    if (!sender || !ciphertext || !timestamp) {
+      throw new Error('invalid message');
     }
+    this.mid = randomNonce(16);
+    this.sender = sender;
+    this.ciphertext = ciphertext;
+    this.timestamp = timestamp;
+  }
+}
 
-    public create(args: CreateChannelArgs): IChannel | never {
-        throw new Error('Not implemented');
-        return new Channel({} as any);
+export class DecryptedMessage {
+  public cid: string;
+  public mid: string;
+  public sender: string;
+  public content: any;
+  public ciphertext: string;
+  public timestamp: number;
+  constructor({ cid, mid, ciphertext, sender, content, timestamp }) {
+    if (!mid || !content || !timestamp) {
+      throw new Error('invalid content');
     }
+    this.cid = cid;
+    this.mid = mid;
+    this.sender = sender;
+    this.content = content;
+    this.ciphertext = ciphertext;
+    this.timestamp = timestamp;
+  }
+}
+
+export class ChannelFactory {
+  protected spark: any; // todo type
+  constructor(spark) {
+    this.spark = spark;
+  }
 }

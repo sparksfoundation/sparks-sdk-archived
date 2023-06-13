@@ -67,10 +67,7 @@ export class X25519SalsaPoly extends Cipher {
       decrypted = nacl.secretbox.open(uintData, nonce, secreKeyUint);
     }
 
-    if (!decrypted) {
-      throw new Error('Could not decrypt message');
-    }
-
+    if (!decrypted) return null;
     const utf8Result = util.encodeUTF8(decrypted);
     const result = parseJSON(utf8Result) || utf8Result;
     return result;
