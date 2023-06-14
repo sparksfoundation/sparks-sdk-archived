@@ -47,11 +47,13 @@ class MockWindow {
 
   postMessage(message, origin) {
     const window = MockWindow.windows[origin];
+    const source = Object.keys(MockWindow.windows).find(key => MockWindow.windows[key] !== this)
+    const sourceWin = MockWindow.windows[source];
     if (window) {
       const event = {
         data: message,
-        origin: this.origin,
-        source: this,
+        origin: sourceWin.origin,
+        source: sourceWin,
       };
       window.messageListeners.forEach(callback => {
         callback(event)

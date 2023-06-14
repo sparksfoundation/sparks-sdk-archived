@@ -3,7 +3,7 @@ import { Agent } from './agents/index.js';
 import { Signer } from './signers/index.js';
 import { Cipher } from './ciphers/index.js';
 import { Hasher } from './hashers/index.js';
-import { ChannelFactory } from './channels/index.js';
+import { ChannelManager } from './channels/index.js';
 import { Storage } from './storage/index.js';
 
 const SINGLETONS = {
@@ -16,7 +16,7 @@ const SINGLETONS = {
 
 const COLLECTIONS = {
   agents: Agent,
-  channels: ChannelFactory,
+  channels: ChannelManager,
 };
 
 export class Spark {
