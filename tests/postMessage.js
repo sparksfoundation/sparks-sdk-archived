@@ -5,13 +5,12 @@ const website = new Spark({ agents: [User, Verifier], controller: Random, signer
 await website.controller.incept();
 
 website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
-    reject();
     const channel = await resolve();
     const receipt = await channel.message('test')
-    console.log(!!receipt)
+    console.log('1111 recieved receipt', !!receipt)
+
+    const res = await channel.disconnect();
 }, website, new MockWindow('http://localhost:1111'));
-
-
 
 const alice = new Spark({ agents: [User, Verifier], controller: Random, signer: Ed25519, hasher: Blake3, cipher: X25519SalsaPoly, channels: [PostMessage] });
 await alice.controller.incept();
@@ -20,7 +19,7 @@ const channels = new alice.channels.PostMessage({ _window: new MockWindow('http:
 const channel = await channels.open({ url: 'http://localhost:1111' })
 console.log('4444 channel opened')
 const receipt = await channel.message('test');
-console.log(!!receipt)
+console.log('4444 recieved receipt', !!receipt)
 
 // channel.open = () => { }
 // channel.onopen = () => { }

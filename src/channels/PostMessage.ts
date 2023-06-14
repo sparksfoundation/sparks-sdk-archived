@@ -450,8 +450,6 @@ PostMessage.receive = function (callback, spark, thisWindow) {
             return handleConnectionRequest(event);
         } else if (data.type === CHANNEL_EVENTS.CONRIM_CONNECTION) {
             return handleConnectionConfirmation(event);
-        } else if (data.type === CHANNEL_EVENTS.MESSAGE) {
-            console.log('HEYYYYY received message')
         } else if (data.error in POSTMESSAGE_ERRORS) {
             return handleError(event);
         }
