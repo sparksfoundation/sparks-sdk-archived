@@ -1,20 +1,7 @@
+
 export class Channel {
   protected spark;
-  public cid;
-  public sharedKey;
-  public target;
-  public receipt;
-  constructor({ spark, cid, sharedKey, target, receipt }) {
-    this.spark = spark;
-    this.cid = cid;
-    this.sharedKey = sharedKey;
-    this.target = target;
-    this.receipt = receipt;
-  }
-}
-
-export class ChannelManager {
-  protected spark;
+  static receive: (callback: (data: any) => void, context: any, _window: any) => void;
   constructor(spark) {
     this.spark = spark;
   }

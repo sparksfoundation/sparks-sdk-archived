@@ -1,2 +1,2 @@
-export * from './Channel.js'
-export * from './PostMessage.js'
+export * from './Channel.js';
+export * from './PostMessage.js';
