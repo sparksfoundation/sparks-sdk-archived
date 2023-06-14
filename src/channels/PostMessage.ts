@@ -2,10 +2,11 @@
 import { getTimestamp, randomNonce } from '../utilities/index.js';
 import { Channel } from './Channel.js';
 
-
 export enum CHANNEL_EVENTS {
     REQUEST_CONNECTION = 'REQUEST_CONNECTION',
     CONRIM_CONNECTION = 'CONRIM_CONNECTION',
+    MESSAGE = 'MESSAGE',
+    MESSAGE_CONFIRMATION = 'MESSAGE_CONFIRMATION',
 }
 
 export enum CHANNEL_ERRORS {
@@ -13,6 +14,8 @@ export enum CHANNEL_ERRORS {
     CONNECT_REQUEST_OPTION_ERROR = 'CONNECT_REQUEST_OPTION_ERROR',
     CONFIRM_CONNECTION_ERROR = 'CONFIRM_CONNECTION_ERROR',
     CONNECTION_REJECTED_ERROR = 'CONNECTION_REJECTED_ERROR',
+    INVALID_MESSAGE_RECEIPT_ERROR = 'INVALID_MESSAGE_RECEIPT_ERROR',
+    INVALID_MESSAGE_ERROR = 'INVALID_MESSAGE_ERROR',
 }
 
 export type ConnectionRequestOptions = {
@@ -65,13 +68,41 @@ export type ChannelConfirmWithReceiptPayload = ConnectionRequestOptions & {
     type: CHANNEL_EVENTS.CONRIM_CONNECTION;
 };
 
+export type MessageData = {
+    cid: string;
+    mid: string;
+    timestamp: number;
+    content: string | object;
+}
+
+export type MessagePayload = {
+    type: CHANNEL_EVENTS.MESSAGE;
+    message: string;                    // encrypted then signed message
+}
+
+export type MessageEvent = {
+    data: MessagePayload;
+    origin: string;
+    source: Window;
+}
+
+export type MessageReceipt = string; // encrypted then signed message
+
+export type MessageReceiptPayload = {
+    type: CHANNEL_EVENTS.MESSAGE_CONFIRMATION;
+    mid: string;                        // message id
+    receipt: string;                    // signed receipt
+}
+
 export class PostMessage extends Channel {
     private _onopen: () => void;
     private _onclose: () => void;
     private _onmessage: () => void;
     private _onerror: () => void;
     private _window: Window;
-    private _promises = new Map<string, (args: Channel) => void>();
+    private _connectionPromises = new Map<string, (args: Channel) => void>();
+    private _messagePromises = new Map<string, (args: MessageReceipt) => void>();
+    private _preConnectionMessageQueue: MessageEvent[] = [];
 
     private cid: string;
     private origin: string;
@@ -107,6 +138,7 @@ export class PostMessage extends Channel {
         this._handler = this._handler.bind(this);
         this._handleConnectionConfirmation = this._handleConnectionConfirmation.bind(this);
         this._handleError = this._handleError.bind(this);
+        this._handleMessageConfirmation = this._handleMessageConfirmation.bind(this);
 
         this._window.addEventListener('message', this._handler);
         this._window.addEventListener('beforeunload', this.close);
@@ -136,20 +168,21 @@ export class PostMessage extends Channel {
         }
 
         // good, sign and send back
-        console.log('initator received valid reciept')
+        console.log(this._window.origin.split(':')[2] + ' received valid connection reciept')
         const encryptedRedceipt = await this.spark.cipher.encrypt({ data: decryptedReceit, sharedKey });
         const signedReceipt = await this.spark.signer.sign({ data: encryptedRedceipt });
         const payload: ChannelConfirmWithReceiptPayload = { ...data, type: CHANNEL_EVENTS.CONRIM_CONNECTION, receipt: signedReceipt };
-        console.log('initator sending back a connection receipt')
+        console.log(this._window.origin.split(':')[2] + ' sending back a connection receipt')
         source.postMessage(payload, origin);
 
         // setup connection and resolve promise
+        console.log(this._window.origin.split(':')[2] + ' creating channel and resolving')
         const channelOptions: ChannelArgs = { _window: this._window, spark: this.spark, cid, timestamp, origin, source, identifier, sharedKey, publicKey: publicKeys.signing, receipt };
         const channel: Channel = new PostMessage(channelOptions);
 
-        const promise = this._promises.get(cid);
+        const promise = this._connectionPromises.get(cid);
         if (promise) {
-            this._promises.delete(cid);
+            this._connectionPromises.delete(cid);
             return promise(channel);
         } else {
             const error = { error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error confirming connection' };
@@ -157,8 +190,56 @@ export class PostMessage extends Channel {
         }
     }
 
+    private async _handleMessage(event) {
+        const { data, origin } = event;
+        const { message }: MessagePayload = data;
+        const isReady = !!(this.identifier && this.publicKey && this.sharedKey);
+        if (!isReady) return this._preConnectionMessageQueue.push(event);
+
+        console.log(this._window.origin.split(':')[2] + ' opening and decrypting message')
+        const openedMessage = await this.spark.signer.verify({ signature: message, publicKey: this.publicKey });
+        const decryptedMessage = await this.spark.cipher.decrypt({ data: openedMessage, sharedKey: this.sharedKey });
+        if (!openedMessage || !decryptedMessage) {
+            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.INVALID_MESSAGE_ERROR, message: 'error decrypting and verifying message' };
+            return event.source.postMessage(error, origin);
+        }
+
+        // make a receipt
+        console.log(this._window.origin.split(':')[2] + ' generating and sending message receipt')
+        const receiptData: MessageData = decryptedMessage;
+        const ciphertext = await this.spark.cipher.encrypt({ data: receiptData, sharedKey: this.sharedKey });
+        const receipt = await this.spark.signer.sign({ data: ciphertext });
+        if (!ciphertext || !receipt) {
+            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error generating message confirmation receipt' };
+            return event.source.postMessage(error, origin);
+        }
+
+        // send it back
+        const { mid }: MessageData = decryptedMessage;
+        const payload: MessageReceiptPayload = { type: CHANNEL_EVENTS.MESSAGE_CONFIRMATION, mid, receipt };
+        event.source.postMessage(payload, origin);
+    }
+
+    private _handleMessageConfirmation(event) {
+        const { data, origin } = event;
+        const { mid, receipt }: MessageReceiptPayload = data;
+        // can only handle messages when we're instantiated
+        if (!this.origin || origin !== this.origin) return;
+
+        const promise = this._messagePromises.get(mid);
+
+        if (!promise) return
+
+        if (promise) return promise(receipt);
+
+        const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' };
+        return event.source.postMessage(error, origin);
+    }
+
     private _handleError(event) {
-        console.log(event.data)
+        const { data } = event;
+        const { error, message }: ChannelErrorPayload = data;
+        console.log(error, message)
     }
 
     private _handler(event) {
@@ -168,6 +249,10 @@ export class PostMessage extends Channel {
             return;
         } else if (data.type === CHANNEL_EVENTS.CONRIM_CONNECTION) {
             this._handleConnectionConfirmation(event);
+        } else if (data.type === CHANNEL_EVENTS.MESSAGE) {
+            this._handleMessage(event);
+        } else if (data.type === CHANNEL_EVENTS.MESSAGE_CONFIRMATION) {
+            this._handleMessageConfirmation(event);
         } else if (data.error in CHANNEL_ERRORS) {
             this._handleError(event);
         }
@@ -189,17 +274,17 @@ export class PostMessage extends Channel {
         };
 
         return new Promise((resolve, reject) => {
-            this._promises.set(cid, (channel) => {
+            this._connectionPromises.set(cid, (channel) => {
                 if (!channel) {
                     return reject({
                         error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR,
                         message: 'error confirming connection'
                     } as ChannelErrorPayload);
                 }
-                console.log('initator resolving their request');
+                console.log(this._window.origin.split(':')[2] + ' resolving their request');
                 return resolve(channel);
             });
-            console.log('initator opening request');
+            console.log(this._window.origin.split(':')[2] + ' opening request');
             this.source.postMessage({ type: CHANNEL_EVENTS.REQUEST_CONNECTION, ...options }, origin);
         });
     }
@@ -209,7 +294,33 @@ export class PostMessage extends Channel {
     async close() { }
     onclose(callback) { this._onclose = callback; }
 
-    async message() {
+    async message(content: string | object) {
+        return new Promise(async (resolve, reject) => {
+            const mid = randomNonce(16);
+            const timestamp = getTimestamp();
+            const messageData: MessageData = { cid: this.cid, mid, timestamp, content };
+            const ciphertext = await this.spark.cipher.encrypt({ data: messageData, sharedKey: this.sharedKey });
+            const signature = await this.spark.signer.sign({ data: ciphertext });
+            const payload: MessagePayload = { type: CHANNEL_EVENTS.MESSAGE, message: signature };
+            if (!ciphertext || !signature) {
+                return reject({ error: CHANNEL_ERRORS.INVALID_MESSAGE_ERROR, message: 'error encrypting and signing message' });
+            }
+
+            this._messagePromises.set(mid, async (receipt) => {
+                // check the receipt
+                console.log(this._window.origin.split(':')[2] + ' checking message receipt')
+                const openedReceipt = await this.spark.signer.verify({ signature: receipt, publicKey: this.publicKey });
+                const decryptedReceit = await this.spark.cipher.decrypt({ data: openedReceipt, sharedKey: this.sharedKey });
+                if (!openedReceipt || !decryptedReceit) {
+                    return reject({ error: CHANNEL_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' });
+                }
+                console.log(this._window.origin.split(':')[2] + ' resolving valid message reciept')
+                return resolve(receipt);
+            });
+
+            console.log(this._window.origin.split(':')[2] + ' sending message')
+            this.source.postMessage(payload, this.origin);
+        });
     }
 
     onmessage(callback) { this._onmessage = callback; }
@@ -223,11 +334,16 @@ PostMessage.receive = function (callback, spark, thisWindow) {
     const promises = new Map<string, (args: ChannelReceipt) => void>();
 
     const handleError = (event) => {
-        console.log(event)
+        const { data } = event;
+        const { error, message }: ChannelErrorPayload = data;
+        close();
+    };
+
+    const close = () => {
+        _window.removeEventListener('message', handler);
     };
 
     const handleConnectionRequest = async (event) => {
-
         const { data, source, origin } = event;
         const { cid, timestamp, identifier, publicKeys }: ConnectionRequestOptions = data;
         const sharedKey = await spark.cipher.sharedKey({ publicKey: publicKeys.encryption });
@@ -268,9 +384,9 @@ PostMessage.receive = function (callback, spark, thisWindow) {
                     if (!openedReceipt || !decryptedReceit) {
                         return reject({ error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error verifying receipt to confirm connection' });
                     }
-                    console.log('receiver received valid reciept')
+                    console.log(_window.origin.split(':')[2] + ' received valid connection reciept')
 
-                    console.log('receiver resolving their request')
+                    console.log(_window.origin.split(':')[2] + ' creating channel and resolving their request')
                     const channelOptions: ChannelArgs = { _window, spark, cid, origin, timestamp, source, identifier, sharedKey, publicKey: publicKeys.signing, receipt };
                     const channel = new PostMessage(channelOptions);
                     return resolve(channel);
@@ -278,7 +394,7 @@ PostMessage.receive = function (callback, spark, thisWindow) {
 
                 const requestPayload: ConnectionRequestOptions = { cid, timestamp, ...ourInfo };
                 const payload: ChannelConfirmWithReceiptPayload = { ...requestPayload, receipt, type: CHANNEL_EVENTS.CONRIM_CONNECTION };
-                console.log('receiver sending back a connection receipt')
+                console.log(_window.origin.split(':')[2] + ' sending back a connection receipt')
                 source.postMessage({ ...payload }, origin);
             });
         };
@@ -290,7 +406,10 @@ PostMessage.receive = function (callback, spark, thisWindow) {
         const { data, origin } = event;
         const { cid, receipt }: ChannelConfirmWithReceiptPayload = data;
         const promise = promises.get(cid);
-        if (promise) return promise(receipt);
+        if (promise) {
+            close();
+            return promise(receipt);
+        }
         const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error confirming connection' };
         return event.source.postMessage(error, origin);
     };
@@ -304,16 +423,16 @@ PostMessage.receive = function (callback, spark, thisWindow) {
             return handleConnectionRequest(event);
         } else if (data.type === CHANNEL_EVENTS.CONRIM_CONNECTION) {
             return handleConnectionConfirmation(event);
+        } else if (data.type === CHANNEL_EVENTS.MESSAGE) {
+            console.log('HEYYYYY received message')
         } else if (data.error in CHANNEL_ERRORS) {
             return handleError(event);
         }
     }
 
-    const close = () => {
-
-    }
-
     _window.addEventListener('message', handler);
-    _window.addEventListener('beforeunload', close);
+    _window.addEventListener('beforeunload', () => {
+        _window.removeEventListener('message', handler);
+    });
 }
 
