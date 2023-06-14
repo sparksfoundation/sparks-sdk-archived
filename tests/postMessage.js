@@ -5,8 +5,8 @@ const website = new Spark({ agents: [User, Verifier], controller: Random, signer
 await website.controller.incept();
 
 website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
+    reject();
     const channel = await resolve();
-    console.log('1111 channel opened')
     const receipt = await channel.message('test')
     console.log(!!receipt)
 }, website, new MockWindow('http://localhost:1111'));

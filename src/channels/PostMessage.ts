@@ -9,7 +9,7 @@ export enum CHANNEL_EVENTS {
     MESSAGE_CONFIRMATION = 'MESSAGE_CONFIRMATION',
 }
 
-export enum CHANNEL_ERRORS {
+export enum POSTMESSAGE_ERRORS {
     PUBLIC_ENCRYPTION_KEY_ERROR = 'PUBLIC_ENCRYPTION_KEY_ERROR',
     CONNECT_REQUEST_OPTION_ERROR = 'CONNECT_REQUEST_OPTION_ERROR',
     CONFIRM_CONNECTION_ERROR = 'CONFIRM_CONNECTION_ERROR',
@@ -29,7 +29,14 @@ export type ConnectionRequestOptions = {
 }
 
 export type ChannelErrorPayload = {
-    error: CHANNEL_ERRORS;
+    cid: string;
+    error: POSTMESSAGE_ERRORS;
+    message: string;
+}
+
+export type MessageErrorPayload = {
+    mid: string;
+    error: POSTMESSAGE_ERRORS;
     message: string;
 }
 
@@ -76,6 +83,7 @@ export type MessageData = {
 }
 
 export type MessagePayload = {
+    mid: string;                        // message id
     type: CHANNEL_EVENTS.MESSAGE;
     message: string;                    // encrypted then signed message
 }
@@ -100,9 +108,8 @@ export class PostMessage extends Channel {
     private _onmessage: () => void;
     private _onerror: () => void;
     private _window: Window;
-    private _connectionPromises = new Map<string, (args: Channel) => void>();
-    private _messagePromises = new Map<string, (args: MessageReceipt) => void>();
-    private _preConnectionMessageQueue: MessageEvent[] = [];
+    private _connectionPromises = new Map<string, { resolve: (args: Channel) => void, reject: (error: ChannelErrorPayload) => void }>(); 
+    private _messagePromises = new Map<string, { resolve: (args: MessageReceipt) => void, reject: (error: MessageErrorPayload) => void }>(); 
 
     private cid: string;
     private origin: string;
@@ -150,12 +157,12 @@ export class PostMessage extends Channel {
 
         const sharedKey = await this.spark.cipher.sharedKey({ publicKey: publicKeys.encryption });
         if (!sharedKey) {
-            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.PUBLIC_ENCRYPTION_KEY_ERROR, message: 'invalid public encryption key' };
+            const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.PUBLIC_ENCRYPTION_KEY_ERROR, message: 'invalid public encryption key' };
             return source.postMessage(error, origin);
         }
 
         if (!cid || !timestamp || !identifier || !publicKeys || !receipt) {
-            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONNECT_REQUEST_OPTION_ERROR, message: 'invalid connection request options' };
+            const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONNECT_REQUEST_OPTION_ERROR, message: 'invalid connection request options' };
             return source.postMessage(error, origin);
         }
 
@@ -163,7 +170,7 @@ export class PostMessage extends Channel {
         const openedReceipt = await this.spark.signer.verify({ signature: receipt, publicKey: publicKeys.signing });
         const decryptedReceit = await this.spark.cipher.decrypt({ data: openedReceipt, sharedKey });
         if (!openedReceipt || !decryptedReceit) {
-            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error verifying receipt to confirm connection' };
+            const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error verifying receipt to confirm connection' };
             return source.postMessage(error, origin);
         }
 
@@ -182,25 +189,24 @@ export class PostMessage extends Channel {
 
         const promise = this._connectionPromises.get(cid);
         if (promise) {
-            this._connectionPromises.delete(cid);
-            return promise(channel);
+            return promise.resolve(channel);
         } else {
-            const error = { error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error confirming connection' };
+            const error = { error: POSTMESSAGE_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error confirming connection' };
             return source.postMessage(error, origin);
         }
     }
 
     private async _handleMessage(event) {
         const { data, origin } = event;
-        const { message }: MessagePayload = data;
+        const { mid, message }: MessagePayload = data;
         const isReady = !!(this.identifier && this.publicKey && this.sharedKey);
-        if (!isReady) return this._preConnectionMessageQueue.push(event);
+        if (!isReady) return;
 
         console.log(this._window.origin.split(':')[2] + ' opening and decrypting message')
         const openedMessage = await this.spark.signer.verify({ signature: message, publicKey: this.publicKey });
         const decryptedMessage = await this.spark.cipher.decrypt({ data: openedMessage, sharedKey: this.sharedKey });
         if (!openedMessage || !decryptedMessage) {
-            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.INVALID_MESSAGE_ERROR, message: 'error decrypting and verifying message' };
+            const error: MessageErrorPayload = { mid, error: POSTMESSAGE_ERRORS.INVALID_MESSAGE_ERROR, message: 'error decrypting and verifying message' };
             return event.source.postMessage(error, origin);
         }
 
@@ -210,12 +216,11 @@ export class PostMessage extends Channel {
         const ciphertext = await this.spark.cipher.encrypt({ data: receiptData, sharedKey: this.sharedKey });
         const receipt = await this.spark.signer.sign({ data: ciphertext });
         if (!ciphertext || !receipt) {
-            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error generating message confirmation receipt' };
+            const error: MessageErrorPayload = { mid, error: POSTMESSAGE_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error generating message confirmation receipt' };
             return event.source.postMessage(error, origin);
         }
 
         // send it back
-        const { mid }: MessageData = decryptedMessage;
         const payload: MessageReceiptPayload = { type: CHANNEL_EVENTS.MESSAGE_CONFIRMATION, mid, receipt };
         event.source.postMessage(payload, origin);
     }
@@ -227,19 +232,24 @@ export class PostMessage extends Channel {
         if (!this.origin || origin !== this.origin) return;
 
         const promise = this._messagePromises.get(mid);
+        if (promise) {
+            return promise.resolve(receipt);
+        }
 
-        if (!promise) return
-
-        if (promise) return promise(receipt);
-
-        const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' };
+        const error: MessageErrorPayload = { mid, error: POSTMESSAGE_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' };
         return event.source.postMessage(error, origin);
     }
 
     private _handleError(event) {
         const { data } = event;
-        const { error, message }: ChannelErrorPayload = data;
-        console.log(error, message)
+        const { cid, mid, error, message } = data;
+        if (cid && this._connectionPromises.has(cid)) {
+            const promise = this._connectionPromises.get(cid);
+            promise?.reject({ cid, error, message } as ChannelErrorPayload)
+        } else if (mid && this._messagePromises.has(mid)) {
+            const promise = this._messagePromises.get(mid);
+            promise?.reject({ mid, error, message } as MessageErrorPayload)
+        }
     }
 
     private _handler(event) {
@@ -253,7 +263,7 @@ export class PostMessage extends Channel {
             this._handleMessage(event);
         } else if (data.type === CHANNEL_EVENTS.MESSAGE_CONFIRMATION) {
             this._handleMessageConfirmation(event);
-        } else if (data.error in CHANNEL_ERRORS) {
+        } else if (data.error in POSTMESSAGE_ERRORS) {
             this._handleError(event);
         }
     }
@@ -274,18 +284,20 @@ export class PostMessage extends Channel {
         };
 
         return new Promise((resolve, reject) => {
-            this._connectionPromises.set(cid, (channel) => {
-                if (!channel) {
-                    return reject({
-                        error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR,
-                        message: 'error confirming connection'
-                    } as ChannelErrorPayload);
-                }
+            const _resolve = (channel) => {
                 console.log(this._window.origin.split(':')[2] + ' resolving their request');
+                this._connectionPromises.delete(cid);
                 return resolve(channel);
-            });
+            }
+
+            const _reject = (error) => {
+                this._connectionPromises.delete(cid);
+                return reject(error as ChannelErrorPayload);
+            }
+
             console.log(this._window.origin.split(':')[2] + ' opening request');
             this.source.postMessage({ type: CHANNEL_EVENTS.REQUEST_CONNECTION, ...options }, origin);
+            this._connectionPromises.set(cid, { resolve: _resolve, reject: _reject });
         });
     }
 
@@ -301,22 +313,30 @@ export class PostMessage extends Channel {
             const messageData: MessageData = { cid: this.cid, mid, timestamp, content };
             const ciphertext = await this.spark.cipher.encrypt({ data: messageData, sharedKey: this.sharedKey });
             const signature = await this.spark.signer.sign({ data: ciphertext });
-            const payload: MessagePayload = { type: CHANNEL_EVENTS.MESSAGE, message: signature };
+            const payload: MessagePayload = { mid, type: CHANNEL_EVENTS.MESSAGE, message: signature };
             if (!ciphertext || !signature) {
-                return reject({ error: CHANNEL_ERRORS.INVALID_MESSAGE_ERROR, message: 'error encrypting and signing message' });
+                return reject({ error: POSTMESSAGE_ERRORS.INVALID_MESSAGE_ERROR, message: 'error encrypting and signing message' });
             }
 
-            this._messagePromises.set(mid, async (receipt) => {
+            const _resolve = async (receipt) => {
                 // check the receipt
                 console.log(this._window.origin.split(':')[2] + ' checking message receipt')
                 const openedReceipt = await this.spark.signer.verify({ signature: receipt, publicKey: this.publicKey });
                 const decryptedReceit = await this.spark.cipher.decrypt({ data: openedReceipt, sharedKey: this.sharedKey });
                 if (!openedReceipt || !decryptedReceit) {
-                    return reject({ error: CHANNEL_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' });
+                    return reject({ error: POSTMESSAGE_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' });
                 }
-                console.log(this._window.origin.split(':')[2] + ' resolving valid message reciept')
+                console.log(this._window.origin.split(':')[2] + ' resolving valid message reciept');
+                this._messagePromises.delete(mid);
                 return resolve(receipt);
-            });
+            }
+
+            const _reject = (error) => {
+                this._messagePromises.delete(mid);
+                return reject(error);
+            }
+
+            this._messagePromises.set(mid, { resolve: _resolve, reject: _reject });
 
             console.log(this._window.origin.split(':')[2] + ' sending message')
             this.source.postMessage(payload, this.origin);
@@ -328,7 +348,6 @@ export class PostMessage extends Channel {
     onerror(callback) { this._onerror = callback; }
 }
 
-
 PostMessage.receive = function (callback, spark, thisWindow) {
     const _window = thisWindow || window;
     const promises = new Map<string, (args: ChannelReceipt) => void>();
@@ -336,7 +355,6 @@ PostMessage.receive = function (callback, spark, thisWindow) {
     const handleError = (event) => {
         const { data } = event;
         const { error, message }: ChannelErrorPayload = data;
-        close();
     };
 
     const close = () => {
@@ -347,22 +365,31 @@ PostMessage.receive = function (callback, spark, thisWindow) {
         const { data, source, origin } = event;
         const { cid, timestamp, identifier, publicKeys }: ConnectionRequestOptions = data;
         const sharedKey = await spark.cipher.sharedKey({ publicKey: publicKeys.encryption });
+        let rejectedCalled = false;
 
         const details = { cid, timestamp, identifier, publicKeys };
         const reject = () => {
-            const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONNECTION_REJECTED_ERROR, message: 'connection request rejected' };
+            rejectedCalled = true;
+            close();
+            const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONNECTION_REJECTED_ERROR, message: 'connection request rejected' };
             source.postMessage(error, origin);
         }
 
         const resolve = async () => {
             return new Promise(async (resolve, reject) => {
+                if (rejectedCalled) {
+                    const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONNECTION_REJECTED_ERROR, message: 'connection request rejected' };
+                    source.postMessage(error, origin);
+                    return resolve(error);
+                }
+
                 if (!sharedKey) {
-                    const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.PUBLIC_ENCRYPTION_KEY_ERROR, message: 'invalid public encryption key' };
+                    const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.PUBLIC_ENCRYPTION_KEY_ERROR, message: 'invalid public encryption key' };
                     return source.postMessage(error, origin);
                 }
 
                 if (!cid || !timestamp || !identifier || !publicKeys) {
-                    const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONNECT_REQUEST_OPTION_ERROR, message: 'invalid connection request options' };
+                    const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONNECT_REQUEST_OPTION_ERROR, message: 'invalid connection request options' };
                     return source.postMessage(error, origin);
                 }
 
@@ -372,23 +399,23 @@ PostMessage.receive = function (callback, spark, thisWindow) {
                 const receipt: ChannelReceipt = await spark.signer.sign({ data: ciphertext });
 
                 if (!ciphertext || !receipt) {
-                    const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error generating receipt to confirm connection' };
+                    const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error generating receipt to confirm connection' };
                     return source.postMessage(error, origin);
                 }
-
 
                 promises.set(cid, async (receipt) => {
                     // check the receipt
                     const openedReceipt = await spark.signer.verify({ signature: receipt, publicKey: publicKeys.signing });
                     const decryptedReceit = await spark.cipher.decrypt({ data: openedReceipt, sharedKey });
                     if (!openedReceipt || !decryptedReceit) {
-                        return reject({ error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error verifying receipt to confirm connection' });
+                        return reject({ error: POSTMESSAGE_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error verifying receipt to confirm connection' });
                     }
                     console.log(_window.origin.split(':')[2] + ' received valid connection reciept')
 
                     console.log(_window.origin.split(':')[2] + ' creating channel and resolving their request')
                     const channelOptions: ChannelArgs = { _window, spark, cid, origin, timestamp, source, identifier, sharedKey, publicKey: publicKeys.signing, receipt };
                     const channel = new PostMessage(channelOptions);
+                    promises.delete(cid);
                     return resolve(channel);
                 });
 
@@ -410,7 +437,7 @@ PostMessage.receive = function (callback, spark, thisWindow) {
             close();
             return promise(receipt);
         }
-        const error: ChannelErrorPayload = { error: CHANNEL_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error confirming connection' };
+        const error: ChannelErrorPayload = { cid, error: POSTMESSAGE_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error confirming connection' };
         return event.source.postMessage(error, origin);
     };
 
@@ -425,7 +452,7 @@ PostMessage.receive = function (callback, spark, thisWindow) {
             return handleConnectionConfirmation(event);
         } else if (data.type === CHANNEL_EVENTS.MESSAGE) {
             console.log('HEYYYYY received message')
-        } else if (data.error in CHANNEL_ERRORS) {
+        } else if (data.error in POSTMESSAGE_ERRORS) {
             return handleError(event);
         }
     }
