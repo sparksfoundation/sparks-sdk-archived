@@ -9,6 +9,8 @@ website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
     console.log('reciever channel opened')
 }, website, new MockWindow('http://localhost:3000'));
 
+
+
 const alice = new Spark({ agents: [User, Verifier], controller: Random, signer: Ed25519, hasher: Blake3, cipher: X25519SalsaPoly, channels: [PostMessage] });
 await alice.controller.incept();
 

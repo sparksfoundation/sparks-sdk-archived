@@ -39,8 +39,12 @@ export type ChannelArgs = {
     timestamp: number;
     identifier: string;
     sharedKey: string;
-    signingKey: string;
+    publicKey: string;
     receipt: string;
+}
+
+export type OpenChannelArgs = {
+    url: string;
 }
 
 export type ChannelRecieptData = {
@@ -61,10 +65,6 @@ export type ChannelConfirmWithReceiptPayload = ConnectionRequestOptions & {
     type: CHANNEL_EVENTS.CONRIM_CONNECTION;
 };
 
-export type openChannelArgs = {
-    url: string;
-}
-
 export class PostMessage extends Channel {
     private _onopen: () => void;
     private _onclose: () => void;
@@ -79,18 +79,20 @@ export class PostMessage extends Channel {
     private timestamp: number;
     private identifier: string;
     private sharedKey: string;
-    private signingKey: string;
+    private publicKey: string;
     private receipt: string;
 
     constructor(args: ChannelArgs) {
-        const { _window, spark, origin, cid, source, identifier, timestamp, sharedKey, signingKey, receipt }: ChannelArgs = args;
-
-        // if missing anythy of the ChannelArgs throw an error
-        if (cid && (!origin || !spark || !cid || !source || !identifier || !sharedKey || !signingKey || !receipt)) {
-            throw new Error('missing required ChannelArgs')
-        }
+        const { _window, spark, origin, cid, source, identifier, timestamp, sharedKey, publicKey, receipt }: ChannelArgs = args;
 
         super(spark);
+
+        const allProps = !!(cid && origin && source && identifier && timestamp && sharedKey && publicKey && receipt);
+        const noProps = !(cid || origin || source || identifier || timestamp || sharedKey || publicKey || receipt);
+        const validChannel = (allProps && !noProps) || (!allProps && noProps);
+        if (!validChannel) {
+            throw new Error('Invalid args: if youre initiating provide only "spark", if recieving use the PostMessage.receive function.');
+        }
 
         this._window = _window || window;
         this.cid = cid;
@@ -99,7 +101,7 @@ export class PostMessage extends Channel {
         this.timestamp = timestamp;
         this.identifier = identifier;
         this.sharedKey = sharedKey;
-        this.signingKey = signingKey;
+        this.publicKey = publicKey;
         this.receipt = receipt;
 
         this._handler = this._handler.bind(this);
@@ -142,7 +144,7 @@ export class PostMessage extends Channel {
         source.postMessage(payload, origin);
 
         // setup connection and resolve promise
-        const channelOptions: ChannelArgs = { _window: this._window, spark: this.spark, cid, timestamp, origin, source, identifier, sharedKey, signingKey: publicKeys.signing, receipt };
+        const channelOptions: ChannelArgs = { _window: this._window, spark: this.spark, cid, timestamp, origin, source, identifier, sharedKey, publicKey: publicKeys.signing, receipt };
         const channel: Channel = new PostMessage(channelOptions);
 
         const promise = this._promises.get(cid);
@@ -171,7 +173,7 @@ export class PostMessage extends Channel {
         }
     }
 
-    async open({ url }: openChannelArgs) {
+    async open({ url }: OpenChannelArgs) {
         if (!url) throw new Error('origin is required');
         const origin = new URL(url).origin;
         const source = this._window.open(origin, '_blank');
@@ -269,7 +271,7 @@ PostMessage.receive = function (callback, spark, thisWindow) {
                     console.log('receiver received valid reciept')
 
                     console.log('receiver resolving their request')
-                    const channelOptions: ChannelArgs = { _window, spark, cid, origin, timestamp, source, identifier, sharedKey, signingKey: publicKeys.signing, receipt };
+                    const channelOptions: ChannelArgs = { _window, spark, cid, origin, timestamp, source, identifier, sharedKey, publicKey: publicKeys.signing, receipt };
                     const channel = new PostMessage(channelOptions);
                     return resolve(channel);
                 });
