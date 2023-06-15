@@ -89,7 +89,7 @@ export class Password extends Controller {
     if (!password) throw new Error('Password is required to rotate keys.');
 
     // if there's only one event, we need to generate a salt from the original signing key otherwise we can use the last event which will be more random
-    salt = generateSalt(eventLog.length < 2 ? eventLog[0].signingKeys[0] : eventLog[eventLog.length - 2]);
+    salt = generateSalt(this.inceptionOnly(eventLog) ? this.inceptionEventSigningKeys(eventLog) : eventLog[eventLog.length - 2]);
     keyPairs = await generateKeyPairs({ password, salt });
     keyHash = await this.spark.hasher.hash(keyPairs.signing.publicKey);
 
@@ -108,17 +108,23 @@ export class Password extends Controller {
   }
 
   getSaltInput(kel: KeyEventLog) {
-    const inceptionOnly = kel.length < 2;
     const hasOneRotation = kel.length < 3;
 
-    if (hasOneRotation) {
-      return this.getInceptionEvent(kel).signingKeys[0]
-    } else if (inceptionOnly) {
-      return this.getInceptionEvent(kel).signingKeys[0]
+    if (this.inceptionOnly(kel) || hasOneRotation) {
+      return this.inceptionEventSigningKeys(kel)
     } else {
       const rotationEvent = kel[kel.length - 3];
+
       return rotationEvent;
     }
+  }
+
+  inceptionEventSigningKeys(kel: KeyEventLog) {
+    return this.getInceptionEvent(kel).signingKeys[0];
+  }
+
+  inceptionOnly(kel: KeyEventLog) {
+    return 2 > kel.length;
   }
 
   getLastEvent(kel: KeyEventLog) {
