@@ -1,4 +1,3 @@
-
 import { getTimestamp, randomNonce } from '../utilities/index.js';
 import { Channel } from './Channel.js';
 
