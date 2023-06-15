@@ -3,7 +3,7 @@ import util from 'tweetnacl-util';
 import * as scrypt from 'scrypt-pbkdf';
 import { blake3 } from '@noble/hashes/blake3';
 import { Controller } from './Controller.js';
-import { InceptionArgs, KeyEventLog, KeyPairs, SigningPublicKeyHash } from './types';
+import { InceptionArgs, KeyEventLog, KeyPairs, SigningPublicKeyHash, RotationArgs } from './types';
 
 const generateSalt = (data) => {
   return util.encodeBase64(blake3(JSON.stringify(data)));
@@ -56,15 +56,16 @@ const generateKeyPairs = async ({ password, salt }) => {
 }
 
 export class Password extends Controller {
-  async incept(args) {
+  async incept(args: InceptionArgs) {
     const { password } = args;
     let salt = util.encodeBase64(nacl.randomBytes(16));
     const keyPairs = await generateKeyPairs({ password, salt });
     salt = generateSalt(keyPairs.signing.publicKey);
     const nextKeyPairs = await generateKeyPairs({ password, salt });
-    await super.incept({ keyPairs, nextKeyPairs, ...args } as InceptionArgs);
+    await super.incept({ ...args, keyPairs, nextKeyPairs });
+
     // rotate to the first key so that we can maintain salts
-    await this.rotate({ password });
+    await this.rotate({ ...args, password: password, newPassword: null });
   }
 
   async import(args) {
@@ -80,7 +81,7 @@ export class Password extends Controller {
     return { data, salt };
   }
 
-  async rotate(args) {
+  async rotate(args: RotationArgs) {
     const { password, newPassword } = args;
     const eventLog: KeyEventLog = this.keyEventLog;
     let salt: string, nextKeyPairs: KeyPairs, keyPairs: KeyPairs, keyHash: SigningPublicKeyHash;
@@ -99,10 +100,10 @@ export class Password extends Controller {
     salt = generateSalt(this.getLastEvent(eventLog));
     nextKeyPairs = await generateKeyPairs({ password: newPassword || password, salt });
 
-    await super.rotate({ keyPairs, nextKeyPairs, ...args });
+    await super.rotate({ ...args, keyPairs, nextKeyPairs });
 
     if (newPassword) {
-      return await this.rotate({ password: newPassword });
+      return await this.rotate({ ...args, password: newPassword });
     }
   }
 

@@ -102,12 +102,15 @@ export type KeriKeyEvent = KeriInceptionEvent | KeriRotationEvent | KeriDeletion
 export type KeyEventLog = KeriKeyEvent[];
 
 export type InceptionArgs = {
+  password: string;
   keyPairs: KeyPairs;
   nextKeyPairs: KeyPairs;
   backers: Backers;
 }
 
 export type RotationArgs = {
+  password: string;
+  newPassword: string | null;
   keyPairs: KeyPairs;
   nextKeyPairs: KeyPairs;
   backers: Backers;
