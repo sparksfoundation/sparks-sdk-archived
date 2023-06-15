@@ -28,5 +28,5 @@
   "include": [
     "src/**/*",
     "lib/index.d.ts"  
-, "tests/backup.ts", "PostMessage.ts"  ],
+  ],
 }
