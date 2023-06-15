@@ -1,6 +1,6 @@
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
-import { KeyPairs } from './types.js';
+import { ImportArgs, InceptionArgs, KeyPairs, RotationArgs } from './types.js';
 import { Controller } from "./Controller.js";
 
 const signingKeyPair = () => {
@@ -29,21 +29,22 @@ const generateKeyPairs = () => {
 export class Random extends Controller {
   private randomKeyPairs = [] as any[];
 
-  async incept(args) {
+  async incept(args: InceptionArgs) {
     const keyPairs = generateKeyPairs();
     const nextKeyPairs = generateKeyPairs();
     this.randomKeyPairs = [keyPairs, nextKeyPairs];
-    await super.incept({ keyPairs, nextKeyPairs, ...args });
+
+    await super.incept({ ...args, keyPairs, nextKeyPairs });
   }
 
-  async rotate(args) {
+  async rotate(args: RotationArgs) {
     const keyPairs = { ...this.randomKeyPairs[this.randomKeyPairs.length - 1] };
     const nextKeyPairs = generateKeyPairs();
     this.randomKeyPairs.push(nextKeyPairs);
-    await super.rotate({ keyPairs, nextKeyPairs, ...args });
+    await super.rotate({ ...args, keyPairs, nextKeyPairs });
   }
 
-  async import({ keyPairs, data }: { keyPairs: KeyPairs, data: string }) {
-    await super.import({ keyPairs, data });
+  async import(args: ImportArgs) {
+    await super.import({ ...args });
   }
 }
