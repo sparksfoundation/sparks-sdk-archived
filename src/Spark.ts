@@ -23,6 +23,14 @@ const FACTORIES = {
 };
 
 export class Spark {
+  public controller: Controller;
+  public signer: Signer;
+  public cipher: Cipher;
+  public hasher: Hasher;
+  public storage: Storage;
+  public agents: { [key: string]: Agent };
+  public channels: { [key: string]: typeof Channel };
+
   constructor(options) {
     Object.keys(options).forEach(prop => {
       if (SINGLETONS[prop]) {

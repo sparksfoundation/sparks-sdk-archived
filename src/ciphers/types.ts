@@ -15,7 +15,7 @@ export interface ICipher {
    * @param {string} sharedKey
    * @returns {string}
    */
-  encrypt: (args: { data: object | string; publicKey?: string; sharedKey?: string; }) => Promise<string> | never;
+  encrypt: (args: { data: object | string; publicKey?: string; sharedKey?: string; }) => Promise<string | null> | never;
 
   /**
    * Decrypts data using X25519SalsaPoly
@@ -24,12 +24,12 @@ export interface ICipher {
    * @param {string} sharedKey
    * @returns {string}
    */
-  decrypt: (args: { data: string; publicKey?: string; sharedKey?: string; }) => Promise<string> | never;
+  decrypt: (args: { data: string; publicKey?: string; sharedKey?: string; }) => Promise<string | Record<string, any> | null> | never;
 
   /**
    * Computes a shared key using X25519SalsaPoly
    * @param {string} publicKey 
    * @returns {string} sharedKey
    */
-  shareKey: (args: { publicKey: string; }) => Promise<string> | never;
+  sharedKey: (args: { publicKey: string; }) => Promise<string> | never;
 }

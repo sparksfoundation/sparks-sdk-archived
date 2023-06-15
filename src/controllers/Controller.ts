@@ -20,7 +20,7 @@ import {
 } from './types.js'
 
 export class Controller implements IController {
-  protected identifier: Identifier
+  protected _identifier: Identifier
   protected keyPairs: KeyPairs;
   protected keyEventLog: KeriKeyEvent[];
   protected spark: any; // TODO define spark interface
@@ -28,6 +28,10 @@ export class Controller implements IController {
   constructor(spark) {
     this.spark = spark;
     this.keyEventLog = [];
+  }
+
+  get identifier() {
+    return this._identifier;
   }
 
   get encryptionKeys() {
@@ -75,7 +79,7 @@ export class Controller implements IController {
     }
 
     const { identifier } = inceptionEvent;
-    this.identifier = identifier;
+    this._identifier = identifier;
     this.keyPairs = keyPairs;
     this.keyEventLog.push(inceptionEvent);
     // todo -- queue the receipt request
