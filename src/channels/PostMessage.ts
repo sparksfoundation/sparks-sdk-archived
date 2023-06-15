@@ -248,7 +248,7 @@ export class PostMessage extends Channel {
     event.source.postMessage(payload, origin);
 
     if (this.onmessage) {
-      const data: MessageCallbackData = { mid, ...decryptedMessage };
+      const data: MessageCallbackData = { mid, ...decryptedMessage, message };
       return this.onmessage(data);
     }
   }
