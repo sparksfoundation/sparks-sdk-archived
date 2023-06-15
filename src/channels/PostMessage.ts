@@ -60,7 +60,7 @@ export type OpenChannelArgs = {
   url: string;
 }
 
-export type ChannelRecieptData = {
+export type ChannelreceiptData = {
   cid: string;
   timestamp: number;
   peers: {
@@ -197,7 +197,7 @@ export class PostMessage extends Channel {
     }
 
     // good, sign and send back
-    console.log(this._window.origin.split(':')[2] + ' received valid connection reciept')
+    console.log(this._window.origin.split(':')[2] + ' received valid connection receipt')
     const encryptedRedceipt = await this.spark.cipher.encrypt({ data: decryptedReceit, sharedKey });
     const signedReceipt = await this.spark.signer.sign({ data: encryptedRedceipt });
     const payload: ChannelConfirmWithReceiptPayload = { ...data, type: CHANNEL_EVENTS.CONRIM_CONNECTION, receipt: signedReceipt };
@@ -424,7 +424,7 @@ export class PostMessage extends Channel {
         if (!openedReceipt || !decryptedReceit) {
           return reject({ error: POSTMESSAGE_ERRORS.INVALID_MESSAGE_RECEIPT_ERROR, message: 'error verifying message confirmation receipt' });
         }
-        console.log(this._window.origin.split(':')[2] + ' resolving valid message reciept');
+        console.log(this._window.origin.split(':')[2] + ' resolving valid message receipt');
         this._messagePromises.delete(mid);
         return resolve(receipt);
       }
@@ -491,7 +491,7 @@ PostMessage.receive = function (callback, spark, thisWindow) {
         }
 
         const ourInfo = { identifier: spark.controller.identifier, publicKeys: spark.controller.publicKeys };
-        const receiptData: ChannelRecieptData = { cid, timestamp, peers: [{ identifier, publicKeys }, ourInfo] };
+        const receiptData: ChannelreceiptData = { cid, timestamp, peers: [{ identifier, publicKeys }, ourInfo] };
         const ciphertext = await spark.cipher.encrypt({ data: receiptData, sharedKey });
         const receipt: ChannelReceipt = await spark.signer.sign({ data: ciphertext });
 
@@ -507,7 +507,7 @@ PostMessage.receive = function (callback, spark, thisWindow) {
           if (!openedReceipt || !decryptedReceit) {
             return reject({ error: POSTMESSAGE_ERRORS.CONFIRM_CONNECTION_ERROR, message: 'error verifying receipt to confirm connection' });
           }
-          console.log(_window.origin.split(':')[2] + ' received valid connection reciept')
+          console.log(_window.origin.split(':')[2] + ' received valid connection receipt')
 
           console.log(_window.origin.split(':')[2] + ' setting up channel')
           const channelOptions: ChannelArgs = { _window, spark, cid, origin, timestamp, source, identifier, sharedKey, publicKey: publicKeys.signing, receipt };
