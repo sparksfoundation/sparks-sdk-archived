@@ -314,8 +314,8 @@ export class PostMessage extends Channel {
     
     console.log(this._window.origin.split(':')[2] + ' closing channel with receipt');
     event.source.postMessage(payload, origin);
-    if (this.onclose) this.onclose(receipt);
     if (promise) promise.resolve(receipt);
+    else if (this.onclose) this.onclose(receipt);
   }
 
   private _handler(event) {
