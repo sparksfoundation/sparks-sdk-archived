@@ -1,4 +1,4 @@
-export type Identifier = string;                            // base64 identifier
+export type Identifier = string;                            // base64 identifier of inception event digest
 
 export type SigningPublicKey = string;                      // base64 signing keypair's public key
 export type SigningSecretKey = string;                      // base64 signing keypair's secret key
@@ -6,7 +6,7 @@ export type EncryptionPublicKey = string;                   // base64 encryption
 export type EncryptionSecretKey = string;                   // base64 encryption keypair's secret key
 export type EncryptionSharedKey = string;                   // base64 encryption shared key
 
-export type SingingPublicKeyHash = string;                  // base64 hash of signing public signing key
+export type SigningPublicKeyHash = string;                  // base64 hash of signing public signing key
 export type EncryptionPublicKeyHash = string;               // base64 hash of encryption public signing key
 
 export type EncryptionKeyPair = {
@@ -42,7 +42,7 @@ export enum KeriEventType {                                 // t: event type
 }
 export type SigningThreshold = number;                      // kt: minimum amount of signatures needed for this event to be valid (multisig)
 export type SigningKeys = SigningPublicKey[];               // k: list of signing key
-export type NextKeyCommitments = SingingPublicKeyHash[];    // n: next keys
+export type NextKeyCommitments = SigningPublicKeyHash[];    // n: next keys
 export type Backer = SigningPublicKey;                      // b: individual backer
 export type BackerThreshold = number;                       // bt: minimum amount of backers threshold
 export type Backers = Backer[];                             // b: list of backers in this case the spark pwa-agent host's publickey there's no receipt at this ste
@@ -99,6 +99,7 @@ export type KeriDeletionEvent = KeriRotationEvent & {
 }
 
 export type KeriKeyEvent = KeriInceptionEvent | KeriRotationEvent | KeriDeletionEvent;
+export type KeyEventLog = KeriKeyEvent[];
 
 export type InceptionArgs = {
   keyPairs: KeyPairs;

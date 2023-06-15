@@ -3,7 +3,7 @@ import util from 'tweetnacl-util';
 import * as scrypt from 'scrypt-pbkdf';
 import { blake3 } from '@noble/hashes/blake3';
 import { Controller } from './Controller.js';
-import { InceptionArgs } from './types';
+import { InceptionArgs, KeyEventLog, KeyPairs, SigningPublicKeyHash } from './types';
 
 const generateSalt = (data) => {
   return util.encodeBase64(blake3(JSON.stringify(data)));
@@ -75,28 +75,28 @@ export class Password extends Controller {
 
   async export() {
     const kel = this.keyEventLog;
-    const salt = await generateSalt(kel.length < 3 ? kel[0].signingKeys[0] : kel[kel.length - 3]);
+    const salt = generateSalt(this.getSaltInput(kel));
     const data = await super.export();
     return { data, salt };
   }
 
   async rotate(args) {
     const { password, newPassword } = args;
-    const eventLog = this.keyEventLog;
-    let salt, nextKeyPairs, keyPairs, keyHash;
+    const eventLog: KeyEventLog = this.keyEventLog;
+    let salt: string, nextKeyPairs: KeyPairs, keyPairs: KeyPairs, keyHash: SigningPublicKeyHash;
 
     if (!password) throw new Error('Password is required to rotate keys.');
 
     // if there's only one event, we need to generate a salt from the original signing key otherwise we can use the last event which will be more random
-    salt = await generateSalt(eventLog.length < 2 ? eventLog[0].signingKeys[0] : eventLog[eventLog.length - 2]);
+    salt = generateSalt(eventLog.length < 2 ? eventLog[0].signingKeys[0] : eventLog[eventLog.length - 2]);
     keyPairs = await generateKeyPairs({ password, salt });
     keyHash = await this.spark.hasher.hash(keyPairs.signing.publicKey);
 
-    if (keyHash !== eventLog[eventLog.length - 1].nextKeyCommitments[0]) {
+    if (keyHash !== this.getLastEvent(eventLog).nextKeyCommitments[0]) {
       throw new Error('Key commitment does not match your previous commitment. If you are trying to change your password provide password & newPassword parameters.');
     }
 
-    salt = generateSalt(eventLog[eventLog.length - 1]);
+    salt = generateSalt(this.getLastEvent(eventLog));
     nextKeyPairs = await generateKeyPairs({ password: newPassword || password, salt });
 
     await super.rotate({ keyPairs, nextKeyPairs, ...args });
@@ -104,5 +104,27 @@ export class Password extends Controller {
     if (newPassword) {
       return await this.rotate({ password: newPassword });
     }
+  }
+
+  getSaltInput(kel: KeyEventLog) {
+    const inceptionOnly = kel.length < 2;
+    const hasOneRotation = kel.length < 3;
+
+    if (hasOneRotation) {
+      return this.getInceptionEvent(kel).signingKeys[0]
+    } else if (inceptionOnly) {
+      return this.getInceptionEvent(kel).signingKeys[0]
+    } else {
+      const rotationEvent = kel[kel.length - 3];
+      return rotationEvent;
+    }
+  }
+
+  getLastEvent(kel: KeyEventLog) {
+    return kel[kel.length - 1];
+  }
+
+  getInceptionEvent(kel: KeyEventLog) {
+    return kel[0];
   }
 }
