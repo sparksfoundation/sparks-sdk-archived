@@ -1,5 +1,4 @@
 import { Channel } from "./Channel.js";
-import { ChannelEventTypes } from "./types.js";
 
 export class PostMessage extends Channel {
   private source: Window;
@@ -20,14 +19,17 @@ export class PostMessage extends Channel {
   }
 
   protected sendMessage(event: any) {
+    // how do we send messages out
     this.source.postMessage(event, this.origin);
   }
 
   protected recieveMessage(payload: any) {
+    // how do we recieve messages
     super.recieveMessage(payload.data);
   }
 
   static receive(callback, { spark, _window }) {
+    // how do we recieve messages as a recipient
     _window.addEventListener('message', (event) => {
       // todo normalize payload
       const source = event.source as Window;

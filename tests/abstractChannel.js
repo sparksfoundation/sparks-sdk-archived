@@ -3,6 +3,7 @@ import { _0000, _1111 } from './testWindows.js';
 
 const website = new Spark({ agents: [Verifier], controller: Random, signer: Ed25519, hasher: Blake3, cipher: X25519SalsaPoly, channels: [PostMessage] });
 await website.controller.incept();
+
 website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
     const channel = await resolve();
     channel.onmessage = res => {
