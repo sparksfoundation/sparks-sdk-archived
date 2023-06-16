@@ -1,8 +1,9 @@
 import { Channel } from "./Channel.js";
+import { ChannelTypes } from "./types.js";
 
 export class PostMessage extends Channel {
   private source: Window;
-  private origin: string = '*';
+  private origin: string;
   private _window: Window;
 
   constructor({
@@ -11,7 +12,7 @@ export class PostMessage extends Channel {
     origin,
     ...args
   }) {
-    super(args);
+    super({ channelType: ChannelTypes.POST_MESSAGE, ...args });
     this._window = _window;
     this.origin = origin;
     this.source = source;

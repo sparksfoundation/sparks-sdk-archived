@@ -54,12 +54,14 @@ export type ChannelEventId = string;
 export type ChannelId = string;
 
 // sent to consumer -- type this better
-export type ChannelError = any;
-
-
+export type ChannelError = {
+  eventId: ChannelEventId;
+  error: ChannelErrorCodes;
+  message: string;
+};
 
 /**
- * ChannelReceipt - stringified and passed to reciever
+ * ChannelReceiptData - stringified and passed to reciever
  * provides info about channel and peers
  */
 export type ChannelReceiptData = {
@@ -137,8 +139,6 @@ export type ChannelCompleteOpenData = {
     sharedKey: SharedEncryptionKey; // shared key for channel
 };
 
-export type ChannelErrorPayload = any;
-
 export type ChannelPromiseHandler = any;
 
 export type ChannelPeer = {
@@ -188,4 +188,28 @@ export type ChannelMessageConfirm = {
     eventId: ChannelEventId;
     channelId: ChannelId;
     receipt: ChannelMessageReciept;
+};
+
+export type ChannelCloseEvent = {
+    eventType: ChannelEventTypes.CLOSE_REQUEST;
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+};
+
+export type ChannelClosedReceiptData = {
+    channelId: ChannelId;       // unique identifier for channel
+    channelType: ChannelTypes;  // type of channel
+    timestamp: ChannelTimeSamp; // timestamp of channel request (open)
+    peers: ChannelPeers;        // array of peers (identifiers and public keys)
+}
+
+export type ChannelClosedReceipt = string; // stringified ChannelClosedReceiptData
+
+export type ChannelCloseConfirmationEvent = {
+    eventType: ChannelEventTypes.CLOSE_CONFIRM;
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+    receipt: ChannelClosedReceipt;
 };

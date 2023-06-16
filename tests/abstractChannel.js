@@ -5,22 +5,38 @@ const website = new Spark({ agents: [Verifier], controller: Random, signer: Ed25
 await website.controller.incept();
 
 website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
-    const channel = await resolve();
-    channel.onmessage = res => {
-    }
+  console.log('\nchannel details\n', details, '\n')
+  // reject() remove reolve below to test this
+
+  const channel = await resolve();
+  channel.onmessage = res => {
+    console.log('\npotential channel message\n', res, '\n')
+  }
 }, { spark: website, _window: _1111 });
 
 const alice = new Spark({ agents: [User], controller: Random, signer: Ed25519, hasher: Blake3, cipher: X25519SalsaPoly, channels: [PostMessage] });
 await alice.controller.incept();
 
 const channel = new alice.channels.PostMessage({
-    source: _1111,
-    origin: 'http://localhost:1111',
-    _window: _0000,
+  source: _1111,
+  origin: 'http://localhost:1111',
+  _window: _0000,
 })
 
-channel.onerror = err => console.log(err, 'here')
-const test = await channel.open()
-const receipt = await test.send('hey website')
-// await test.close()
+channel.onerror = err => {
+  console.log('\nchannel error\n', err, '\n')
+}
+
+// wait for channel to open
+await channel.open()
+console.log('\nchannel ready\n')
+
+setTimeout(async () => {
+  const msgReceipt = await channel.send('hey website')
+  console.log('\nmessage receipt\n', msgReceipt, '\n')
+  const closeReceipt = await channel.close()
+  console.log('\nclose receipt\n', closeReceipt, '\n')
+}, 1000)
+
+
 
