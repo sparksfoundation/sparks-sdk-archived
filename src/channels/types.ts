@@ -63,7 +63,7 @@ export type ChannelError = {
 };
 
 /**
- * ChannelReceiptData - stringified and passed to reciever
+ * ChannelReceiptData - stringified and passed to receiver
  * provides info about channel and peers
  */
 export type ChannelReceiptData = {
@@ -90,7 +90,7 @@ export type ChannelRequestEvent = {
 
 /**
  * ChannelAcceptEvent
- * Send by reciever accepting request: provides peer info
+ * Send by receiver accepting request: provides peer info
 */
 export type ChannelAcceptEvent = {
     eventType: ChannelEventTypes.OPEN_ACCEPT;
@@ -98,13 +98,13 @@ export type ChannelAcceptEvent = {
     eventId: ChannelEventId;        // unique identifier for event
     channelId: ChannelId;           // unique identifier for channel
     receipt: ChannelReceipt;        // stringified ChannelReceipt
-    identifier: Identifier;         // identifier of reciever
-    publicKeys: PublicKeys;         // public keys of reciever
+    identifier: Identifier;         // identifier of receiver
+    publicKeys: PublicKeys;         // public keys of receiver
 };
 
 /**
  * ChannelConfirmEvent
- * Send by reciever accepting request: provides peer info and receipt
+ * Send by receiver accepting request: provides peer info and receipt
  */
 export type ChannelConfirmEvent = {
     eventType: ChannelEventTypes.OPEN_CONFIRM;
@@ -112,8 +112,8 @@ export type ChannelConfirmEvent = {
     eventId: ChannelEventId;        // unique identifier for event
     channelId: ChannelId;           // unique identifier for channel
     receipt: ChannelReceipt;        // stringified ChannelReceipt
-    identifier: Identifier;         // identifier of reciever
-    publicKeys: PublicKeys;         // public keys of reciever
+    identifier: Identifier;         // identifier of receiver
+    publicKeys: PublicKeys;         // public keys of receiver
 };
 
 /**
@@ -182,14 +182,14 @@ export type ChannelMessageReceiptData = {
     message: ChannelMessage;    // message contents
 }
 
-export type ChannelMessageReciept = string; // stringified ChannelMessageReceiptData
+export type ChannelMessagereceipt = string; // stringified ChannelMessageReceiptData
 
 export type ChannelMessageConfirm = {
     eventType: ChannelEventTypes.MESSAGE_CONFIRM;
     timestamp: ChannelTimeSamp;
     eventId: ChannelEventId;
     channelId: ChannelId;
-    receipt: ChannelMessageReciept;
+    receipt: ChannelMessagereceipt;
 };
 
 export type ChannelCloseEvent = {

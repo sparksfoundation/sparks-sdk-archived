@@ -8,7 +8,7 @@ export class Fetch extends Channel {
     super({ channelType: ChannelTypes.FETCH_API, ...args });
     this.url = url;
     this.sendMessage = this.sendMessage.bind(this);
-    this.recieveMessage = this.recieveMessage.bind(this);
+    this.receiveMessage = this.receiveMessage.bind(this);
   }
 
   protected async sendMessage(payload: any) {
@@ -17,17 +17,13 @@ export class Fetch extends Channel {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const text = await response.text();
-    console.log(text)
-    //this.recieveMessage(await response.json());
+
+    const json = await response.json();
+    if (json.error) throw new Error(json.error);
+    this.receiveMessage(json);
   }
 
-  protected recieveMessage(payload: any) {
-    console.log(payload)
-    super.recieveMessage(payload);
-  }
-
-  static async receive(callback, url) {
+  static async receive() {
     throw new Error("Fetch channels are outgoing only");
   }
 }

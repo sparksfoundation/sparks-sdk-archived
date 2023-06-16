@@ -50,15 +50,15 @@ export class Channel {
     this.publicKeys = args.publicKeys;
     this.sharedKey = args.sharedKey;
     this.receipt = args.receipt;
-    this.recieveMessage = this.recieveMessage.bind(this);
+    this.receiveMessage = this.receiveMessage.bind(this);
   }
 
   public open(payload, action, attempts = 0): Promise<Channel|ChannelError> {
     return new Promise<Channel|ChannelError>((resolve, reject) => {
       // initiator:request sends channelId and info
-      // reciever:accepts triggers via resolve -> sends info and receipt
+      // receiver:accepts triggers via resolve -> sends info and receipt
       // initiator:confirm sends receipt and completes with channel
-      // reciever:complete with channel
+      // receiver:complete with channel
       const request = () => {
         console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open request\n')
 
@@ -245,8 +245,8 @@ export class Channel {
 
   public send(payload, action, attempts = 0) {
     // initiator:request
-    // reciever:confirm (with receipt)
-    // reciever:complete (with own receipt)
+    // receiver:confirm (with receipt)
+    // receiver:complete (with own receipt)
     // initiator:complete (with receipt)
     return new Promise((resolve, reject) => {
 
@@ -367,8 +367,8 @@ export class Channel {
 
   public close(payload, action) {
     // initiator:request (with receipt)
-    // reciever:confirm (with receipt)
-    // reciever:complete (with own receipt)
+    // receiver:confirm (with receipt)
+    // receiver:complete (with own receipt)
     // initiator:complete (with receipt)
     return new Promise((resolve, reject) => {
       const eventId = randomNonce(16);
@@ -472,7 +472,7 @@ export class Channel {
     throw new Error('sendMessage not implemented');
   }
 
-  protected recieveMessage(payload: any) {
+  protected receiveMessage(payload: any) {
     const { eventType, eventId, messageId } = payload;
     if (!eventType || !eventId) return;
 

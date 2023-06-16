@@ -15,5 +15,8 @@ const channel = new client.channels.Fetch({
   url: 'http://127.0.0.1:3400/channel',
 })
 
-const receipt = await channel.open()
-console.log(receipt)
+await channel.open()
+setInterval(async () => {
+  const receipt = await channel.send({ test: 'secret message' })
+  console.log(channel.channelId)
+}, 5000);

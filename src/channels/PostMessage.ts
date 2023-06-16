@@ -16,7 +16,7 @@ export class PostMessage extends Channel {
     this._window = _window || window;
     this.origin = origin;
     this.source = source;
-    this._window.addEventListener('message', this.recieveMessage);
+    this._window.addEventListener('message', this.receiveMessage);
   }
 
   protected sendMessage(event: any) {
@@ -24,13 +24,13 @@ export class PostMessage extends Channel {
     this.source.postMessage(event, this.origin);
   }
 
-  protected recieveMessage(payload: any) {
-    // how do we recieve messages
-    super.recieveMessage(payload.data);
+  protected receiveMessage(payload: any) {
+    // how do we receive messages
+    super.receiveMessage(payload.data);
   }
 
   static receive(callback, { spark, _window }) {
-    // how do we recieve messages as a recipient
+    // how do we receive messages as a recipient
     const win = _window || window;
     win.addEventListener('message', (event) => {
       // todo normalize payload
