@@ -12,6 +12,12 @@ import { Identifier, PublicKeys } from "../controllers/types.js";
 import { SharedEncryptionKey } from "../ciphers/types.js";
 
 export class Channel {
+  static OPEN_RETRIES = 3;
+  static OPEN_TIMEOUT = 10000;
+  static MESSAGE_RETRIES = 3;
+  static MESSAGE_TIMEOUT = 10000;
+  static CLOSE_TIMEOUT = 10000;
+
   protected spark: Spark;
   protected channelType: ChannelTypes;
   protected channelId: ChannelEventId;
@@ -47,7 +53,7 @@ export class Channel {
     this.recieveMessage = this.recieveMessage.bind(this);
   }
 
-  public open(payload, action): Promise<Channel|ChannelError> {
+  public open(payload, action, attempts = 0): Promise<Channel|ChannelError> {
     return new Promise<Channel|ChannelError>((resolve, reject) => {
       // initiator:request sends channelId and info
       // reciever:accepts triggers via resolve -> sends info and receipt
@@ -65,9 +71,24 @@ export class Channel {
           publicKeys: this.spark.controller.publicKeys,
         };
 
+        const timeout = setTimeout(() => {
+          if (this._promiseHandlers.has(event.eventId)) {
+            this._promiseHandlers.delete(event.eventId);
+            if (attempts < Channel.OPEN_RETRIES) {
+              return this.open(payload, action, attempts + 1);
+            }
+          }
+        }, Channel.OPEN_TIMEOUT);
+
         this._promiseHandlers.set(event.eventId, {
-          resolve: confirm,
-          reject: error,
+          resolve: (args) => {
+            clearTimeout(timeout);
+            confirm(args);
+          },
+          reject: (args) => {
+            clearTimeout(timeout);
+            error(args);
+          },
         });
 
         this.sendMessage(event);
@@ -215,7 +236,7 @@ export class Channel {
     });
   }
 
-  public send(payload, action) {
+  public send(payload, action, attempts = 0) {
     // initiator:request
     // reciever:confirm (with receipt)
     // reciever:complete (with own receipt)
@@ -239,9 +260,24 @@ export class Channel {
           message,
         };
 
+        const timeout = setTimeout(() => {
+          if (this._promiseHandlers.has(event.eventId)) {
+            this._promiseHandlers.delete(event.eventId);
+            if (attempts < Channel.MESSAGE_RETRIES) {
+              return this.open(payload, action, attempts + 1);
+            }
+          }
+        }, Channel.MESSAGE_TIMEOUT);
+
         this._promiseHandlers.set(eventId, {
-          resolve: receipt,
-          reject: error,
+          resolve: (args) => {
+            clearTimeout(timeout);
+            receipt(args);
+          },
+          reject: (args) => {
+            clearTimeout(timeout);
+            error(args);
+          },
         });
 
         this.sendMessage(event);
@@ -333,9 +369,26 @@ export class Channel {
           timestamp: getTimestamp(),
         };
 
+        const timeout = setTimeout(() => {
+          if (this._promiseHandlers.has(event.eventId)) {
+            this._promiseHandlers.delete(event.eventId);
+            const error: ChannelError = {
+              error: ChannelErrorCodes.CLOSE_CONFIRM_ERROR,
+              eventId: event.eventId,
+              message: 'close request timed out, could not get receipt',
+            };
+          }
+        }, Channel.CLOSE_TIMEOUT);
+
         this._promiseHandlers.set(eventId, {
-          resolve: receipt,
-          reject: error,
+          resolve: (args) => {
+            clearTimeout(timeout);
+            receipt(args);
+          },
+          reject: (args) => {
+            clearTimeout(timeout);
+            error(args);
+          },
         });
 
         this.sendMessage(event);
