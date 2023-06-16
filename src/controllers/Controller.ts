@@ -34,6 +34,10 @@ export class Controller implements IController {
     return this._identifier;
   }
 
+  set identifier(identifier) {
+    this._identifier = identifier;
+  }
+
   get encryptionKeys() {
     return {
       publicKey: this.keyPairs.encryption.publicKey,
@@ -173,15 +177,18 @@ export class Controller implements IController {
     return keyEvent as KeriKeyEvent;
   }
 
-  // todo - some thinking around how to handle this given dynamic agents
+  // todo - some thinking around how to handle this given dynamic agents, not to mention private/protected props
   async import({ keyPairs, data }) {
-    throw new Error('Not implemented');
-    // todo -- do import
+    this.keyPairs = keyPairs;
+    const decrypted = await this.spark.cipher.decrypt({ data });
+    const deepCopy = JSON.parse(JSON.stringify(decrypted));
+    delete deepCopy.postMessage;
+    Object.assign(this, deepCopy);
   }
 
   async export(): Promise<any> {
-    // todo -- do export
-    throw new Error('Not implemented');
-    return '';
+    const { keyPairs, ...data } = this;
+    const encrypted = await this.spark.cipher.encrypt({ data: JSON.stringify(data) });
+    return encrypted;
   }
 }
