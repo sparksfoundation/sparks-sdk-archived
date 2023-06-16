@@ -1,3 +1,4 @@
+import { Spark } from '../Spark.js';
 import {
   DeletionArgs,
   EncryptionKeyPair,
@@ -23,39 +24,43 @@ export class Controller implements IController {
   protected identifier: Identifier
   protected keyPairs: KeyPairs;
   protected keyEventLog: KeriKeyEvent[];
-  protected spark: any; // TODO define spark interface
+  protected spark: Spark; // TODO define spark interface
 
-  constructor(spark) {
+  constructor(spark: Spark) {
     this.spark = spark;
     this.keyEventLog = [];
   }
 
-  get encryptionKeys() {
+  get keypairs(): KeyPairs {
+    return this.keyPairs;
+  }
+
+  get encryptionKeys(): EncryptionKeyPair {
     return {
       publicKey: this.keyPairs.encryption.publicKey,
       secretKey: this.keyPairs.encryption.secretKey,
-    } as EncryptionKeyPair;
+    };
   }
 
-  get signingKeys() {
+  get signingKeys(): SigningKeyPair {
     return {
       publicKey: this.keyPairs.signing.publicKey,
       secretKey: this.keyPairs.signing.secretKey,
-    } as SigningKeyPair;
+    };
   }
 
-  get secretKeys() {
+  get secretKeys(): SecretKeys {
     return {
       signing: this.keyPairs.signing.secretKey,
       encryption: this.keyPairs.encryption.secretKey,
-    } as SecretKeys;
+    };
   }
 
-  get publicKeys() {
+  get publicKeys(): PublicKeys {
     return {
       signing: this.keyPairs.signing.publicKey,
       encryption: this.keyPairs.encryption.publicKey,
-    } as PublicKeys;
+    };
   }
 
   public async incept(args: InceptionArgs) {
@@ -115,7 +120,7 @@ export class Controller implements IController {
     const { eventType, backers = [] } = args || {};
     const { keyPairs, nextKeyPairs } = (args || {}) as KeriInceptionEventArgs | KeriRotationEventArgs;
     const lastEvent = this.keyEventLog[this.keyEventLog.length - 1];
-    const keyHash = keyPairs ? await this.spark.hasher.hash(keyPairs.signing.publicKey) : null;
+    const keyHash = keyPairs ? await this.spark.hash(keyPairs.signing.publicKey) : null;
     const hasKeyPairs = !!keyPairs && !!nextKeyPairs;
     const isIncepted = !!this.identifier || !!this.keyEventLog?.length;
     const isDeleted = lastEvent?.eventType as KeriEventType === KeriEventType.DELETION;
@@ -133,7 +138,7 @@ export class Controller implements IController {
       if (isDeleted) throw new Error('Identity has already been deleted');
     }
 
-    const nextKeyCommitments = [await this.spark.hasher.hash(nextKeyPairs.signing.publicKey)]
+    const nextKeyCommitments = [await this.spark.hash(nextKeyPairs.signing.publicKey)]
     const eventIndex = this.keyEventLog.length
     const signingKeys = [keyPairs.signing.publicKey]
 
@@ -149,8 +154,8 @@ export class Controller implements IController {
 
     const eventJSON = JSON.stringify(event);
     const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
-    const hashedEvent = await this.spark.hasher.hash(eventJSON);
-    const signedEventHash = await this.spark.signer.sign({ data: hashedEvent, detached: true });
+    const hashedEvent = await this.spark.hash(eventJSON);
+    const signedEventHash = await this.spark.sign({ data: hashedEvent, detached: true });
     const identifier = this.identifier || `B${signedEventHash}`;
 
     if (eventType === KeriEventType.ROTATION) {

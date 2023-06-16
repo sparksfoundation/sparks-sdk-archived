@@ -5,6 +5,8 @@
  * can open detached signatures OR verify attached signatures
  * extend Signer class to implement other signing algorithms
  */
+
+
 export interface ISigner {
   /**
    * Signs data using ed25519
@@ -13,7 +15,7 @@ export interface ISigner {
    * @returns {Promise<string>} - resolved with base64 encoded signature,
    * or rejected with an error.
    */
-  sign: ({ data, detached }: { data: object | string; detached?: boolean }) => Promise<string> | never;
+  sign: ({ data, detached }: { data: object | string; detached: boolean }) => Promise<string> | never;
 
   /**
    * Verifies data using ed25519

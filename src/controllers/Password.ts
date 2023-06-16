@@ -69,6 +69,7 @@ export class Password extends Controller {
   }
 
   async import(args) {
+    // TODO: difference between this import and the one here? src/controllers/Random.ts:47
     const { password, salt, data } = args;
     const keyPairs = await generateKeyPairs({ password, salt });
     await super.import({ keyPairs, data });
@@ -91,7 +92,7 @@ export class Password extends Controller {
     // if there's only one event, we need to generate a salt from the original signing key otherwise we can use the last event which will be more random
     salt = generateSalt(this.inceptionOnly(eventLog) ? this.inceptionEventSigningKeys(eventLog) : eventLog[eventLog.length - 2]);
     keyPairs = await generateKeyPairs({ password, salt });
-    keyHash = await this.spark.hasher.hash(keyPairs.signing.publicKey);
+    keyHash = await this.spark.hash(keyPairs.signing.publicKey);
 
     if (keyHash !== this.getLastEvent(eventLog).nextKeyCommitments[0]) {
       throw new Error('Key commitment does not match your previous commitment. If you are trying to change your password provide password & newPassword parameters.');

@@ -1,7 +1,7 @@
-import { Controller } from './controllers/index.js';
+import { Controller, EncryptionKeyPair, KeyPairs, SigningKeyPair } from './controllers/index.js';
 import { Agent } from './agents/index.js';
 import { Signer } from './signers/index.js';
-import { Cipher } from './ciphers/index.js';
+import { Cipher, ICipher } from './ciphers/index.js';
 import { Hasher } from './hashers/index.js';
 import { Channel } from './channels/index.js';
 import { Storage } from './storage/index.js';
@@ -19,27 +19,81 @@ const COLLECTIONS = {
   channels: Channel,
 };
 
-export class Spark {
-  constructor(options) {
-    Object.keys(options).forEach(prop => {
-      if (SINGLETONS[prop]) {
-        const mixin = new options[prop](this);
-        const valid = mixin && mixin instanceof SINGLETONS[prop];
-        const name = SINGLETONS[prop].name;
-        if (!valid) throw new Error(`${prop} must be an instance of ${name}`);
-        this[prop] = mixin;
-      } else if (COLLECTIONS[prop]) {
-        this[prop] = {}
-        options[prop].forEach(clazz => {
-          const name = clazz.name;
-          const mixin = new clazz(this);
-          const valid = mixin && mixin instanceof COLLECTIONS[prop];
-          if (!valid) throw new Error(`${prop} must be an instance of ${name}`);
-          this[prop][name.toLowerCase()] = mixin;
-        })
-      } else {
-        throw new Error(`invalid option ${prop}`);
-      }
+interface Constructable<T> {
+  new(...args: any): T;
+}
+
+type SparkOptions = {
+  controller: Constructable<Controller>;
+  signer: Constructable<Signer>;
+  cipher: Constructable<Cipher>;
+  hasher: Constructable<Hasher>;
+  storage: Storage | null; // TODO make this non-nullable eventually
+  agents: Constructable<Agent>[];
+  channels: Channel[] | null; // TODO this too
+}
+
+export interface SparkI {
+  // signer.verify -> verify
+  // signer.sign   -> sign
+  // hasher.hash   -> hash
+  // controller.encryptionKeys -> encryptionKeys
+    // secretKey
+  // controller.keypairs -> keyPairs
+  // signing.publicKey -> publicKey
+
+  encryptionKeys: () => EncryptionKeyPair;
+  signingKeys: () => SigningKeyPair;
+
+  keypairs: () => KeyPairs;
+
+  hash: (data: any) => Promise<string> | never;
+
+  sign: ({ data, detached }: { data: object | string; detached: boolean }) => Promise<string> | never;
+
+  verify: ({ publicKey, signature, data }: { publicKey: string, signature: string, data?: object | string }) => Promise<boolean> | Promise<string | object | null> | never;
+}
+
+export class Spark implements SparkI {
+  private cipher: Cipher;
+  private controller: Controller;
+  private hasher: Hasher;
+  private signer: Signer;
+  private agents: object = {};
+  private channels: Channel[] = [];
+
+  constructor(options: SparkOptions) {
+    this.cipher = new options.cipher(this);
+    this.controller = new options.controller(this);
+    this.hasher = new options.hasher(this);
+    this.signer = new options.signer(this);
+    options.agents.forEach(agent => {
+      const mixin = new agent(this);
+      this.agents[agent.name.toLowerCase()] = mixin;
     })
+  }
+
+  encryptionKeys(): EncryptionKeyPair {
+    return this.controller.encryptionKeys;
+  }
+
+  signingKeys(): SigningKeyPair {
+    return this.controller.signingKeys;
+  }
+
+  keypairs(): KeyPairs {
+    return this.controller.keypairs;
+  }
+
+  sign(args: { data: object | string; detached: boolean }): Promise<string> | never {
+    return this.signer.sign(args);
+  }
+
+  verify(args: { publicKey: string, signature: string, data?: object | string }): Promise<boolean> | Promise<string | object | null> | never {
+    return this.signer.verify(args);
+  }
+
+  hash(data: any): Promise<string> | never {
+    return this.hasher.hash(data);
   }
 }
