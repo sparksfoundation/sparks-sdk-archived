@@ -14,7 +14,7 @@ export enum ChannelTypes {
     BLUE_TOOTH = 'blue_tooth',
     NFC = 'nfc',
     QR_CODE = 'qr_code',
-    FASTIFY = 'fastify',
+    REST_API = 'rest_api',
     FETCH_API = 'fetch_api',
 }
 

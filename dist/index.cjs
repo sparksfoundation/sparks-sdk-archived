@@ -513,7 +513,7 @@ var ChannelTypes = /* @__PURE__ */ ((ChannelTypes2) => {
   ChannelTypes2["BLUE_TOOTH"] = "blue_tooth";
   ChannelTypes2["NFC"] = "nfc";
   ChannelTypes2["QR_CODE"] = "qr_code";
-  ChannelTypes2["FASTIFY"] = "fastify";
+  ChannelTypes2["REST_API"] = "rest_api";
   ChannelTypes2["FETCH_API"] = "fetch_api";
   return ChannelTypes2;
 })(ChannelTypes || {});
@@ -565,7 +565,7 @@ const _Channel = class {
     this.publicKeys = args.publicKeys;
     this.sharedKey = args.sharedKey;
     this.receipt = args.receipt;
-    this.recieveMessage = this.recieveMessage.bind(this);
+    this.receiveMessage = this.receiveMessage.bind(this);
   }
   open(payload, action, attempts = 0) {
     return new Promise((resolve, reject) => {
@@ -916,7 +916,7 @@ const _Channel = class {
   sendMessage(event) {
     throw new Error("sendMessage not implemented");
   }
-  recieveMessage(payload) {
+  receiveMessage(payload) {
     const { eventType, eventId, messageId } = payload;
     if (!eventType || !eventId)
       return;
@@ -959,7 +959,7 @@ const _Channel = class {
       channelId,
       ...options
     });
-    let resolve = async (args) => {
+    let resolve = async () => {
       if (denied.includes(channelId)) {
         throw new Error("trying to resolve a rejected channel");
       } else {
@@ -992,13 +992,13 @@ class PostMessage extends Channel {
     this._window = _window || window;
     this.origin = origin;
     this.source = source;
-    this._window.addEventListener("message", this.recieveMessage);
+    this._window.addEventListener("message", this.receiveMessage);
   }
   sendMessage(event) {
     this.source.postMessage(event, this.origin);
   }
-  recieveMessage(payload) {
-    super.recieveMessage(payload.data);
+  receiveMessage(payload) {
+    super.receiveMessage(payload.data);
   }
   static receive(callback, { spark, _window }) {
     const win = _window || window;
@@ -1017,12 +1017,12 @@ class PostMessage extends Channel {
   }
 }
 
-class Fetch extends Channel {
+class FetchAPI extends Channel {
   constructor({ url, ...args }) {
     super({ channelType: ChannelTypes.FETCH_API, ...args });
     this.url = url;
     this.sendMessage = this.sendMessage.bind(this);
-    this.recieveMessage = this.recieveMessage.bind(this);
+    this.receiveMessage = this.receiveMessage.bind(this);
   }
   async sendMessage(payload) {
     const response = await fetch(this.url, {
@@ -1033,61 +1033,87 @@ class Fetch extends Channel {
     const json = await response.json();
     if (json.error)
       throw new Error(json.error);
-    this.recieveMessage(json);
+    this.receiveMessage(json);
   }
   static async receive() {
     throw new Error("Fetch channels are outgoing only");
   }
 }
 
-const promises = /* @__PURE__ */ new Map();
-const recieves = /* @__PURE__ */ new Map();
-class Fastify extends Channel {
+const _RestAPI = class extends Channel {
   constructor({ ...args }) {
-    super({ channelType: ChannelTypes.FASTIFY, ...args });
-    this.recieveMessage = this.recieveMessage.bind(this);
-    recieves.set(this.channelId, this.recieveMessage);
+    super({ channelType: ChannelTypes.REST_API, ...args });
+    this.receiveMessage = this.receiveMessage.bind(this);
+    this.sendMessage = this.sendMessage.bind(this);
+    _RestAPI.receives.set(this.channelId, this.receiveMessage);
   }
   async sendMessage(payload) {
     const { eventId } = payload;
     if (eventId) {
-      const promise = promises.get(eventId);
+      const promise = _RestAPI.promises.get(eventId);
       if (promise)
         promise.resolve(payload);
     }
   }
-  static receive(callback, { spark, fastify }) {
-    if (!fastify) {
-      throw new Error("Fastify instance not provided");
+  static receive(callback, { spark }) {
+    if (!spark || !callback) {
+      throw new Error("missing required arguments: spark, callback");
     }
-    fastify.post("/channel", (request, reply) => {
-      const payload = request.body;
-      const eventId = payload.eventId;
-      const eventType = payload.eventType;
-      const channelId = payload.channelId;
-      if (!eventId || !eventType || !channelId) {
-        reply.code(400).send("Invalid payload");
-      }
+    _RestAPI.eventHandler = async (payload) => {
       return new Promise((resolve, reject) => {
-        promises.set(eventId, { resolve, reject });
-        const receive = recieves.get(channelId);
+        const eventId = payload.eventId;
+        const eventType = payload.eventType;
+        const channelId = payload.channelId;
+        if (!eventId || !eventType || !channelId) {
+          return reject({ error: "Invalid payload" });
+        }
+        _RestAPI.promises.set(eventId, { resolve, reject });
+        const receive = _RestAPI.receives.get(channelId);
+        if (receive)
+          return receive(payload);
         if (eventType === "open_request") {
           const args = Channel.channelRequest({
             payload,
             options: {
               spark
             },
-            channel: Fastify
+            channel: _RestAPI
           });
           if (args)
-            callback(args);
-          return;
+            return callback(args);
         }
-        if (receive)
-          return receive(payload);
-        reply.code(404).send("unknown error");
       });
+    };
+  }
+};
+let RestAPI = _RestAPI;
+RestAPI.promises = /* @__PURE__ */ new Map();
+RestAPI.receives = /* @__PURE__ */ new Map();
+
+class WebRTC extends Channel {
+  constructor({ configuration, ...args }) {
+    super({ channelType: ChannelTypes.WEB_RTC, ...args });
+    this.peerConnection = new RTCPeerConnection(configuration);
+    this.dataChannel = this.peerConnection.createDataChannel("channel");
+    this.dataChannel.onmessage = this.receiveMessage.bind(this);
+  }
+  receiveMessage(event) {
+    const payload = JSON.parse(event.data);
+    super.receiveMessage(payload);
+  }
+  sendMessage(payload) {
+    const message = JSON.stringify(payload);
+    this.dataChannel.send(message);
+  }
+  static async receive(callback, { spark, configuration, Channel: Channel2 }) {
+    const args = Channel2.channelRequest({
+      options: {
+        spark,
+        configuration
+      }
     });
+    if (args)
+      callback(args);
   }
 }
 
@@ -1180,16 +1206,17 @@ exports.ChannelTypes = ChannelTypes;
 exports.Cipher = Cipher;
 exports.Controller = Controller;
 exports.Ed25519 = Ed25519;
-exports.Fastify = Fastify;
-exports.Fetch = Fetch;
+exports.FetchAPI = FetchAPI;
 exports.Hasher = Hasher;
 exports.KeriEventType = KeriEventType;
 exports.Password = Password;
 exports.PostMessage = PostMessage;
 exports.Random = Random;
+exports.RestAPI = RestAPI;
 exports.Signer = Signer;
 exports.Spark = Spark;
 exports.Storage = Storage;
 exports.User = User;
 exports.Verifier = Verifier;
+exports.WebRTC = WebRTC;
 exports.X25519SalsaPoly = X25519SalsaPoly;

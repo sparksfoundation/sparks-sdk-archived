@@ -1,7 +1,7 @@
 import { Channel } from "./Channel.js";
 import { ChannelTypes } from "./types.js";
 
-export class Fetch extends Channel {
+export class FetchAPI extends Channel {
   private url: string;
 
   constructor({ url, ...args }: { url: string, args: any }) {

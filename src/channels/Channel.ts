@@ -517,7 +517,7 @@ export class Channel {
       ...options,
     });
 
-    let resolve = async (args) => {
+    let resolve = async () => {
       if (denied.includes(channelId)) {
         throw new Error('trying to resolve a rejected channel');
       } else {

@@ -388,7 +388,7 @@ declare enum ChannelTypes {
     BLUE_TOOTH = "blue_tooth",
     NFC = "nfc",
     QR_CODE = "qr_code",
-    FASTIFY = "fastify",
+    REST_API = "rest_api",
     FETCH_API = "fetch_api"
 }
 declare enum ChannelEventTypes {
@@ -423,7 +423,7 @@ type ChannelError = {
     message: string;
 };
 /**
- * ChannelReceiptData - stringified and passed to reciever
+ * ChannelReceiptData - stringified and passed to receiver
  * provides info about channel and peers
  */
 type ChannelReceiptData = {
@@ -447,7 +447,7 @@ type ChannelRequestEvent = {
 };
 /**
  * ChannelAcceptEvent
- * Send by reciever accepting request: provides peer info
+ * Send by receiver accepting request: provides peer info
 */
 type ChannelAcceptEvent = {
     eventType: ChannelEventTypes.OPEN_ACCEPT;
@@ -460,7 +460,7 @@ type ChannelAcceptEvent = {
 };
 /**
  * ChannelConfirmEvent
- * Send by reciever accepting request: provides peer info and receipt
+ * Send by receiver accepting request: provides peer info and receipt
  */
 type ChannelConfirmEvent = {
     eventType: ChannelEventTypes.OPEN_CONFIRM;
@@ -527,13 +527,13 @@ type ChannelMessageReceiptData = {
     timestamp: ChannelTimeSamp;
     message: ChannelMessage;
 };
-type ChannelMessageReciept = string;
+type ChannelMessagereceipt = string;
 type ChannelMessageConfirm = {
     eventType: ChannelEventTypes.MESSAGE_CONFIRM;
     timestamp: ChannelTimeSamp;
     eventId: ChannelEventId;
     channelId: ChannelId;
-    receipt: ChannelMessageReciept;
+    receipt: ChannelMessagereceipt;
 };
 type ChannelCloseEvent = {
     eventType: ChannelEventTypes.CLOSE_REQUEST;
@@ -580,14 +580,14 @@ declare class Channel {
     send(payload: any, action: any, attempts?: number): Promise<unknown>;
     close(payload: any, action: any): Promise<unknown>;
     protected sendMessage(event: any): void;
-    protected recieveMessage(payload: any): void;
+    protected receiveMessage(payload: any): void;
     static receive(callback: any, options: any): void;
     static channelRequest({ payload, channel: Channel, options }: {
         payload: any;
         channel: any;
         options: any;
     }): {
-        resolve: (args: any) => Promise<any>;
+        resolve: () => Promise<any>;
         reject: (message: any) => void;
         details: any;
     };
@@ -604,14 +604,14 @@ declare class PostMessage extends Channel {
         origin: any;
     });
     protected sendMessage(event: any): void;
-    protected recieveMessage(payload: any): void;
+    protected receiveMessage(payload: any): void;
     static receive(callback: any, { spark, _window }: {
         spark: any;
         _window: any;
     }): void;
 }
 
-declare class Fetch extends Channel {
+declare class FetchAPI extends Channel {
     private url;
     constructor({ url, ...args }: {
         url: string;
@@ -621,13 +621,31 @@ declare class Fetch extends Channel {
     static receive(): Promise<void>;
 }
 
-declare class Fastify extends Channel {
+declare class RestAPI extends Channel {
+    static promises: Map<string, any>;
+    static receives: Map<string, any>;
+    static eventHandler: Function;
     constructor({ ...args }: any);
     protected sendMessage(payload: any): Promise<void>;
-    static receive(callback: any, { spark, fastify }: {
+    static receive(callback: any, { spark }: {
         spark: any;
-        fastify: any;
     }): void;
+}
+
+declare class WebRTC extends Channel {
+    protected peerConnection: RTCPeerConnection;
+    protected dataChannel: RTCDataChannel;
+    constructor({ configuration, ...args }: {
+        [x: string]: any;
+        configuration: any;
+    });
+    protected receiveMessage(event: any): void;
+    protected sendMessage(payload: any): void;
+    static receive(callback: any, { spark, configuration, Channel }: {
+        spark: any;
+        configuration: any;
+        Channel: any;
+    }): Promise<void>;
 }
 
 /**
@@ -678,4 +696,4 @@ declare class Spark {
     constructor(options: any);
 }
 
-export { Agent, Attester, Backer, BackerThreshold, Backers, Blake3, Channel, ChannelAcceptEvent, ChannelActions, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelClosedReceipt, ChannelClosedReceiptData, ChannelCompleteOpenData, ChannelCompletePayload, ChannelConfirmEvent, ChannelError, ChannelErrorCodes, ChannelEventConfirmTypes, ChannelEventId, ChannelEventTypes, ChannelId, ChannelMessage, ChannelMessageConfirm, ChannelMessageConfirmEvent, ChannelMessageEncrypted, ChannelMessageEvent, ChannelMessageId, ChannelMessageReceiptData, ChannelMessageReciept, ChannelPeer, ChannelPeers, ChannelPromiseHandler, ChannelReceipt, ChannelReceiptData, ChannelRequestEvent, ChannelTimeSamp, ChannelTypes, Cipher, Controller, DeletionArgs, Ed25519, EncryptionKeyPair, EncryptionPublicKey, EncryptionPublicKeyHash, EncryptionSecretKey, EncryptionSharedKey, Fastify, Fetch, Hasher, ICipher, IController, Identifier, ImportArgs, InceptionArgs, KeriDeletionEvent, KeriDeletionEventArgs, KeriEvent, KeriEventArgs, KeriEventIndex, KeriEventType, KeriInceptionEvent, KeriInceptionEventArgs, KeriKeyEvent, KeriRotationEvent, KeriRotationEventArgs, KeyPairs, NextKeyCommitments, Password, PostMessage, PreviousEventDigest, PublicKeys, Random, RotationArgs, SecretKeys, SelfAddressingIdentifier, SharedEncryptionKey, Signer, SigningKeyPair, SigningKeys, SigningPublicKey, SigningSecretKey, SigningThreshold, SingingPublicKeyHash, Spark, Storage, User, Verifier, Version, X25519SalsaPoly };
+export { Agent, Attester, Backer, BackerThreshold, Backers, Blake3, Channel, ChannelAcceptEvent, ChannelActions, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelClosedReceipt, ChannelClosedReceiptData, ChannelCompleteOpenData, ChannelCompletePayload, ChannelConfirmEvent, ChannelError, ChannelErrorCodes, ChannelEventConfirmTypes, ChannelEventId, ChannelEventTypes, ChannelId, ChannelMessage, ChannelMessageConfirm, ChannelMessageConfirmEvent, ChannelMessageEncrypted, ChannelMessageEvent, ChannelMessageId, ChannelMessageReceiptData, ChannelMessagereceipt, ChannelPeer, ChannelPeers, ChannelPromiseHandler, ChannelReceipt, ChannelReceiptData, ChannelRequestEvent, ChannelTimeSamp, ChannelTypes, Cipher, Controller, DeletionArgs, Ed25519, EncryptionKeyPair, EncryptionPublicKey, EncryptionPublicKeyHash, EncryptionSecretKey, EncryptionSharedKey, FetchAPI, Hasher, ICipher, IController, Identifier, ImportArgs, InceptionArgs, KeriDeletionEvent, KeriDeletionEventArgs, KeriEvent, KeriEventArgs, KeriEventIndex, KeriEventType, KeriInceptionEvent, KeriInceptionEventArgs, KeriKeyEvent, KeriRotationEvent, KeriRotationEventArgs, KeyPairs, NextKeyCommitments, Password, PostMessage, PreviousEventDigest, PublicKeys, Random, RestAPI, RotationArgs, SecretKeys, SelfAddressingIdentifier, SharedEncryptionKey, Signer, SigningKeyPair, SigningKeys, SigningPublicKey, SigningSecretKey, SigningThreshold, SingingPublicKeyHash, Spark, Storage, User, Verifier, Version, WebRTC, X25519SalsaPoly };
