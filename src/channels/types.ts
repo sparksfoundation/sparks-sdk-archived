@@ -14,7 +14,8 @@ export enum ChannelTypes {
     BLUE_TOOTH = 'blue_tooth',
     NFC = 'nfc',
     QR_CODE = 'qr_code',
-    FETCH = 'fetch',
+    FASTIFY = 'fastify',
+    FETCH_API = 'fetch_api',
 }
 
 export enum ChannelEventTypes {
@@ -39,6 +40,7 @@ export enum ChannelErrorCodes {
     OPEN_REQUEST_ERROR = 'open_request_error',
     OPEN_ACCEPT_ERROR = 'open_accept_error',
     OPEN_CONFIRM_ERROR = 'open_confirm_error',
+    TIMEOUT_ERROR = 'timeout_error',
 
     CLOSE_REQUEST_ERROR = 'close_request_error',
     CLOSE_CONFIRM_ERROR = 'close_confirm_error',

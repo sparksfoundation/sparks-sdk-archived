@@ -74,8 +74,15 @@ export class Channel {
         const timeout = setTimeout(() => {
           if (this._promiseHandlers.has(event.eventId)) {
             this._promiseHandlers.delete(event.eventId);
-            if (attempts < Channel.OPEN_RETRIES) {
+            if (attempts <= Channel.OPEN_RETRIES) {
               return this.open(payload, action, attempts + 1);
+            } else {
+              const payload: ChannelError = {
+                eventId: event.eventId,
+                error: ChannelErrorCodes.TIMEOUT_ERROR,
+                message: 'Channel open request timed out',
+              };
+              error(payload);
             }
           }
         }, Channel.OPEN_TIMEOUT);
@@ -263,8 +270,15 @@ export class Channel {
         const timeout = setTimeout(() => {
           if (this._promiseHandlers.has(event.eventId)) {
             this._promiseHandlers.delete(event.eventId);
-            if (attempts < Channel.MESSAGE_RETRIES) {
+            if (attempts <= Channel.MESSAGE_RETRIES) {
               return this.open(payload, action, attempts + 1);
+            } else {
+              const payload: ChannelError = {
+                error: ChannelErrorCodes.TIMEOUT_ERROR,
+                eventId: event.eventId,
+                message: 'message send timed out'
+              };
+              return error(payload);
             }
           }
         }, Channel.MESSAGE_TIMEOUT);
@@ -372,11 +386,12 @@ export class Channel {
         const timeout = setTimeout(() => {
           if (this._promiseHandlers.has(event.eventId)) {
             this._promiseHandlers.delete(event.eventId);
-            const error: ChannelError = {
+            const payload: ChannelError = {
               error: ChannelErrorCodes.CLOSE_CONFIRM_ERROR,
               eventId: event.eventId,
               message: 'close request timed out, could not get receipt',
             };
+            return error(payload);
           }
         }, Channel.CLOSE_TIMEOUT);
 
