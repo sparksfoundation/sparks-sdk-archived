@@ -11,12 +11,12 @@ export class Cipher implements ICipher {
     return '';
   }
 
-  async decrypt(args: any) {
+  async decrypt(args: any): Promise<Record<string, any> | null> {
     throw new Error('Not implemented');
-    return '';
+    return null;
   }
 
-  async shareKey(args: any) {
+  async sharedKey(args: any) {
     throw new Error('Not implemented');
     return '';
   }
