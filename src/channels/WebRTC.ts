@@ -1,6 +1,6 @@
 import { Channel } from './Channel.js';
 import { ChannelError, ChannelTypes } from './types.js';
-import { Peer, DataConnection } from "peerjs";
+import Peer, { DataConnection } from 'simple-peer';
 
 export class WebRTC extends Channel {
   protected peerId: string;

@@ -6,4 +6,3 @@ export * from './controllers/index.js';
 export * from './ciphers/index.js';
 export * from './hashers/index.js';
 export * from './signers/index.js';
-export * from './storage/index.js';

@@ -1,19 +1,28 @@
+import { Spark } from "../Spark.js";
 import { Channel } from "./Channel.js";
 import { ChannelTypes } from "./types.js";
 
 export class PostMessage extends Channel {
   private source: Window;
   private origin: string;
-  private _window: Window;
+  private _window?: Window;
 
   constructor({
     _window,
     source,
     origin,
+    spark,
     ...args
+  }: {
+    _window?: Window,
+    source: Window,
+    origin: string,
+    spark: Spark,
+    args?: any
   }) {
-    super({ channelType: ChannelTypes.POST_MESSAGE, ...args });
-    this._window = _window || window;
+    super({ channelType: ChannelTypes.POST_MESSAGE, spark, ...args });
+    this._window = _window || window || null;
+    if (!this._window) throw new Error('PostMessage: missing window');
     this.origin = origin;
     this.source = source;
     this._window.addEventListener('message', this.receiveMessage);

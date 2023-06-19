@@ -1,4 +1,4 @@
-export type Identifier = string;                            // base64 identifier
+export type Identifier = string;                            // base64 identifier of inception event digest
 
 export type SigningPublicKey = string;                      // base64 signing keypair's public key
 export type SigningSecretKey = string;                      // base64 signing keypair's secret key
@@ -6,7 +6,7 @@ export type EncryptionPublicKey = string;                   // base64 encryption
 export type EncryptionSecretKey = string;                   // base64 encryption keypair's secret key
 export type EncryptionSharedKey = string;                   // base64 encryption shared key
 
-export type SingingPublicKeyHash = string;                  // base64 hash of signing public signing key
+export type SigningPublicKeyHash = string;                  // base64 hash of signing public signing key
 export type EncryptionPublicKeyHash = string;               // base64 hash of encryption public signing key
 
 export type EncryptionKeyPair = {
@@ -34,17 +34,17 @@ export type KeyPairs = {
   signing: SigningKeyPair;                                  // base64 signing public and secret keys
 }
 
-export type KeriEventIndex = number;                        // s: sequence number      
+export type KeriEventIndex = number;                        // s: sequence number
 export enum KeriEventType {                                 // t: event type
-  INCEPTION = 'inception',
-  ROTATION = 'rotation',
-  DELETION = 'deletion',
+  INCEPTION = 'incept',
+  ROTATION = 'rotate',
+  DELETION = 'delete',
 }
 export type SigningThreshold = number;                      // kt: minimum amount of signatures needed for this event to be valid (multisig)
 export type SigningKeys = SigningPublicKey[];               // k: list of signing key
-export type NextKeyCommitments = SingingPublicKeyHash[];    // n: next keys
+export type NextKeyCommitments = SigningPublicKeyHash[];    // n: next keys
 export type Backer = SigningPublicKey;                      // b: individual backer
-export type BackerThreshold = number;                       // bt: minimum amount of backers threshold 
+export type BackerThreshold = number;                       // bt: minimum amount of backers threshold
 export type Backers = Backer[];                             // b: list of backers in this case the spark pwa-agent host's publickey there's no receipt at this ste
 export type SelfAddressingIdentifier = string;              // d: self-addressing identifier
 export type Version = string;                               // v: version
@@ -94,17 +94,23 @@ export type KeriRotationEvent = KeriEvent & {
   eventType: KeriEventType.ROTATION;
 }
 
-export type KeriDeletionEvent = KeriRotationEvent;
+export type KeriDeletionEvent = KeriRotationEvent & {
+  eventType: KeriEventType.DELETION;
+}
 
 export type KeriKeyEvent = KeriInceptionEvent | KeriRotationEvent | KeriDeletionEvent;
+export type KeyEventLog = KeriKeyEvent[];
 
 export type InceptionArgs = {
+  password: string;
   keyPairs: KeyPairs;
   nextKeyPairs: KeyPairs;
   backers: Backers;
 }
 
 export type RotationArgs = {
+  password: string;
+  newPassword: string | null;
   keyPairs: KeyPairs;
   nextKeyPairs: KeyPairs;
   backers: Backers;
@@ -125,7 +131,7 @@ export type ImportArgs = {
  * must implement methods for incepting, rotating, deleting, importing and exporting
  * relies on a cipher for encryption and decryption, a hasher for hashing and a signer
  * also provides and import and export method for backing up or restoring data
- * this is the main interface for the spark Identity 
+ * this is the main interface for the spark Identity
  * extend Controller class provide custom key derivation functionality
  */
 export interface IController {
@@ -175,4 +181,13 @@ export interface IController {
    * or rejects with an error.
    */
   export(): Promise<any> | never;
+
+  // getters
+  identifier: Identifier;
+  keyEventLog: KeriKeyEvent[]
+  keyPairs: KeyPairs;
+  encryptionKeys: EncryptionKeyPair;
+  signingKeys: SigningKeyPair;
+  secretKeys: SecretKeys;
+  publicKeys: PublicKeys;
 }

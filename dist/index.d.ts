@@ -1,4 +1,4 @@
-import { Peer, DataConnection } from 'peerjs';
+import Peer, { DataConnection } from 'simple-peer';
 
 type Identifier = string;
 type SigningPublicKey = string;
@@ -6,7 +6,7 @@ type SigningSecretKey = string;
 type EncryptionPublicKey = string;
 type EncryptionSecretKey = string;
 type EncryptionSharedKey = string;
-type SingingPublicKeyHash = string;
+type SigningPublicKeyHash = string;
 type EncryptionPublicKeyHash = string;
 type EncryptionKeyPair = {
     publicKey: EncryptionPublicKey;
@@ -30,13 +30,13 @@ type KeyPairs = {
 };
 type KeriEventIndex = number;
 declare enum KeriEventType {
-    INCEPTION = "inception",
-    ROTATION = "rotation",
-    DELETION = "deletion"
+    INCEPTION = "incept",
+    ROTATION = "rotate",
+    DELETION = "delete"
 }
 type SigningThreshold = number;
 type SigningKeys = SigningPublicKey[];
-type NextKeyCommitments = SingingPublicKeyHash[];
+type NextKeyCommitments = SigningPublicKeyHash[];
 type Backer = SigningPublicKey;
 type BackerThreshold = number;
 type Backers = Backer[];
@@ -80,14 +80,20 @@ type KeriRotationEvent = KeriEvent & {
     previousEventDigest: string;
     eventType: KeriEventType.ROTATION;
 };
-type KeriDeletionEvent = KeriRotationEvent;
+type KeriDeletionEvent = KeriRotationEvent & {
+    eventType: KeriEventType.DELETION;
+};
 type KeriKeyEvent = KeriInceptionEvent | KeriRotationEvent | KeriDeletionEvent;
+type KeyEventLog = KeriKeyEvent[];
 type InceptionArgs = {
+    password: string;
     keyPairs: KeyPairs;
     nextKeyPairs: KeyPairs;
     backers: Backers;
 };
 type RotationArgs = {
+    password: string;
+    newPassword: string | null;
     keyPairs: KeyPairs;
     nextKeyPairs: KeyPairs;
     backers: Backers;
@@ -151,16 +157,24 @@ interface IController {
      * or rejects with an error.
      */
     export(): Promise<any> | never;
+    identifier: Identifier;
+    keyEventLog: KeriKeyEvent[];
+    keyPairs: KeyPairs;
+    encryptionKeys: EncryptionKeyPair;
+    signingKeys: SigningKeyPair;
+    secretKeys: SecretKeys;
+    publicKeys: PublicKeys;
 }
 
 declare class Controller implements IController {
     protected _identifier: Identifier;
-    protected keyPairs: KeyPairs;
-    protected keyEventLog: KeriKeyEvent[];
-    protected spark: any;
-    constructor(spark: any);
-    get identifier(): string;
-    set identifier(identifier: string);
+    protected _keyPairs: KeyPairs;
+    protected _keyEventLog: KeriKeyEvent[];
+    protected spark: Spark;
+    constructor(spark: Spark);
+    get identifier(): Identifier;
+    get keyEventLog(): KeriKeyEvent[];
+    get keyPairs(): KeyPairs;
     get encryptionKeys(): EncryptionKeyPair;
     get signingKeys(): SigningKeyPair;
     get secretKeys(): SecretKeys;
@@ -168,7 +182,7 @@ declare class Controller implements IController {
     incept(args: InceptionArgs): Promise<void>;
     rotate(args: RotationArgs): Promise<void>;
     delete(args: DeletionArgs): Promise<void>;
-    protected keyEvent(args: KeriEventArgs): Promise<KeriKeyEvent>;
+    protected keyEvent(args: KeriEventArgs): Promise<KeriInceptionEvent | KeriRotationEvent>;
     import({ keyPairs, data }: {
         keyPairs: any;
         data: any;
@@ -178,22 +192,24 @@ declare class Controller implements IController {
 
 declare class Random extends Controller {
     private randomKeyPairs;
-    incept(args: any): Promise<void>;
-    rotate(args: any): Promise<void>;
-    import({ keyPairs, data }: {
-        keyPairs: KeyPairs;
-        data: string;
-    }): Promise<void>;
+    incept(args: InceptionArgs): Promise<void>;
+    rotate(args: RotationArgs): Promise<void>;
+    import(args: ImportArgs): Promise<void>;
 }
 
 declare class Password extends Controller {
-    incept(args: any): Promise<void>;
+    incept(args: InceptionArgs): Promise<void>;
     import(args: any): Promise<void>;
     export(): Promise<{
         data: any;
         salt: string;
     }>;
-    rotate(args: any): any;
+    rotate(args: RotationArgs): any;
+    getSaltInput(kel: KeyEventLog): string | KeriInceptionEvent | KeriRotationEvent;
+    inceptionEventSigningKeys(kel: KeyEventLog): string;
+    inceptionOnly(kel: KeyEventLog): boolean;
+    getLastEvent(kel: KeyEventLog): KeriInceptionEvent | KeriRotationEvent;
+    getInceptionEvent(kel: KeyEventLog): KeriInceptionEvent | KeriRotationEvent;
 }
 
 /**
@@ -206,8 +222,8 @@ interface IAgent {
 }
 
 declare class Agent implements IAgent {
-    protected spark: any;
-    constructor(spark: any);
+    protected spark: Spark;
+    constructor(spark: Spark);
 }
 
 declare class Verifier extends Agent {
@@ -244,8 +260,8 @@ interface ISigner {
      */
     sign: ({ data, detached }: {
         data: object | string;
-        detached?: boolean;
-    }) => Promise<string> | never;
+        detached: boolean;
+    }) => Promise<string | null> | never;
     /**
      * Verifies data using ed25519
      * @param {string} publicKey - base64 encoded public key
@@ -258,12 +274,12 @@ interface ISigner {
         publicKey: string;
         signature: string;
         data?: object | string;
-    }) => Promise<boolean> | Promise<string | object | null> | never;
+    }) => Promise<string | boolean | Record<string, any> | null> | never;
 }
 
 declare class Signer implements ISigner {
-    protected spark: any;
-    constructor(spark: any);
+    protected spark: Spark;
+    constructor(spark: Spark);
     sign({ data, detached }: {
         data: any;
         detached?: boolean;
@@ -325,7 +341,7 @@ interface ICipher {
      * @param {string} publicKey
      * @returns {string} sharedKey
      */
-    sharedKey: (args: {
+    computeSharedKey: (args: {
         publicKey: string;
     }) => Promise<string> | never;
 }
@@ -335,12 +351,11 @@ declare class Cipher implements ICipher {
     constructor(spark: any);
     encrypt(args: any): Promise<string>;
     decrypt(args: any): Promise<Record<string, any> | null>;
-    sharedKey(args: any): Promise<string>;
+    computeSharedKey(args: any): Promise<string>;
 }
 
 declare class X25519SalsaPoly extends Cipher {
-    constructor(spark: any);
-    sharedKey({ publicKey }: {
+    computeSharedKey({ publicKey }: {
         publicKey: any;
     }): Promise<string>;
     encrypt({ data, publicKey, sharedKey }: {
@@ -371,11 +386,62 @@ interface IHasher {
 }
 
 declare class Hasher implements IHasher {
+    protected spark: Spark;
+    constructor(spark: any);
     hash(data: any): Promise<any>;
 }
 
 declare class Blake3 extends Hasher {
     hash(data: any): Promise<string>;
+}
+
+interface Constructable<T> {
+    new (...args: any): T;
+}
+type SparkOptions = {
+    controller: Constructable<Controller>;
+    signer: Constructable<Signer>;
+    cipher: Constructable<Cipher>;
+    hasher: Constructable<Hasher>;
+    agents: Constructable<Agent>[];
+};
+interface SparkI {
+    identifier: Identifier;
+    keyEventLog: KeyEventLog;
+    publicKeys: PublicKeys;
+    encryptionKeys: EncryptionKeyPair;
+    signingKeys: SigningKeyPair;
+    keyPairs: KeyPairs;
+    hash: (data: any) => Promise<string> | never;
+    sign: ({ data, detached }: {
+        data: object | string;
+        detached: boolean;
+    }) => Promise<string> | never;
+    verify: ({ publicKey, signature, data }: {
+        publicKey: string;
+        signature: string;
+        data?: object | string;
+    }) => Promise<boolean> | Promise<string | object | null> | never;
+}
+declare class Spark implements SparkI {
+    private cipher;
+    private controller;
+    private hasher;
+    private signer;
+    private agents;
+    constructor(options: SparkOptions);
+    get identifier(): Identifier;
+    get keyEventLog(): KeyEventLog;
+    get encryptionKeys(): EncryptionKeyPair;
+    get signingKeys(): SigningKeyPair;
+    get publicKeys(): PublicKeys;
+    get keyPairs(): KeyPairs;
+    sign(args: any): Promise<string> | never;
+    verify(args: any): Promise<boolean> | Promise<string | object | null> | never;
+    hash(args: any): Promise<string> | never;
+    encrypt(args: any): Promise<string> | never;
+    decrypt(args: any): Promise<string | Record<string, any>> | never;
+    computeSharedKey(args: any): Promise<string> | never;
 }
 
 declare enum ChannelActions {
@@ -578,8 +644,10 @@ declare class Channel {
     onmessage: ((payload: ChannelMessage) => void) | null;
     onerror: ((error: ChannelError) => void) | null;
     constructor(args: any);
+    get publicSigningKey(): string;
+    get sharedEncryptionKey(): string;
     open(payload?: any, action?: any, attempts?: number): Promise<Channel | ChannelError>;
-    send(payload: any, action: any, attempts?: number): Promise<unknown>;
+    send(payload: any, action?: ChannelActions, attempts?: number): Promise<unknown>;
     close(payload: any, action: any): Promise<unknown>;
     protected sendMessage(event: any): void;
     protected receiveMessage(payload: any): void;
@@ -598,12 +666,13 @@ declare class Channel {
 declare class PostMessage extends Channel {
     private source;
     private origin;
-    private _window;
-    constructor({ _window, source, origin, ...args }: {
-        [x: string]: any;
-        _window: any;
-        source: any;
-        origin: any;
+    private _window?;
+    constructor({ _window, source, origin, spark, ...args }: {
+        _window?: Window;
+        source: Window;
+        origin: string;
+        spark: Spark;
+        args?: any;
     });
     protected sendMessage(event: any): void;
     protected receiveMessage(payload: any): void;
@@ -621,17 +690,6 @@ declare class FetchAPI extends Channel {
     });
     protected sendMessage(payload: any): Promise<void>;
     static receive(): Promise<void>;
-}
-
-declare class RestAPI extends Channel {
-    static promises: Map<string, any>;
-    static receives: Map<string, any>;
-    static eventHandler: Function;
-    constructor({ ...args }: any);
-    protected sendMessage(payload: any): Promise<void>;
-    static receive(callback: any, { spark }: {
-        spark: any;
-    }): void;
 }
 
 declare class WebRTC extends Channel {
@@ -655,52 +713,15 @@ declare class WebRTC extends Channel {
     }): Promise<void>;
 }
 
-/**
- * Storage interface
- * responsible for storing, retrieving and deleting serialized identity
- * leverage Spark main class to get data to store
- * extend Storage class to implement other storage mechanisms
- */
-interface IStorage {
-    /**
-     * get the serialized identity from storage
-     * @returns {Promise<string>} A promise that resolves to the serialized identity,
-     * or rejects with an error.
-     */
-    get(): Promise<string> | never;
-    /**
-     * set the serialized identity to storage
-     * @returns {Promise<void>} A promise that resolves when the delete operation is complete,
-     * or rejects with an error.
-     */
-    set(): Promise<void> | never;
-    /**
-     * delete the serialized identity from storage
-     * @returns {Promise<void>} A promise that resolves when the delete operation is complete,
-     * or rejects with an error.
-     */
-    delete(): Promise<void> | never;
+declare class RestAPI extends Channel {
+    static promises: Map<string, any>;
+    static receives: Map<string, any>;
+    static eventHandler: Function;
+    constructor({ ...args }: any);
+    protected sendMessage(payload: any): Promise<void>;
+    static receive(callback: any, { spark }: {
+        spark: any;
+    }): void;
 }
 
-declare class Storage implements IStorage {
-    get(): Promise<string>;
-    set(): Promise<void>;
-    delete(): Promise<void>;
-}
-
-declare class Spark {
-    controller: Controller;
-    signer: Signer;
-    cipher: Cipher;
-    hasher: Hasher;
-    storage: Storage;
-    agents: {
-        [key: string]: Agent;
-    };
-    channels: {
-        [key: string]: typeof Channel;
-    };
-    constructor(options: any);
-}
-
-export { Agent, Attester, Backer, BackerThreshold, Backers, Blake3, Channel, ChannelAcceptEvent, ChannelActions, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelClosedReceipt, ChannelClosedReceiptData, ChannelCompleteOpenData, ChannelCompletePayload, ChannelConfirmEvent, ChannelError, ChannelErrorCodes, ChannelEventConfirmTypes, ChannelEventId, ChannelEventTypes, ChannelId, ChannelMessage, ChannelMessageConfirm, ChannelMessageConfirmEvent, ChannelMessageEncrypted, ChannelMessageEvent, ChannelMessageId, ChannelMessageReceiptData, ChannelMessagereceipt, ChannelPeer, ChannelPeers, ChannelPromiseHandler, ChannelReceipt, ChannelReceiptData, ChannelRequestEvent, ChannelTimeSamp, ChannelTypes, Cipher, Controller, DeletionArgs, Ed25519, EncryptionKeyPair, EncryptionPublicKey, EncryptionPublicKeyHash, EncryptionSecretKey, EncryptionSharedKey, FetchAPI, Hasher, ICipher, IController, Identifier, ImportArgs, InceptionArgs, KeriDeletionEvent, KeriDeletionEventArgs, KeriEvent, KeriEventArgs, KeriEventIndex, KeriEventType, KeriInceptionEvent, KeriInceptionEventArgs, KeriKeyEvent, KeriRotationEvent, KeriRotationEventArgs, KeyPairs, NextKeyCommitments, Password, PostMessage, PreviousEventDigest, PublicKeys, Random, RestAPI, RotationArgs, SecretKeys, SelfAddressingIdentifier, SharedEncryptionKey, Signer, SigningKeyPair, SigningKeys, SigningPublicKey, SigningSecretKey, SigningThreshold, SingingPublicKeyHash, Spark, Storage, User, Verifier, Version, WebRTC, X25519SalsaPoly };
+export { Agent, Attester, Backer, BackerThreshold, Backers, Blake3, Channel, ChannelAcceptEvent, ChannelActions, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelClosedReceipt, ChannelClosedReceiptData, ChannelCompleteOpenData, ChannelCompletePayload, ChannelConfirmEvent, ChannelError, ChannelErrorCodes, ChannelEventConfirmTypes, ChannelEventId, ChannelEventTypes, ChannelId, ChannelMessage, ChannelMessageConfirm, ChannelMessageConfirmEvent, ChannelMessageEncrypted, ChannelMessageEvent, ChannelMessageId, ChannelMessageReceiptData, ChannelMessagereceipt, ChannelPeer, ChannelPeers, ChannelPromiseHandler, ChannelReceipt, ChannelReceiptData, ChannelRequestEvent, ChannelTimeSamp, ChannelTypes, Cipher, Controller, DeletionArgs, Ed25519, EncryptionKeyPair, EncryptionPublicKey, EncryptionPublicKeyHash, EncryptionSecretKey, EncryptionSharedKey, FetchAPI, Hasher, ICipher, IController, Identifier, ImportArgs, InceptionArgs, KeriDeletionEvent, KeriDeletionEventArgs, KeriEvent, KeriEventArgs, KeriEventIndex, KeriEventType, KeriInceptionEvent, KeriInceptionEventArgs, KeriKeyEvent, KeriRotationEvent, KeriRotationEventArgs, KeyEventLog, KeyPairs, NextKeyCommitments, Password, PostMessage, PreviousEventDigest, PublicKeys, Random, RestAPI, RotationArgs, SecretKeys, SelfAddressingIdentifier, SharedEncryptionKey, Signer, SigningKeyPair, SigningKeys, SigningPublicKey, SigningPublicKeyHash, SigningSecretKey, SigningThreshold, Spark, SparkI, User, Verifier, Version, WebRTC, X25519SalsaPoly };

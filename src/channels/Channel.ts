@@ -36,13 +36,9 @@ export class Channel {
 
   constructor(args) {
     this.spark = args.spark;
-    Object.defineProperties(this, {
-      spark: { enumerable: false, writable: false, },
-    });
-
-    if (!args.channelType) {
-      throw new Error('Channel: missing channelType');
-    }
+    if (!this.spark) throw new Error('Channel: missing spark');
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+    if (!args.channelType) throw new Error('Channel: missing channelType');
 
     this.channelType = args.channelType;
     this.channelId = args.channelId;
@@ -53,6 +49,14 @@ export class Channel {
     this.receiveMessage = this.receiveMessage.bind(this);
   }
 
+  public get publicSigningKey() {
+    return this.publicKeys.signing;
+  }
+
+  public get sharedEncryptionKey() {
+    return this.sharedKey;
+  }
+
   public open(payload?, action?, attempts = 0): Promise<Channel|ChannelError> {
     return new Promise<Channel|ChannelError>((resolve, reject) => {
       // initiator:request sends channelId and info
@@ -60,15 +64,15 @@ export class Channel {
       // initiator:confirm sends receipt and completes with channel
       // receiver:complete with channel
       const request = () => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open request\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open request\n')
 
         const event: ChannelRequestEvent = {
           eventType: ChannelEventTypes.OPEN_REQUEST,
           eventId: randomNonce(16),
           channelId: randomNonce(16),
           timestamp: getTimestamp(),
-          identifier: this.spark.controller.identifier,
-          publicKeys: this.spark.controller.publicKeys,
+          identifier: this.spark.identifier,
+          publicKeys: this.spark.publicKeys,
         };
 
         const timeout = setTimeout(() => {
@@ -102,11 +106,11 @@ export class Channel {
       }
 
       const accept = async (args: ChannelRequestEvent) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open accept\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open accept\n')
 
         const ourInfo: ChannelPeer = {
-          identifier: this.spark.controller.identifier,
-          publicKeys: this.spark.controller.publicKeys,
+          identifier: this.spark.identifier,
+          publicKeys: this.spark.publicKeys,
         }
 
         const peerInfo: ChannelPeer = {
@@ -123,9 +127,9 @@ export class Channel {
           peers: peers,
         }
 
-        const sharedKey = await this.spark.cipher.sharedKey({ publicKey: args.publicKeys.encryption });
-        const ciphertext = await this.spark.cipher.encrypt({ data: receiptData, sharedKey });
-        const receipt = await this.spark.signer.sign({ data: ciphertext });
+        const sharedKey = await this.spark.computeSharedKey({ publicKey: args.publicKeys.encryption });
+        const ciphertext = await this.spark.encrypt({ data: receiptData, sharedKey });
+        const receipt = await this.spark.sign({ data: ciphertext });
 
         const event: ChannelAcceptEvent = {
           eventType: ChannelEventTypes.OPEN_ACCEPT,
@@ -145,14 +149,14 @@ export class Channel {
       }
 
       const confirm = async (args: ChannelAcceptEvent) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open confirm\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open confirm\n')
 
         const peerInfo: ChannelPeer = {
           identifier: args.identifier,
           publicKeys: args.publicKeys,
         }
 
-        const sharedKey = await this.spark.cipher.sharedKey({ publicKey: args.publicKeys.encryption });
+        const sharedKey = await this.spark.computeSharedKey({ publicKey: args.publicKeys.encryption });
 
         const channelData: ChannelCompleteOpenData = {
           channelId: args.channelId,
@@ -163,8 +167,8 @@ export class Channel {
         };
 
         // verify receipt - resign and return
-        const openedReceipt = await this.spark.signer.verify({ signature: args.receipt, publicKey: args.publicKeys.signing });
-        const decrypted = await this.spark.cipher.decrypt({ data: openedReceipt, sharedKey });
+        const openedReceipt = await this.spark.verify({ signature: args.receipt, publicKey: args.publicKeys.signing });
+        const decrypted = await this.spark.decrypt({ data: openedReceipt, sharedKey }) as ChannelReceiptData;
 
         if (!decrypted || !decrypted.channelId || decrypted.channelId !== args.channelId) {
           return error({
@@ -174,12 +178,12 @@ export class Channel {
           } as ChannelError)
         }
 
-        const encrypted = await this.spark.cipher.encrypt({ data: decrypted, sharedKey });
-        const receipt = await this.spark.signer.sign({ data: encrypted });
+        const encrypted = await this.spark.encrypt({ data: decrypted, sharedKey });
+        const receipt = await this.spark.sign({ data: encrypted });
 
         const ourInfo: ChannelPeer = {
-          identifier: this.spark.controller.identifier,
-          publicKeys: this.spark.controller.publicKeys,
+          identifier: this.spark.identifier,
+          publicKeys: this.spark.publicKeys,
         }
 
         const event: ChannelConfirmEvent = {
@@ -196,7 +200,7 @@ export class Channel {
       }
 
       const complete = (args: ChannelCompleteOpenData) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open complete\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open complete\n')
 
         Object.keys(args).forEach(key => {
           this[key] = args[key];
@@ -214,7 +218,7 @@ export class Channel {
       }
 
       const deny = (args) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open deny\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open deny\n')
 
         const event: ChannelError = {
           error: ChannelErrorCodes.OPEN_ACCEPT_ERROR,
@@ -231,7 +235,7 @@ export class Channel {
       }
 
       const error = (args: ChannelError) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => open error\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open error\n')
         if (this.onerror) this.onerror(args);
         this._promiseHandlers.delete(args.eventId);
         resolve(args);
@@ -243,7 +247,7 @@ export class Channel {
     });
   }
 
-  public send(payload, action, attempts = 0) {
+  public send(payload, action?: ChannelActions, attempts: number = 0) {
     // initiator:request
     // receiver:confirm (with receipt)
     // receiver:complete (with own receipt)
@@ -251,10 +255,10 @@ export class Channel {
     return new Promise((resolve, reject) => {
 
       const send = async (data: ChannelMessage) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => send msg request\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => send msg request\n')
 
-        const encrypted = await this.spark.cipher.encrypt({ data, sharedKey: this.sharedKey });
-        const message = await this.spark.signer.sign({ data: encrypted });
+        const encrypted = await this.spark.encrypt({ data, sharedKey: this.sharedKey });
+        const message = await this.spark.sign({ data: encrypted });
         const eventId = randomNonce(16);
         const messageId = randomNonce(16);
 
@@ -271,7 +275,7 @@ export class Channel {
           if (this._promiseHandlers.has(event.eventId)) {
             this._promiseHandlers.delete(event.eventId);
             if (attempts <= Channel.MESSAGE_RETRIES) {
-              return this.open(payload, action, attempts + 1);
+              return this.send(payload, action, attempts + 1);
             } else {
               const payload: ChannelError = {
                 error: ChannelErrorCodes.TIMEOUT_ERROR,
@@ -298,11 +302,11 @@ export class Channel {
       }
 
       const confirm = async (payload: ChannelMessageEvent) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => send msg confirm\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => send msg confirm\n')
 
         // decrypt message then make a receipt
-        const opened = await this.spark.signer.verify({ signature: payload.message, publicKey: this.publicKeys.signing });
-        const message = await this.spark.cipher.decrypt({ data: opened, sharedKey: this.sharedKey });
+        const opened = await this.spark.verify({ signature: payload.message, publicKey: this.publicKeys.signing });
+        const message = await this.spark.decrypt({ data: opened, sharedKey: this.sharedKey });
 
         if (!message) {
           return error({
@@ -318,8 +322,8 @@ export class Channel {
           message,
         };
         
-        const encrypted = await this.spark.cipher.encrypt({ data: receiptData, sharedKey: this.sharedKey });
-        const receipt = await this.spark.signer.sign({ data: encrypted });
+        const encrypted = await this.spark.encrypt({ data: receiptData, sharedKey: this.sharedKey });
+        const receipt = await this.spark.sign({ data: encrypted });
 
         const event: ChannelMessageConfirmEvent = {
           eventType: ChannelEventTypes.MESSAGE_CONFIRM,
@@ -347,14 +351,14 @@ export class Channel {
       }
 
       const complete = (payload: ChannelMessageReceiptData) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => send msg complete\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => send msg complete\n')
 
         if (this.onmessage) this.onmessage(payload);
         return resolve(payload);
       }
 
       const error = (payload: ChannelError) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => send msg error\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => send msg error\n')
         if (this.onerror) this.onerror(payload);
         this._promiseHandlers.delete(payload.eventId);
         return reject(payload);
@@ -374,7 +378,7 @@ export class Channel {
       const eventId = randomNonce(16);
 
       const close = () => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => close request\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close request\n')
 
         const event: ChannelCloseEvent = {
           eventType: ChannelEventTypes.CLOSE_REQUEST,
@@ -410,11 +414,11 @@ export class Channel {
       }
 
       const confirm = async (payload: ChannelCloseEvent) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => close confirm\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close confirm\n')
 
         const ourInfo: ChannelPeer = {
-          identifier: this.spark.controller.identifier,
-          publicKeys: this.spark.controller.publicKeys,
+          identifier: this.spark.identifier,
+          publicKeys: this.spark.publicKeys,
         };
 
         const theirInfo: ChannelPeer = {
@@ -429,8 +433,8 @@ export class Channel {
           peers: [ourInfo, theirInfo],
         }
 
-        const encrypted = await this.spark.cipher.encrypt({ data: receiptData, sharedKey: this.sharedKey });
-        const receipt = await this.spark.signer.sign({ data: encrypted });
+        const encrypted = await this.spark.encrypt({ data: receiptData, sharedKey: this.sharedKey });
+        const receipt = await this.spark.sign({ data: encrypted });
 
         const event: ChannelCloseConfirmationEvent = {
           eventType: ChannelEventTypes.CLOSE_CONFIRM,
@@ -445,19 +449,19 @@ export class Channel {
       }
 
       const receipt = (payload: ChannelCloseConfirmationEvent) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => close receipt\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close receipt\n')
         if (this.onclose) this.onclose(payload.receipt);
         return resolve(payload.receipt);
       }
 
       const complete = (payload: ChannelCloseConfirmationEvent) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => close complete\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close complete\n')
         if (this.onclose) this.onclose(payload.receipt);
         return resolve(payload.receipt);
       }
 
       const error = (payload) => {
-        console.log(this.spark.controller.signingKeys.publicKey.slice(0, 4) + ' => close error\n')
+        console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close error\n')
         if (this.onerror) this.onerror(payload);
         this._promiseHandlers.delete(payload.eventId);
         return reject(payload);
