@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-import Peer, { DataConnection } from 'simple-peer';
-
->>>>>>> main
 type Identifier = string;
 type SigningPublicKey = string;
 type SigningSecretKey = string;
