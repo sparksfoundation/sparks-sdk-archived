@@ -1,5 +1,3 @@
-import { Peer, DataConnection } from 'peerjs';
-
 type Identifier = string;
 type SigningPublicKey = string;
 type SigningSecretKey = string;
@@ -635,24 +633,6 @@ declare class RestAPI extends Channel {
 }
 
 declare class WebRTC extends Channel {
-    protected peerId: string;
-    protected peer: Peer;
-    protected conn: DataConnection;
-    protected _oncall: Function;
-    constructor({ peerId, peer, conn, ...args }: {
-        [x: string]: any;
-        peerId: any;
-        peer: any;
-        conn: any;
-    });
-    open(payload: any, action: any): Promise<Channel | ChannelError>;
-    protected receiveMessage(payload: any): void;
-    protected sendMessage(payload: any): void;
-    protected call(): void;
-    protected oncall(callback: any): void;
-    static receive(callback: any, { spark }: {
-        spark: any;
-    }): Promise<void>;
 }
 
 /**
