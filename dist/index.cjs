@@ -4,6 +4,7 @@ const nacl = require('tweetnacl');
 const util = require('tweetnacl-util');
 const scrypt = require('scrypt-pbkdf');
 const blake3 = require('@noble/hashes/blake3');
+const peerjs = require('peerjs');
 
 function _interopDefaultCompat (e) { return e && typeof e === 'object' && 'default' in e ? e.default : e; }
 
@@ -948,7 +949,7 @@ const _Channel = class {
   static receive(callback, options) {
     throw new Error("receive not implemented");
   }
-  static channelRequest({ payload, channel: Channel2, options }) {
+  static channelRequest({ payload, Channel: Channel2, options }) {
     const { eventType, channelId } = payload;
     const isRequest = eventType === ChannelEventTypes.OPEN_REQUEST;
     const hasId = channelId;
@@ -1009,7 +1010,7 @@ class PostMessage extends Channel {
       const request = Channel.channelRequest({
         payload: event.data,
         options,
-        channel: PostMessage
+        Channel: PostMessage
       });
       if (request)
         callback(request);
@@ -1077,7 +1078,7 @@ const _RestAPI = class extends Channel {
             options: {
               spark
             },
-            channel: _RestAPI
+            Channel: _RestAPI
           });
           if (args)
             return callback(args);
@@ -1091,29 +1092,113 @@ RestAPI.promises = /* @__PURE__ */ new Map();
 RestAPI.receives = /* @__PURE__ */ new Map();
 
 class WebRTC extends Channel {
-  constructor({ configuration, ...args }) {
+  constructor({ peerId, peer, conn, ...args }) {
     super({ channelType: ChannelTypes.WEB_RTC, ...args });
-    this.peerConnection = new RTCPeerConnection(configuration);
-    this.dataChannel = this.peerConnection.createDataChannel("channel");
-    this.dataChannel.onmessage = this.receiveMessage.bind(this);
+    if (!peerId)
+      throw new Error("WebRTC channel requires a peerId");
+    if (peer && conn) {
+      this.peer = peer;
+      this.conn = conn;
+      this.conn.on("data", this.receiveMessage);
+    }
+    this.peerId = peerId;
+    this.open = this.open.bind(this);
+    this.receiveMessage = this.receiveMessage.bind(this);
+    this.sendMessage = this.sendMessage.bind(this);
   }
-  receiveMessage(event) {
-    const payload = JSON.parse(event.data);
+  async open(payload, action) {
+    const isReceiver = this.peer && this.conn;
+    if (isReceiver)
+      return super.open(payload, action);
+    return new Promise((resolve, reject) => {
+      this.peer = new peerjs.Peer();
+      this.peer.on("error", console.log);
+      this.peer.on("open", (id) => {
+        console.log("opened");
+        console.log(this.peerId);
+        const conn = this.peer.connect(this.peerId);
+        console.log(conn);
+        conn.on("error", console.log);
+        conn.on("open", async () => {
+          console.log("connected");
+          this.conn = conn;
+          this.conn.on("data", this.receiveMessage);
+          const result = await super.open(payload, action);
+          resolve(result);
+        });
+        this.peer.on("call", function(call) {
+          if (!this._oncall)
+            return;
+          const accept = () => {
+            return new Promise((resolve2, reject3) => {
+              const navigator = window.navigator;
+              const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+              getUserMedia({ video: true, audio: true }, function(stream) {
+                call.answer(stream);
+                call.on("stream", function(stream2) {
+                  resolve2(stream2);
+                });
+              });
+            });
+          };
+          const reject2 = () => {
+            call.close();
+          };
+          this._oncall({ call, accept, reject: reject2 });
+        });
+      });
+    });
+  }
+  receiveMessage(payload) {
     super.receiveMessage(payload);
   }
   sendMessage(payload) {
-    const message = JSON.stringify(payload);
-    this.dataChannel.send(message);
+    this.conn.send(payload);
   }
-  static async receive(callback, { spark, configuration, Channel: Channel2 }) {
-    const args = Channel2.channelRequest({
-      options: {
-        spark,
-        configuration
-      }
+  call() {
+    const navigator = window.navigator;
+    if (!this.peer || !this.conn || !this.peerId)
+      throw new Error("WebRTC channel not open");
+    if (!navigator || !navigator.mediaDevices)
+      throw new Error("WebRTC not supported");
+    const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+    console.log(getUserMedia, "here");
+    getUserMedia({ video: true, audio: true }, function(stream) {
+      console.log("right here");
+      const call = this.peer.call(this.peerId, stream);
+      call.on("stream", function(stream2) {
+        this.stream = stream2;
+      });
+    }, function(err) {
+      console.log("Failed to get local stream", err);
     });
-    if (args)
-      callback(args);
+  }
+  oncall(callback) {
+    this._oncall = callback;
+  }
+  static async receive(callback, { spark }) {
+    const peer = new peerjs.Peer();
+    peer.on("open", (id) => {
+      console.log(id);
+      peer.on("connection", (conn) => {
+        conn.on("open", () => {
+          conn.on("data", (payload) => {
+            const args = Channel.channelRequest({
+              payload,
+              options: {
+                peerId: conn.peer,
+                peer,
+                conn,
+                spark
+              },
+              Channel: WebRTC
+            });
+            if (args)
+              callback(args);
+          });
+        });
+      });
+    });
   }
 }
 

@@ -46,7 +46,7 @@ export class RestAPI extends Channel {
             options: {
               spark,
             },
-            channel: RestAPI,
+            Channel: RestAPI,
           });
 
           if (args) return callback(args);

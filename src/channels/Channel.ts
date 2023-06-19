@@ -53,7 +53,7 @@ export class Channel {
     this.receiveMessage = this.receiveMessage.bind(this);
   }
 
-  public open(payload, action, attempts = 0): Promise<Channel|ChannelError> {
+  public open(payload?, action?, attempts = 0): Promise<Channel|ChannelError> {
     return new Promise<Channel|ChannelError>((resolve, reject) => {
       // initiator:request sends channelId and info
       // receiver:accepts triggers via resolve -> sends info and receipt
@@ -504,7 +504,7 @@ export class Channel {
     throw new Error('receive not implemented');
   }
 
-  static channelRequest({ payload, channel: Channel, options }) {
+  static channelRequest({ payload, Channel, options }) {
     const { eventType, channelId } = payload;
     const isRequest = eventType === ChannelEventTypes.OPEN_REQUEST;
     const hasId = channelId;
