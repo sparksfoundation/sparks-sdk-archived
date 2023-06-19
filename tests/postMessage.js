@@ -1,10 +1,16 @@
-import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, User, Verifier, PostMessage } from '../dist/index.js';
-import { _0000, _1111 } from './testWindows.js';
+import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, PostMessage } from '../dist/index.mjs';
+import { _0000, _1111 } from './mocks/MockWindow.js';
 
-const website = new Spark({ agents: [Verifier], controller: Random, signer: Ed25519, hasher: Blake3, cipher: X25519SalsaPoly, channels: [PostMessage] });
+const website = new Spark({ 
+  controller: Random, 
+  signer: Ed25519, 
+  hasher: Blake3, 
+  cipher: X25519SalsaPoly 
+});
+
 await website.controller.incept();
 
-website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
+PostMessage.receive(async ({ details, resolve, reject }) => {
   console.log('\nchannel details\n', details, '\n')
   // reject() remove reolve below to test this
 
@@ -14,13 +20,20 @@ website.channels.PostMessage.receive(async ({ details, resolve, reject }) => {
   }
 }, { spark: website, _window: _1111 });
 
-const alice = new Spark({ agents: [User], controller: Random, signer: Ed25519, hasher: Blake3, cipher: X25519SalsaPoly, channels: [PostMessage] });
+const alice = new Spark({ 
+  controller: Random, 
+  signer: Ed25519, 
+  hasher: Blake3, 
+  cipher: X25519SalsaPoly 
+});
+
 await alice.controller.incept();
 
-const channel = new alice.channels.PostMessage({
+const channel = new PostMessage({
   source: _1111,
   origin: 'http://localhost:1111',
   _window: _0000,
+  spark: alice,
 })
 
 channel.onerror = err => {
@@ -37,6 +50,3 @@ setTimeout(async () => {
   const closeReceipt = await channel.close()
   console.log('\nclose receipt\n', closeReceipt, '\n')
 }, 1000)
-
-
-

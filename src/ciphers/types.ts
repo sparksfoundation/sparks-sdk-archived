@@ -31,5 +31,5 @@ export interface ICipher {
    * @param {string} publicKey 
    * @returns {string} sharedKey
    */
-  sharedKey: (args: { publicKey: string; }) => Promise<string> | never;
+  computeSharedKey: (args: { publicKey: string; }) => Promise<string> | never;
 }

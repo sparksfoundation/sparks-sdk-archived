@@ -1,80 +1,97 @@
-import { Controller } from './controllers/index.js';
+import { Controller, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index.js';
 import { Agent } from './agents/index.js';
 import { Signer } from './signers/index.js';
 import { Cipher } from './ciphers/index.js';
 import { Hasher } from './hashers/index.js';
-import { Channel } from './channels/index.js';
-import { Storage } from './storage/index.js';
 
-const SINGLETONS = {
-  controller: Controller,
-  signer: Signer,
-  cipher: Cipher,
-  hasher: Hasher,
-  storage: Storage,
-};
+interface Constructable<T> {
+  new(...args: any): T;
+}
 
-const COLLECTIONS = {
-  agents: Agent,
-};
+type SparkOptions = {
+  controller: Constructable<Controller>;
+  signer: Constructable<Signer>;
+  cipher: Constructable<Cipher>;
+  hasher: Constructable<Hasher>;
+  agents: Constructable<Agent>[];
+}
 
-const FACTORIES = {
-  channels: Channel,
-};
+export interface SparkI {
+  identifier: Identifier;
+  keyEventLog: KeyEventLog;
+  publicKeys: PublicKeys;
+  encryptionKeys: EncryptionKeyPair;
+  signingKeys: SigningKeyPair;
+  keyPairs: KeyPairs;
+  hash: (data: any) => Promise<string> | never;
+  sign: ({ data, detached }: { data: object | string; detached: boolean }) => Promise<string> | never;
+  verify: ({ publicKey, signature, data }: { publicKey: string, signature: string, data?: object | string }) => Promise<boolean> | Promise<string | object | null> | never;
+}
 
-export class Spark {
-  public controller: Controller;
-  public signer: Signer;
-  public cipher: Cipher;
-  public hasher: Hasher;
-  public storage: Storage;
-  public agents: { [key: string]: Agent };
-  public channels: { [key: string]: typeof Channel };
+export class Spark implements SparkI {
+  private cipher: Cipher;
+  private controller: Controller;
+  private hasher: Hasher;
+  private signer: Signer;
+  private agents: object = {};
 
-  constructor(options) {
-    Object.keys(options).forEach(prop => {
-      if (SINGLETONS[prop]) {
-        const instance = new options[prop](this);
-        const valid = instance && instance instanceof SINGLETONS[prop];
-        const typeName = SINGLETONS[prop].name;
-        if (!valid) throw new Error(`${prop} must be an instance of ${typeName}`);
-        this[prop] = instance;
-        Object.defineProperties(instance, {
-          spark: { enumerable: false, writable: false, }
-        })
-      } else if (COLLECTIONS[prop]) {
-        this[prop] = {}
-        options[prop].forEach(clazz => {
-          const name = clazz.name;
-          const instance = new clazz(this);
-          const valid = instance && instance instanceof COLLECTIONS[prop];
-          const typeName = COLLECTIONS[prop].name;
-          if (!valid) throw new Error(`${prop} must be an instance of ${typeName}`);
-          const camel = name.charAt(0).toLowerCase() + name.slice(1);
-          this[prop][camel] = instance;
-          Object.defineProperties(instance, {
-            spark: { enumerable: false, writable: false, }
-          })
-        })
-      } else if (FACTORIES[prop]) {
-        this[prop] = {}
-        options[prop].forEach(clazz => {
-          const name = clazz.name;
-          const valid = clazz.prototype instanceof FACTORIES[prop];
-          const typeName = FACTORIES[prop].name;
-          if (!valid) throw new Error(`${prop} must be an extension of ${typeName}`);
-          const self = this;
-          class Factory extends clazz {
-            constructor(args) {
-              super({ spark: self, ...args });
-            }
-          }
-          Object.defineProperty(Factory, 'name', { value: name, writable: false });
-          this[prop][name] = Factory as typeof clazz;
-        })
-      } else {
-        throw new Error(`invalid option ${prop}`);
-      }
+  constructor(options: SparkOptions) {
+    this.cipher = new options.cipher(this);
+    this.controller = new options.controller(this);
+    this.hasher = new options.hasher(this);
+    this.signer = new options.signer(this);
+    const agents = options.agents || [];
+    agents.forEach(agent => {
+      const mixin = new agent(this);
+      this.agents[agent.name.toLowerCase()] = mixin;
     })
   }
+
+  get identifier(): Identifier {
+    return this.controller.identifier;
+  }
+
+  get keyEventLog(): KeyEventLog {
+    return this.controller.keyEventLog;
+  }
+
+  get encryptionKeys(): EncryptionKeyPair {
+    return this.controller.encryptionKeys;
+  }
+
+  get signingKeys(): SigningKeyPair {
+    return this.controller.signingKeys;
+  }
+
+  get publicKeys(): PublicKeys {
+    return this.controller.publicKeys;
+  }
+
+  get keyPairs(): KeyPairs {
+    return this.controller.keyPairs;
+  }
+
+  sign(args: any): Promise<string> | never {
+    return this.signer.sign(args);
+  }
+
+  verify(args: any): Promise<boolean> | Promise<string | object | null> | never {
+    return this.signer.verify(args);
+  }
+
+  hash(args: any): Promise<string> | never {
+    return this.hasher.hash(args);
+  }
+
+  encrypt(args: any): Promise<string> | never {
+    return this.cipher.encrypt(args);
+  }
+
+  decrypt(args: any): Promise<string | Record<string, any>> | never {
+    return this.cipher.decrypt(args);
+  }
+
+  computeSharedKey(args: any): Promise<string> | never {
+    return this.cipher.computeSharedKey(args);
+  };
 }

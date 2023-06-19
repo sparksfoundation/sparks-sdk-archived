@@ -7,12 +7,12 @@ const client = new Spark({
   signer: Ed25519, 
   hasher: Blake3, 
   cipher: X25519SalsaPoly, 
-  channels: [FetchAPI] 
 });
 await client.controller.incept();
 
-const channel = new client.channels.FetchAPI({ 
+const channel = new FetchAPI({ 
   url: 'http://127.0.0.1:3400/channels',
+  spark: client,
 })
 
 await channel.open()

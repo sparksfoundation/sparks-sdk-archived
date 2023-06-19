@@ -1,3 +1,4 @@
+import { Spark } from '../Spark.js';
 import {
   DeletionArgs,
   EncryptionKeyPair,
@@ -21,54 +22,60 @@ import {
 
 export class Controller implements IController {
   protected _identifier: Identifier
-  protected keyPairs: KeyPairs;
-  protected keyEventLog: KeriKeyEvent[];
-  protected spark: any; // TODO define spark interface
+  protected _keyPairs: KeyPairs;
+  protected _keyEventLog: KeriKeyEvent[];
+  protected spark: Spark; 
 
-  constructor(spark) {
+  constructor(spark: Spark) {
+    if (!spark) throw new Error('Channel: missing spark');
     this.spark = spark;
-    this.keyEventLog = [];
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+    this._keyEventLog = [];
   }
 
-  get identifier() {
+  get identifier(): Identifier {
     return this._identifier;
   }
 
-  set identifier(identifier) {
-    this._identifier = identifier;
+  get keyEventLog(): KeriKeyEvent[] {
+    return this._keyEventLog;
   }
 
-  get encryptionKeys() {
-    return {
-      publicKey: this.keyPairs.encryption.publicKey,
-      secretKey: this.keyPairs.encryption.secretKey,
-    } as EncryptionKeyPair;
+  get keyPairs(): KeyPairs {
+    return this._keyPairs;
   }
 
-  get signingKeys() {
+  get encryptionKeys(): EncryptionKeyPair {
     return {
-      publicKey: this.keyPairs.signing.publicKey,
-      secretKey: this.keyPairs.signing.secretKey,
-    } as SigningKeyPair;
+      publicKey: this._keyPairs.encryption.publicKey,
+      secretKey: this._keyPairs.encryption.secretKey,
+    };
   }
 
-  get secretKeys() {
+  get signingKeys(): SigningKeyPair {
     return {
-      signing: this.keyPairs.signing.secretKey,
-      encryption: this.keyPairs.encryption.secretKey,
-    } as SecretKeys;
+      publicKey: this._keyPairs.signing.publicKey,
+      secretKey: this._keyPairs.signing.secretKey,
+    };
   }
 
-  get publicKeys() {
+  get secretKeys(): SecretKeys {
     return {
-      signing: this.keyPairs.signing.publicKey,
-      encryption: this.keyPairs.encryption.publicKey,
-    } as PublicKeys;
+      signing: this._keyPairs.signing.secretKey,
+      encryption: this._keyPairs.encryption.secretKey,
+    };
+  }
+
+  get publicKeys(): PublicKeys {
+    return {
+      signing: this._keyPairs.signing.publicKey,
+      encryption: this._keyPairs.encryption.publicKey,
+    };
   }
 
   public async incept(args: InceptionArgs) {
     const { keyPairs, nextKeyPairs, backers = [] } = args || {};
-    this.keyPairs = keyPairs; // needed for signing
+    this._keyPairs = keyPairs; // needed for signing
     const inceptionEvent = await this.keyEvent({
       keyPairs,
       nextKeyPairs,
@@ -78,14 +85,14 @@ export class Controller implements IController {
 
     if (!inceptionEvent) {
       // force null the keyPairs - todo review this feels funny
-      this.keyPairs = undefined as any;
+      this._keyPairs = undefined as any;
       throw new Error('Inception failed');
     }
 
     const { identifier } = inceptionEvent;
     this._identifier = identifier;
-    this.keyPairs = keyPairs;
-    this.keyEventLog.push(inceptionEvent);
+    this._keyPairs = keyPairs;
+    this._keyEventLog.push(inceptionEvent);
     // todo -- queue the receipt request
   }
 
@@ -101,8 +108,8 @@ export class Controller implements IController {
 
     if (!rotationEvent) throw new Error('Rotation failed')
 
-    this.keyPairs = keyPairs;
-    this.keyEventLog.push(rotationEvent);
+    this._keyPairs = keyPairs;
+    this._keyEventLog.push(rotationEvent);
     // todo -- queue the receipt request
   }
 
@@ -115,17 +122,17 @@ export class Controller implements IController {
 
     if (!deletionEvent) throw new Error('Deletion failed');
 
-    this.keyPairs = { signing: { publicKey: '', secretKey: '' }, encryption: { publicKey: '', secretKey: '' } };
-    this.keyEventLog.push(deletionEvent);
+    this._keyPairs = { signing: { publicKey: '', secretKey: '' }, encryption: { publicKey: '', secretKey: '' } };
+    this._keyEventLog.push(deletionEvent);
   }
 
   protected async keyEvent(args: KeriEventArgs) {
     const { eventType, backers = [] } = args || {};
     const { keyPairs, nextKeyPairs } = (args || {}) as KeriInceptionEventArgs | KeriRotationEventArgs;
-    const lastEvent = this.keyEventLog[this.keyEventLog.length - 1];
-    const keyHash = keyPairs ? await this.spark.hasher.hash(keyPairs.signing.publicKey) : null;
+    const lastEvent = this._keyEventLog[this._keyEventLog.length - 1];
+    const keyHash = keyPairs ? await this.spark.hash(keyPairs.signing.publicKey) : null;
     const hasKeyPairs = !!keyPairs && !!nextKeyPairs;
-    const isIncepted = !!this.identifier || !!this.keyEventLog?.length;
+    const isIncepted = !!this.identifier || !!this._keyEventLog?.length;
     const isDeleted = lastEvent?.eventType as KeriEventType === KeriEventType.DELETION;
     const isValidCommit = keyHash === lastEvent?.nextKeyCommitments[0];
 
@@ -140,14 +147,12 @@ export class Controller implements IController {
     } else if (eventType === KeriEventType.DELETION) {
       if (isDeleted) throw new Error('Identity has already been deleted');
     }
-
-    const identifier = this.identifier || `B${keyPairs.signing.publicKey.replace(/=$/, '')}`
-    const nextKeyCommitments = [await this.spark.hasher.hash(nextKeyPairs.signing.publicKey)]
-    const eventIndex = this.keyEventLog.length
-    const signingKeys = [keyPairs.signing.publicKey]
+    
+    const eventIndex = this._keyEventLog.length
+    const nextKeyCommitments = eventType === KeriEventType.DELETION ? [] : [await this.spark.hash(nextKeyPairs.signing.publicKey)];
+    const signingKeys = eventType === KeriEventType.DELETION ? [] : [keyPairs.signing.publicKey];
 
     const event = {
-      identifier,
       eventIndex,
       eventType,
       signingThreshold: 1,
@@ -159,17 +164,19 @@ export class Controller implements IController {
 
     const eventJSON = JSON.stringify(event);
     const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
-    const hashedEvent = await this.spark.hasher.hash(eventJSON);
-    const signedEventHash = await this.spark.signer.sign({ data: hashedEvent, detached: true });
+    const hashedEvent = await this.spark.hash(eventJSON);
+    const signedEventHash = await this.spark.sign({ data: hashedEvent, detached: true });
+    const identifier = this.identifier || `B${signedEventHash}`;
 
     if (eventType === KeriEventType.ROTATION) {
-      const previousEventDigest: string = this.keyEventLog[this.keyEventLog.length - 1].selfAddressingIdentifier;
+      const previousEventDigest: string = this._keyEventLog[this._keyEventLog.length - 1].selfAddressingIdentifier;
       if (!previousEventDigest) throw new Error('Previous event digest not found');
       (event as KeriRotationEvent).previousEventDigest = previousEventDigest;
     }
 
     const keyEvent = {
       ...event,
+      identifier: identifier,
       selfAddressingIdentifier: signedEventHash,
       version: version,
     };
@@ -177,18 +184,18 @@ export class Controller implements IController {
     return keyEvent as KeriKeyEvent;
   }
 
-  // todo - some thinking around how to handle this given dynamic agents, not to mention private/protected props
+  // todo - some thinking around how to handle import and export given dynamic agents
   async import({ keyPairs, data }) {
-    this.keyPairs = keyPairs;
-    const decrypted = await this.spark.cipher.decrypt({ data });
+    this._keyPairs = keyPairs;
+    const decrypted = await this.spark.decrypt({ data });
     const deepCopy = JSON.parse(JSON.stringify(decrypted));
     delete deepCopy.postMessage;
     Object.assign(this, deepCopy);
   }
 
   async export(): Promise<any> {
-    const { keyPairs, ...data } = this;
-    const encrypted = await this.spark.cipher.encrypt({ data: JSON.stringify(data) });
+    const { _keyPairs, ...data } = this;
+    const encrypted = await this.spark.encrypt({ data: JSON.stringify(data) });
     return encrypted;
   }
 }

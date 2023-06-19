@@ -7,7 +7,7 @@ export class Ed25519 extends Signer {
   async sign({ data, detached = false }) {
     const dataString = typeof data === 'string' ? data : JSON.stringify(data);
     const uintData = util.decodeUTF8(dataString as string);
-    const uintSecretKey = util.decodeBase64(this.spark.controller.signingKeys.secretKey);
+    const uintSecretKey = util.decodeBase64(this.spark.signingKeys.secretKey);
     const signature = detached
       ? util.encodeBase64(nacl.sign.detached(uintData, uintSecretKey))
       : util.encodeBase64(nacl.sign(uintData, uintSecretKey));

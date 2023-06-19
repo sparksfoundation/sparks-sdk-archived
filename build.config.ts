@@ -1,5 +1,5 @@
 // build.config.ts
-import { defineBuildConfig } from 'unbuild'
+import { defineBuildConfig } from 'unbuild';
 
 export default defineBuildConfig({
   entries: [
@@ -9,5 +9,6 @@ export default defineBuildConfig({
   outDir: './dist',
   rollup: {
     emitCJS: true, // emit CommonJS modules
-  }
+  },
+
 })

@@ -4,23 +4,19 @@ import { Cipher } from "./Cipher.js";
 import { parseJSON } from "../utilities/index.js";
 
 export class X25519SalsaPoly extends Cipher {
-  constructor(spark) {
-    super(spark);
-  }
-
-  async sharedKey({ publicKey }) {
-    if (!this.spark.controller.encryptionKeys) {
+  async computeSharedKey({ publicKey }) {
+    if (!this.spark.encryptionKeys) {
       throw new Error('No key pairs found, please import or incept identity')
     }
     const baseEncryptionPublicKey = util.decodeBase64(publicKey)
-    const baseEncryptionSecretKey = util.decodeBase64(this.spark.controller.encryptionKeys.secretKey)
+    const baseEncryptionSecretKey = util.decodeBase64(this.spark.encryptionKeys.secretKey)
     const uintSharedKey = nacl.box.before(baseEncryptionPublicKey, baseEncryptionSecretKey)
     const baseSharedKey = util.encodeBase64(uintSharedKey)
     return baseSharedKey
   }
 
   async encrypt({ data, publicKey, sharedKey }) {
-    if (!this.spark.controller.encryptionKeys) {
+    if (!this.spark.encryptionKeys) {
       throw new Error('No key pairs found, please import or incept identity')
     }
 
@@ -31,12 +27,12 @@ export class X25519SalsaPoly extends Cipher {
     let box;
     if (publicKey) {
       const publicKeyUint = util.decodeBase64(publicKey);
-      box = nacl.box(uintData, nonce, publicKeyUint, util.decodeBase64(this.spark.controller.encryptionKeys.secretKey));
+      box = nacl.box(uintData, nonce, publicKeyUint, util.decodeBase64(this.spark.encryptionKeys.secretKey));
     } else if (sharedKey) {
       const sharedKeyUint = util.decodeBase64(sharedKey);
       box = nacl.box.after(uintData, nonce, sharedKeyUint);
     } else {
-      const secreKeyUint = util.decodeBase64(this.spark.controller.encryptionKeys.secretKey);
+      const secreKeyUint = util.decodeBase64(this.spark.encryptionKeys.secretKey);
       box = nacl.secretbox(uintData, nonce, secreKeyUint);
     }
 
@@ -47,7 +43,7 @@ export class X25519SalsaPoly extends Cipher {
   }
 
   async decrypt({ data, publicKey, sharedKey }) {
-    if (!this.spark.controller.keyPairs) {
+    if (!this.spark.keyPairs) {
       throw new Error('No key pairs found, please import or incept identity')
     }
 
@@ -58,12 +54,12 @@ export class X25519SalsaPoly extends Cipher {
     let decrypted;
     if (publicKey) {
       const publicKeyUint = util.decodeBase64(publicKey);
-      decrypted = nacl.box.open(uintData, nonce, publicKeyUint, util.decodeBase64(this.spark.controller.encryptionKeys.secretKey));
+      decrypted = nacl.box.open(uintData, nonce, publicKeyUint, util.decodeBase64(this.spark.encryptionKeys.secretKey));
     } else if (sharedKey) {
       const sharedKeyUint = util.decodeBase64(sharedKey);
       decrypted = nacl.box.open.after(uintData, nonce, sharedKeyUint);
     } else {
-      const secreKeyUint = util.decodeBase64(this.spark.controller.encryptionKeys.secretKey);
+      const secreKeyUint = util.decodeBase64(this.spark.encryptionKeys.secretKey);
       decrypted = nacl.secretbox.open(uintData, nonce, secreKeyUint);
     }
 
