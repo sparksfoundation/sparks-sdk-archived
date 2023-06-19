@@ -4,6 +4,8 @@ export class Cipher implements ICipher {
   protected spark: any;
   constructor(spark) {
     this.spark = spark;
+    if (!this.spark) throw new Error('Channel: missing spark');
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }
   
   async encrypt(args: any) {
@@ -11,12 +13,12 @@ export class Cipher implements ICipher {
     return '';
   }
 
-  async decrypt(args: any) {
+  async decrypt(args: any): Promise<Record<string, any> | null> {
     throw new Error('Not implemented');
-    return '';
+    return null;
   }
 
-  async shareKey(args: any) {
+  async computeSharedKey(args: any) {
     throw new Error('Not implemented');
     return '';
   }

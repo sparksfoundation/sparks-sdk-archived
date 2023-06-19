@@ -36,9 +36,9 @@ export type KeyPairs = {
 
 export type KeriEventIndex = number;                        // s: sequence number
 export enum KeriEventType {                                 // t: event type
-  INCEPTION = 'inception',
-  ROTATION = 'rotation',
-  DELETION = 'deletion',
+  INCEPTION = 'incept',
+  ROTATION = 'rotate',
+  DELETION = 'delete',
 }
 export type SigningThreshold = number;                      // kt: minimum amount of signatures needed for this event to be valid (multisig)
 export type SigningKeys = SigningPublicKey[];               // k: list of signing key
@@ -181,4 +181,13 @@ export interface IController {
    * or rejects with an error.
    */
   export(): Promise<any> | never;
+
+  // getters
+  identifier: Identifier;
+  keyEventLog: KeriKeyEvent[]
+  keyPairs: KeyPairs;
+  encryptionKeys: EncryptionKeyPair;
+  signingKeys: SigningKeyPair;
+  secretKeys: SecretKeys;
+  publicKeys: PublicKeys;
 }

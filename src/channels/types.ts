@@ -1,102 +1,217 @@
-import { SharedEncryptionKey } from "../ciphers/types";
+import { SharedEncryptionKey } from "../ciphers/types.js";
+import { PublicKeys, Identifier } from "../controllers/types.js";
 
-export type MessageArgs = {
-  data: string | object;              // data to send to the other side
-  receipt: boolean;                   // whether to wait for a receipt
-};
-
-export type MessagePayload = {
-  mid: string;                        // unique id for this message
-  data: string | object;              // data to recieved from the other side
-  sent: number;                       // timestamp of when the message was sent
-};
-
-export type MessageReceipt = {
-  mid: string;                        // unique id for this message
-  data: string | object;              // data to recieved from the other side
-  signature: string;                  // signature of the message
-  sent: number;                       // timestamp of when the message was sent
-  received: number;                   // timestamp of when the message was received
-};
-
-export type MessageError = {
-  mid: string;                        // unique id for this message
-  error: Error;                       // the error that occurred
-  timestamp: number;                  // timestamp of when the error occurred
-};
-
-export type ChannelCloseArgs = {
-  receipt: boolean;                   // whether to wait for a receipt
-};
-
-export type ChannelOnClosePayload = {
-  cid: string;                        // unique id for this channel
-  closed: number;                     // timestamp of when the channel was closed
-  signature: string;                  // signature of the channel id
+export enum ChannelActions {
+    CONFIRM = 'confirm',
+    ACCEPT = 'accept',
+    REJECT = 'reject',
 }
 
-export type ChannelClosedReceipt = {
-  cid: string;                        // unique id for this channel
-  closed: number;                     // timestamp of when the channel was closed
-  signature: string;                  // signature of the channel id
-};
+export enum ChannelTypes {
+    POST_MESSAGE = 'post_message',
+    WEB_RTC = 'web_rtc',
+    WEB_SOCKET = 'web_socket',
+    BLUE_TOOTH = 'blue_tooth',
+    NFC = 'nfc',
+    QR_CODE = 'qr_code',
+    REST_API = 'rest_api',
+    FETCH_API = 'fetch_api',
+}
 
-export type ChannelBeforePayload = {
-  cid: string;                        // unique id for this channel
-  channel: IChannel;                   // the channel that was opened
-  opened: number;                     // timestamp of when the channel was opened
-  signature: string;                  // signature of the channel id
-};
+export enum ChannelEventTypes {
+    OPEN_REQUEST = 'open_request',
+    OPEN_ACCEPT = 'open_accept',
+    OPEN_CONFIRM = 'open_confirm',
 
-export type ChannelOnOpenPayload = {
-  cid: string;                        // unique id for this channel
-  channel: IChannel;                  // the channel that was opened
-  opened: number;                     // timestamp of when the channel was opened
-  signature: string;                  // signature of the channel id
-};
+    CLOSE_REQUEST = 'close_request',
+    CLOSE_CONFIRM = 'close_confirm',
 
+    MESSAGE_SEND = 'message_send',
+    MESSAGE_CONFIRM = 'message_confirm',
+}
+
+export enum ChannelEventConfirmTypes {
+    CLOSE_REQUEST = ChannelEventTypes.CLOSE_REQUEST,
+    MESSAGE_SEND = ChannelEventTypes.MESSAGE_SEND,
+}
+
+// todo get more granular with error codes
+export enum ChannelErrorCodes {
+    OPEN_REQUEST_ERROR = 'open_request_error',
+    OPEN_ACCEPT_ERROR = 'open_accept_error',
+    OPEN_CONFIRM_ERROR = 'open_confirm_error',
+    TIMEOUT_ERROR = 'timeout_error',
+
+    CLOSE_REQUEST_ERROR = 'close_request_error',
+    CLOSE_CONFIRM_ERROR = 'close_confirm_error',
+
+    MESSAGE_SEND_ERROR = 'message_send_error',
+    MESSAGE_CONFIRM_ERROR = 'message_confirm_error',
+}
+
+export type ChannelTimeSamp = number; // utc epoch timestamp
+
+// unique identifier for each event
+export type ChannelEventId = string;
+export type ChannelId = string;
+
+// sent to consumer -- type this better
 export type ChannelError = {
-  cid: string;                        // unique id for this channel
-  error: Error;                       // the error that occurred
-  timestamp: number;                  // timestamp of when the error occurred
-};  
-
-export interface IChannel {
-  cid: string;                                                                      // the unique id for the channel
-  target: ChannelTarget;                                                            // the target of the channel
-  sharedKey: SharedEncryptionKey;                                                   // the shared key for the channel
-  send(args: MessageArgs): Promise<MessageReceipt | void> | never;                  // returns a promise if receipt is true or throws an error
-  close(args: ChannelCloseArgs): Promise<ChannelClosedReceipt | void> | never;      // returns a promise if receipt is true or throws an error
-}
-
-export type ChannelTarget = { [key: string]: any }; // target options for the channel
-export type ChannelSend = (args: MessageArgs) => Promise<MessageReceipt> | void | never;
-export type ChannelClose = (args: ChannelCloseArgs) => Promise<ChannelClosedReceipt> | void | never;
-export type ChannelBefore = (args: ChannelBeforePayload) => void | never;
-export type ChannelOnOpen = (args: ChannelOnOpenPayload) => void | never;
-export type ChannelOnClose = (args: ChannelOnClosePayload) => void | never;
-export type ChannelOnMessage = (args: MessagePayload) => void | never;
-export type ChannelOnError = (args: MessageError | ChannelError) => void | never;
-
-export type OpenChannelArgs = {
-  target?: ChannelTarget;               // if provided it's an intiator, if not it's a responder
-  beforeOpen?: ChannelOnOpen;           // called before the channel is opened by the other side
-  onOpen?: ChannelOnOpen;               // called when the channel is opened by the other side
-  onClose?: ChannelOnClose;             // called when the channel is closed by the other side
-  onMessage?: ChannelOnMessage;         // called when a message is received from the other side
-  onError?: ChannelOnError;             // called when an error occurs
+  eventId: ChannelEventId;
+  error: ChannelErrorCodes;
+  message: string;
 };
 
 /**
- * ChannelManager Interface
- * it provides a method for opening a channel
- * it provides a method for closing all channels
- * it should serve as the obvserver for all channels
- * it should manage listeners and callbacks
- * to extend it to provide other channel factory types, 
+ * ChannelReceiptData - stringified and passed to receiver
+ * provides info about channel and peers
  */
-export interface IChannelManager {
-  channels: IChannel[];                 // the channels that have been opened by this factory
-  open(args: OpenChannelArgs): void;    // starts the process of opening a channel
-  close(): void | never;                // closes all open channels
+export type ChannelReceiptData = {
+    channelType: ChannelTypes;  // type of channel
+    channelId: ChannelId;       // unique identifier for channel
+    timestamp: ChannelTimeSamp; // timestamp of channel request (open)
+    peers: ChannelPeers;        // array of peers (identifiers and public keys)
+};
+
+export type ChannelReceipt = string; // stringified ChannelReceiptData
+
+/**
+ * ChannelRequestEvent
+ * Sent by initiator of request: provides propsed channel and peer info
+ */
+export type ChannelRequestEvent = {
+    eventType: ChannelEventTypes.OPEN_REQUEST;
+    timestamp: ChannelTimeSamp;     // timestamp of event
+    eventId: ChannelEventId;        // unique identifier for event
+    channelId: ChannelId;           // unique identifier for channel
+    identifier: Identifier;         // identifier of initiator
+    publicKeys: PublicKeys;         // public keys of initiator
+};
+
+/**
+ * ChannelAcceptEvent
+ * Send by receiver accepting request: provides peer info
+*/
+export type ChannelAcceptEvent = {
+    eventType: ChannelEventTypes.OPEN_ACCEPT;
+    timestamp: ChannelTimeSamp;     // timestamp of event
+    eventId: ChannelEventId;        // unique identifier for event
+    channelId: ChannelId;           // unique identifier for channel
+    receipt: ChannelReceipt;        // stringified ChannelReceipt
+    identifier: Identifier;         // identifier of receiver
+    publicKeys: PublicKeys;         // public keys of receiver
+};
+
+/**
+ * ChannelConfirmEvent
+ * Send by receiver accepting request: provides peer info and receipt
+ */
+export type ChannelConfirmEvent = {
+    eventType: ChannelEventTypes.OPEN_CONFIRM;
+    timestamp: ChannelTimeSamp;     // timestamp of event
+    eventId: ChannelEventId;        // unique identifier for event
+    channelId: ChannelId;           // unique identifier for channel
+    receipt: ChannelReceipt;        // stringified ChannelReceipt
+    identifier: Identifier;         // identifier of receiver
+    publicKeys: PublicKeys;         // public keys of receiver
+};
+
+/**
+ * ChannelConfirmPayload
+ * Sent by initiator confirming request: provides receipt
+ */
+export type ChannelCompletePayload = {
+    eventType: ChannelEventTypes.OPEN_CONFIRM;
+    eventId: ChannelEventId;        // unique identifier for event
+    channelId: ChannelId;           // unique identifier for channel
+    timestamp: ChannelTimeSamp;     // timestamp of event
+    receipt: ChannelReceipt;        // stringified ChannelReceipt
+};
+
+/**
+ * CompleteChannelArgs
+ * The args passed to completeChannel on both sides
+ */
+export type ChannelCompleteOpenData = {
+    channelId: ChannelId;           // unique identifier for channel
+    timestamp: ChannelTimeSamp;     // timestamp of event
+    receipt: ChannelReceipt;        // stringified ChannelReceipt
+    identifier: Identifier;         // identifier of peer
+    publicKeys: PublicKeys;         // public keys of peer
+    sharedKey: SharedEncryptionKey; // shared key for channel
+};
+
+export type ChannelPromiseHandler = any;
+
+export type ChannelPeer = {
+    identifier: Identifier;
+    publicKeys: PublicKeys;
 }
+
+export type ChannelPeers = [
+    ChannelPeer,
+    ChannelPeer,
+];
+
+// these get delivered to consumer (onmessage, onerror, onopen OR receive resolve/reject)
+export type ChannelMessage = string | Record<string, any>;
+export type ChannelMessageEncrypted = string;
+export type ChannelMessageId = string;
+
+export type ChannelMessageEvent = {
+    eventType: ChannelEventTypes.MESSAGE_SEND;
+    message: ChannelMessageEncrypted; 
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+    messageId: ChannelMessageId;
+};
+
+export type ChannelMessageConfirmEvent = {
+    eventType: ChannelEventTypes.MESSAGE_CONFIRM;
+    receipt: ChannelMessageEncrypted; 
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+    messageId: ChannelMessageId;
+};
+
+export type ChannelMessageReceiptData = {
+    messageId: ChannelMessageId;  // unique identifier for message
+    timestamp: ChannelTimeSamp; // timestamp of message send (open)
+    message: ChannelMessage;    // message contents
+}
+
+export type ChannelMessagereceipt = string; // stringified ChannelMessageReceiptData
+
+export type ChannelMessageConfirm = {
+    eventType: ChannelEventTypes.MESSAGE_CONFIRM;
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+    receipt: ChannelMessagereceipt;
+};
+
+export type ChannelCloseEvent = {
+    eventType: ChannelEventTypes.CLOSE_REQUEST;
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+};
+
+export type ChannelClosedReceiptData = {
+    channelId: ChannelId;       // unique identifier for channel
+    channelType: ChannelTypes;  // type of channel
+    timestamp: ChannelTimeSamp; // timestamp of channel request (open)
+    peers: ChannelPeers;        // array of peers (identifiers and public keys)
+}
+
+export type ChannelClosedReceipt = string; // stringified ChannelClosedReceiptData
+
+export type ChannelCloseConfirmationEvent = {
+    eventType: ChannelEventTypes.CLOSE_CONFIRM;
+    timestamp: ChannelTimeSamp;
+    eventId: ChannelEventId;
+    channelId: ChannelId;
+    receipt: ChannelClosedReceipt;
+};

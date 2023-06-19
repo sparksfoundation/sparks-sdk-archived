@@ -1,54 +1,52 @@
-import { CastingAgent, X25519SalsaPoly, Ed25519, Blake3, Random, PostMessage } from '../dist/index.js';
-import MockWindow from './mocks/MockWindow.js';
+import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, PostMessage } from '../dist/index.mjs';
+import { _0000, _1111 } from './mocks/MockWindow.js';
 
-const CommsAgent = CastingAgent({
-  encrypt: X25519SalsaPoly,
-  sign: Ed25519,
-  hash: Blake3,
-  derive: Random,
-  channels: [PostMessage],
+const website = new Spark({ 
+  controller: Random, 
+  signer: Ed25519, 
+  hasher: Blake3, 
+  cipher: X25519SalsaPoly 
 });
 
-// mock window to test channel
-global.window = new MockWindow('http://localhost:3000');
+await website.controller.incept();
 
-const website = new CommsAgent();
-website.incept();
+PostMessage.receive(async ({ details, resolve, reject }) => {
+  console.log('\nchannel details\n', details, '\n')
+  // reject() remove reolve below to test this
 
-// website accepts alice's connection request
-website.postMessage.open({
-  onOpen: (id, conn) => {
-    console.log('Website connected')
-    setTimeout(() => {
-      conn.message('Website')
-    }, 60)
-  },
-  onMessage: (data, conn) => {
-    console.log(`Hi from Website: ${data}!`)
-  },
-  onClose: (id, conn) => {
-    console.log('closed from Website', id)
-  },
-})
-
-const alice = new CommsAgent();
-alice.incept();
-
-alice.postMessage.open({
-  url: 'http://localhost:3000',
-  onOpen: (id, conn) => {
-    console.log('Alice connected')
-    conn.message('Alice').then((signature) => {
-      const data = alice.verify({ signature, publicKey: conn.publicKeys.signing })
-      const verified = data.cid === conn.cid && data.message === 'Alice'
-      console.log(`message verified:`, verified)
-      conn.close()
-    })
-  },
-  onClose: (id, conn) => {
-    console.log('closed from Alice', id)
-  },
-  onMessage: (data, conn) => {
-    console.log(`Hi from Alice: ${data}!`)
+  const channel = await resolve();
+  channel.onmessage = res => {
+    console.log('\npotential channel message\n', res, '\n')
   }
+}, { spark: website, _window: _1111 });
+
+const alice = new Spark({ 
+  controller: Random, 
+  signer: Ed25519, 
+  hasher: Blake3, 
+  cipher: X25519SalsaPoly 
+});
+
+await alice.controller.incept();
+
+const channel = new PostMessage({
+  source: _1111,
+  origin: 'http://localhost:1111',
+  _window: _0000,
+  spark: alice,
 })
+
+channel.onerror = err => {
+  console.log('\nchannel error\n', err, '\n')
+}
+
+// wait for channel to open
+await channel.open()
+console.log('\nchannel ready\n')
+
+setTimeout(async () => {
+  const msgReceipt = await channel.send('hey website')
+  console.log('\nmessage receipt\n', msgReceipt, '\n')
+  const closeReceipt = await channel.close()
+  console.log('\nclose receipt\n', closeReceipt, '\n')
+}, 1000)

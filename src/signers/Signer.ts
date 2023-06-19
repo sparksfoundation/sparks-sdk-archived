@@ -1,11 +1,14 @@
+import { Spark } from "../Spark.js";
 import { ISigner } from "./types.js";
 
 // Mixin: Sign is an abstract class that provides signing and verification
 export class Signer implements ISigner {
-  protected spark: any; // TODO define spark interface
+  protected spark: Spark;
 
-  constructor(spark: any) {
+  constructor(spark: Spark) {
+    if (!spark) throw new Error('Channel: missing spark');
     this.spark = spark;
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }
 
   public async sign({ data, detached = false }) {

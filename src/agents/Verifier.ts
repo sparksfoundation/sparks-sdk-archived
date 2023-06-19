@@ -21,7 +21,7 @@ export class Verifier extends Agent {
         signature: selfAddressingIdentifier,
         publicKey: event.signingKeys[0],
       });
-      valid = valid && dataInTact;
+      valid = (valid === true && dataInTact === true);
 
       // let's check that the current key is the same as the previous committed to using
       if (index > 0) {

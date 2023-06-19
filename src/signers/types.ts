@@ -15,7 +15,7 @@ export interface ISigner {
    * @returns {Promise<string>} - resolved with base64 encoded signature,
    * or rejected with an error.
    */
-  sign: ({ data, detached }: { data: object | string; detached: boolean }) => Promise<string> | never;
+  sign: ({ data, detached }: { data: object | string; detached: boolean }) => Promise<string | null> | never;
 
   /**
    * Verifies data using ed25519
@@ -25,5 +25,5 @@ export interface ISigner {
    * @returns {Promise<boolean|string|object|null>} - resolve with boolen result if data is provided, otherwise returns parsed data, string or null,
    * or rejected with an error.
    */
-  verify: ({ publicKey, signature, data }: { publicKey: string, signature: string, data?: object | string }) => Promise<boolean> | Promise<string | object | null> | never;
+  verify: ({ publicKey, signature, data }: { publicKey: string, signature: string, data?: object | string }) => Promise<string | boolean | Record<string, any> | null> | never;
 }

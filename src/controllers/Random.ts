@@ -1,6 +1,6 @@
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
-import { ImportArgs, InceptionArgs, KeyPairs, RotationArgs } from './types.js';
+import { ImportArgs, InceptionArgs, RotationArgs } from './types.js';
 import { Controller } from "./Controller.js";
 
 const signingKeyPair = () => {
@@ -33,7 +33,6 @@ export class Random extends Controller {
     const keyPairs = generateKeyPairs();
     const nextKeyPairs = generateKeyPairs();
     this.randomKeyPairs = [keyPairs, nextKeyPairs];
-
     await super.incept({ ...args, keyPairs, nextKeyPairs });
   }
 
