@@ -1,11 +1,14 @@
 import { Channel } from './Channel.js';
+export class WebRTC extends Channel {}
+
+/* stubbed for now, simple-peer causing build errrors
 import { ChannelError, ChannelTypes } from './types.js';
-import Peer, { DataConnection } from 'simple-peer';
+import Peer from "simple-peer";
 
 export class WebRTC extends Channel {
   protected peerId: string;
   protected peer: Peer;
-  protected conn: DataConnection;
+  protected conn: Peer.DataConnection;
   protected _oncall: Function;
 
   constructor({ peerId, peer, conn, ...args }) {
@@ -126,3 +129,4 @@ export class WebRTC extends Channel {
     });
   }
 }
+*/
