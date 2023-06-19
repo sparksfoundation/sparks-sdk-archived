@@ -180,7 +180,7 @@ export interface IController {
    * @returns {Promise<string> | never} A promise that resolves to the encrypted serialized base64 string.
    * or rejects with an error.
    */
-  export(): Promise<any> | never;
+  export(args?: any): Promise<any> | never;
 
   // getters
   identifier: Identifier;

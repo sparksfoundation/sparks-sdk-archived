@@ -63,11 +63,26 @@ class Spark {
   hash(args) {
     return this.hasher.hash(args);
   }
+  incept(args) {
+    return this.controller.incept(args);
+  }
+  rotate(args) {
+    return this.controller.rotate(args);
+  }
+  delete(args) {
+    return this.controller.delete(args);
+  }
   encrypt(args) {
     return this.cipher.encrypt(args);
   }
   decrypt(args) {
     return this.cipher.decrypt(args);
+  }
+  import(args) {
+    return this.controller.import(args);
+  }
+  export(args) {
+    return this.controller.export(args);
   }
   computeSharedKey(args) {
     return this.cipher.computeSharedKey(args);
@@ -969,7 +984,7 @@ class Controller {
     delete deepCopy.postMessage;
     Object.assign(this, deepCopy);
   }
-  async export() {
+  async export(args) {
     const { _keyPairs, ...data } = this;
     const encrypted = await this.spark.encrypt({ data: JSON.stringify(data) });
     return encrypted;

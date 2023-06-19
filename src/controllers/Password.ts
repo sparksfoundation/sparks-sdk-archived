@@ -75,7 +75,7 @@ export class Password extends Controller {
     await super.import({ keyPairs, data });
   }
 
-  async export() {
+  async export(): Promise<{ data: string, salt: string }> {
     const kel = this.keyEventLog;
     const salt = generateSalt(this.getSaltInput(kel));
     const data = await super.export();

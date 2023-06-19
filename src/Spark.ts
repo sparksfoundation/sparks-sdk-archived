@@ -83,12 +83,32 @@ export class Spark implements SparkI {
     return this.hasher.hash(args);
   }
 
+  incept(args: any): Promise<void> | never {
+    return this.controller.incept(args);
+  }
+
+  rotate(args: any): Promise<void> | never {
+    return this.controller.rotate(args);
+  }
+
+  delete(args: any): Promise<void> | never {
+    return this.controller.delete(args);
+  }
+
   encrypt(args: any): Promise<string> | never {
     return this.cipher.encrypt(args);
   }
 
   decrypt(args: any): Promise<string | Record<string, any>> | never {
     return this.cipher.decrypt(args);
+  }
+
+  import(args: any): Promise<void> | never {
+    return this.controller.import(args);
+  }
+
+  export(args?: any): Promise<string> | never {
+    return this.controller.export(args);
   }
 
   computeSharedKey(args: any): Promise<string> | never {

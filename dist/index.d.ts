@@ -154,7 +154,7 @@ interface IController {
      * @returns {Promise<string> | never} A promise that resolves to the encrypted serialized base64 string.
      * or rejects with an error.
      */
-    export(): Promise<any> | never;
+    export(args?: any): Promise<any> | never;
     identifier: Identifier;
     keyEventLog: KeriKeyEvent[];
     keyPairs: KeyPairs;
@@ -185,7 +185,7 @@ declare class Controller implements IController {
         keyPairs: any;
         data: any;
     }): Promise<void>;
-    export(): Promise<any>;
+    export(args?: any): Promise<any>;
 }
 
 declare class Random extends Controller {
@@ -199,7 +199,7 @@ declare class Password extends Controller {
     incept(args: InceptionArgs): Promise<void>;
     import(args: any): Promise<void>;
     export(): Promise<{
-        data: any;
+        data: string;
         salt: string;
     }>;
     rotate(args: RotationArgs): any;
@@ -437,8 +437,13 @@ declare class Spark implements SparkI {
     sign(args: any): Promise<string> | never;
     verify(args: any): Promise<boolean> | Promise<string | object | null> | never;
     hash(args: any): Promise<string> | never;
+    incept(args: any): Promise<void> | never;
+    rotate(args: any): Promise<void> | never;
+    delete(args: any): Promise<void> | never;
     encrypt(args: any): Promise<string> | never;
     decrypt(args: any): Promise<string | Record<string, any>> | never;
+    import(args: any): Promise<void> | never;
+    export(args?: any): Promise<string> | never;
     computeSharedKey(args: any): Promise<string> | never;
 }
 

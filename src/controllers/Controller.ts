@@ -193,7 +193,7 @@ export class Controller implements IController {
     Object.assign(this, deepCopy);
   }
 
-  async export(): Promise<any> {
+  async export(args?: any): Promise<any> {
     const { _keyPairs, ...data } = this;
     const encrypted = await this.spark.encrypt({ data: JSON.stringify(data) });
     return encrypted;
