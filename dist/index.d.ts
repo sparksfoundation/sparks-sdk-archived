@@ -1,3 +1,5 @@
+import { Peer, DataConnection } from 'peerjs';
+
 type Identifier = string;
 type SigningPublicKey = string;
 type SigningSecretKey = string;
@@ -576,15 +578,15 @@ declare class Channel {
     onmessage: ((payload: ChannelMessage) => void) | null;
     onerror: ((error: ChannelError) => void) | null;
     constructor(args: any);
-    open(payload: any, action: any, attempts?: number): Promise<Channel | ChannelError>;
+    open(payload?: any, action?: any, attempts?: number): Promise<Channel | ChannelError>;
     send(payload: any, action: any, attempts?: number): Promise<unknown>;
     close(payload: any, action: any): Promise<unknown>;
     protected sendMessage(event: any): void;
     protected receiveMessage(payload: any): void;
     static receive(callback: any, options: any): void;
-    static channelRequest({ payload, channel: Channel, options }: {
+    static channelRequest({ payload, Channel, options }: {
         payload: any;
-        channel: any;
+        Channel: any;
         options: any;
     }): {
         resolve: () => Promise<any>;
@@ -633,18 +635,23 @@ declare class RestAPI extends Channel {
 }
 
 declare class WebRTC extends Channel {
-    protected peerConnection: RTCPeerConnection;
-    protected dataChannel: RTCDataChannel;
-    constructor({ configuration, ...args }: {
+    protected peerId: string;
+    protected peer: Peer;
+    protected conn: DataConnection;
+    protected _oncall: Function;
+    constructor({ peerId, peer, conn, ...args }: {
         [x: string]: any;
-        configuration: any;
+        peerId: any;
+        peer: any;
+        conn: any;
     });
-    protected receiveMessage(event: any): void;
+    open(payload: any, action: any): Promise<Channel | ChannelError>;
+    protected receiveMessage(payload: any): void;
     protected sendMessage(payload: any): void;
-    static receive(callback: any, { spark, configuration, Channel }: {
+    protected call(): void;
+    protected oncall(callback: any): void;
+    static receive(callback: any, { spark }: {
         spark: any;
-        configuration: any;
-        Channel: any;
     }): Promise<void>;
 }
 

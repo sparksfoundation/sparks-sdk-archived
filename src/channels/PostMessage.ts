@@ -40,7 +40,7 @@ export class PostMessage extends Channel {
       const request = Channel.channelRequest({
         payload: event.data,
         options,
-        channel: PostMessage,
+        Channel: PostMessage,
       })
       if (request) callback(request);
     });
