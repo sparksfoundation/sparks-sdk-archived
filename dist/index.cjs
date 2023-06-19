@@ -2,6 +2,7 @@
 
 const nacl = require('tweetnacl');
 const util = require('tweetnacl-util');
+const Peer = require('simple-peer');
 const scrypt = require('scrypt-pbkdf');
 const blake3 = require('@noble/hashes/blake3');
 
@@ -21,6 +22,7 @@ function _interopNamespaceCompat(e) {
 
 const nacl__default = /*#__PURE__*/_interopDefaultCompat(nacl);
 const util__default = /*#__PURE__*/_interopDefaultCompat(util);
+const Peer__default = /*#__PURE__*/_interopDefaultCompat(Peer);
 const scrypt__namespace = /*#__PURE__*/_interopNamespaceCompat(scrypt);
 
 class Spark {
@@ -698,6 +700,51 @@ class FetchAPI extends Channel {
 }
 
 class WebRTC extends Channel {
+  constructor({ peer, wrtc, ...args }) {
+    super({ channelType: ChannelTypes.WEB_RTC, ...args });
+    this.wrtc = wrtc;
+    this.open = this.open.bind(this);
+    this.receiveMessage = this.receiveMessage.bind(this);
+    this.sendMessage = this.sendMessage.bind(this);
+    if (peer) {
+      this.peer = peer;
+      this.peer.on("error", console.log);
+      this.peer.on("data", this.receiveMessage);
+    }
+  }
+  async open(payload, action) {
+    if (this.peer)
+      return super.open(payload, action);
+    return new Promise((resolve, reject) => {
+      const options = { wrtc: this.wrtc, initiator: true };
+      const peer = new Peer__default(options);
+      peer.on("error", console.log);
+      peer.on("connect", async () => {
+        peer.on("data", this.receiveMessage);
+        const result = await super.open(payload, action);
+        resolve(result);
+      });
+    });
+  }
+  receiveMessage(payload) {
+    super.receiveMessage(payload);
+  }
+  sendMessage(payload) {
+    this.peer.send(payload);
+  }
+  static receive(callback, { spark, wrtc = {} }) {
+    const peer = new Peer__default({ wrtc });
+    peer.on("signal", console.log);
+    peer.on("error", console.log);
+    peer.on("connect", () => {
+      peer.on("data", (payload) => {
+        const options = { peer, spark, wrtc };
+        const args = Channel.channelRequest({ payload, options, Channel: WebRTC });
+        if (args)
+          callback(args);
+      });
+    });
+  }
 }
 
 const _RestAPI = class extends Channel {

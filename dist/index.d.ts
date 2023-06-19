@@ -1,3 +1,5 @@
+import Peer from 'simple-peer';
+
 type Identifier = string;
 type SigningPublicKey = string;
 type SigningSecretKey = string;
@@ -696,6 +698,21 @@ declare class FetchAPI extends Channel {
 }
 
 declare class WebRTC extends Channel {
+    protected peer: Peer;
+    protected wrtc: any;
+    protected _oncall: Function;
+    constructor({ peer, wrtc, ...args }: {
+        [x: string]: any;
+        peer: any;
+        wrtc: any;
+    });
+    open(payload: any, action: any): Promise<Channel | ChannelError>;
+    protected receiveMessage(payload: any): void;
+    protected sendMessage(payload: any): void;
+    static receive(callback: any, { spark, wrtc }: {
+        spark: any;
+        wrtc?: {};
+    }): void;
 }
 
 declare class RestAPI extends Channel {

@@ -11,7 +11,7 @@ const client = new Spark({
 await client.controller.incept();
 
 const channel = new FetchAPI({ 
-  url: 'http://127.0.0.1:3400/channels',
+  url: 'http://127.0.0.1:3400/restAPI',
   spark: client,
 })
 
