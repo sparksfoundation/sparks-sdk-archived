@@ -8,6 +8,25 @@ var _Channel = require("../Channel/Channel.cjs");
 var _types = require("../Channel/types.cjs");
 var _peerjs = _interopRequireDefault(require("peerjs"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+const iceServers = [{
+  urls: "stun:stun.relay.metered.ca:80"
+}, {
+  urls: "turn:a.relay.metered.ca:80",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}, {
+  urls: "turn:a.relay.metered.ca:80?transport=tcp",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}, {
+  urls: "turn:a.relay.metered.ca:443",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}, {
+  urls: "turn:a.relay.metered.ca:443?transport=tcp",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}];
 class WebRTC extends _Channel.Channel {
   constructor({
     spark,
@@ -36,7 +55,11 @@ class WebRTC extends _Channel.Channel {
     }
     return new Promise((resolve, reject) => {
       const ourId = this.spark.identifier.replace(/[^a-zA-Z\-\_]/g, "");
-      WebRTC.peerjs = WebRTC.peerjs || new _peerjs.default(ourId);
+      WebRTC.peerjs = WebRTC.peerjs || new _peerjs.default(ourId, {
+        config: {
+          iceServers
+        }
+      });
       WebRTC.peerjs.on("error", err => console.error(err));
       const connection = WebRTC.peerjs.connect(this.peerId);
       connection.on("open", async () => {
@@ -56,7 +79,11 @@ class WebRTC extends _Channel.Channel {
   static receive(callback, {
     spark
   }) {
-    WebRTC.peerjs = WebRTC.peerjs || new _peerjs.default(spark.identifier.replace(/[^a-zA-Z\-\_]/g, ""));
+    WebRTC.peerjs = WebRTC.peerjs || new _peerjs.default(spark.identifier.replace(/[^a-zA-Z\-\_]/g, ""), {
+      config: {
+        iceServers
+      }
+    });
     WebRTC.peerjs.on("error", err => console.error(err));
     WebRTC.peerjs.on("open", id => {
       WebRTC.peerjs.on("connection", connection => {
