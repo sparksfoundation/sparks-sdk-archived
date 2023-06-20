@@ -112,7 +112,7 @@ export class WebRTC extends Channel {
     this.connection.send(payload);
   }
 
-  static receive(callback, { spark, oncall }) {
+  static receive(callback, { spark, oncall }: { spark: Spark, oncall?: (args: any) => void }) {
     WebRTC.peerjs = WebRTC.peerjs || new Peer(spark.identifier.replace(/[^a-zA-Z\-\_]/g, ''), { config: { iceServers } });
     WebRTC.peerjs.on('error', err => console.error(err));
     WebRTC.peerjs.on('open', id => {

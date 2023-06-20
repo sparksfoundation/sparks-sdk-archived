@@ -18,7 +18,7 @@ export declare class WebRTC extends Channel {
     protected receiveMessage(payload: any): void;
     protected sendMessage(payload: any): void;
     static receive(callback: any, { spark, oncall }: {
-        spark: any;
-        oncall: any;
+        spark: Spark;
+        oncall?: (args: any) => void;
     }): void;
 }
