@@ -32,6 +32,7 @@ class WebRTC extends _Channel.Channel {
     spark,
     peerId,
     connection,
+    oncall,
     ...args
   }) {
     super({
@@ -47,6 +48,36 @@ class WebRTC extends _Channel.Channel {
       this.connection = connection;
       this.connection.on("error", err => console.error(err));
       this.connection.on("data", this.receiveMessage);
+    }
+    if (oncall) {
+      WebRTC.peerjs.on("call", call => {
+        const accept = async () => {
+          return new Promise((resolve, reject) => {
+            const navigator = window.navigator || {};
+            const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+            if (!getUserMedia) return reject({
+              error: "getUserMedia not supported"
+            });
+            getUserMedia({
+              video: true,
+              audio: true
+            }, function (stream) {
+              call.answer(stream);
+              call.on("stream", function (remoteStream) {
+                return resolve(remoteStream);
+              });
+            }, err => {
+              return reject({
+                error: err
+              });
+            });
+          });
+        };
+        oncall({
+          call,
+          accept
+        });
+      });
     }
   }
   async open(payload, action) {
@@ -70,6 +101,26 @@ class WebRTC extends _Channel.Channel {
       });
     });
   }
+  async call() {
+    return new Promise((resolve, reject) => {
+      const navigator = window.navigator || {};
+      const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      if (!getUserMedia) return resolve({
+        error: "getUserMedia not supported"
+      });
+      getUserMedia({
+        video: true,
+        audio: true
+      }, stream => {
+        const call = WebRTC.peerjs.call(this.peerId, stream);
+        call.on("stream", remoteStream => {
+          return resolve(remoteStream);
+        });
+      }, err => reject({
+        error: err
+      }));
+    });
+  }
   receiveMessage(payload) {
     super.receiveMessage(payload);
   }
@@ -77,7 +128,8 @@ class WebRTC extends _Channel.Channel {
     this.connection.send(payload);
   }
   static receive(callback, {
-    spark
+    spark,
+    oncall
   }) {
     WebRTC.peerjs = WebRTC.peerjs || new _peerjs.default(spark.identifier.replace(/[^a-zA-Z\-\_]/g, ""), {
       config: {
@@ -91,7 +143,8 @@ class WebRTC extends _Channel.Channel {
           const options = {
             connection,
             peerId: connection.peer,
-            spark
+            spark,
+            oncall
           };
           const args = _Channel.Channel.channelRequest({
             payload,
