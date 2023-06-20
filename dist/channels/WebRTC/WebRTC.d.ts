@@ -6,17 +6,19 @@ export declare class WebRTC extends Channel {
     protected static peerjs: Peer;
     protected peerId: string;
     protected connection: DataConnection;
-    protected _oncall: Function;
-    constructor({ spark, peerId, connection, ...args }: {
+    constructor({ spark, peerId, connection, oncall, ...args }: {
         spark: Spark;
         peerId: string;
+        oncall?: (args: any) => void;
         connection?: DataConnection;
         args?: any;
     });
     open(payload?: any, action?: ChannelActions): Promise<Channel | ChannelError>;
+    call(): Promise<unknown>;
     protected receiveMessage(payload: any): void;
     protected sendMessage(payload: any): void;
-    static receive(callback: any, { spark }: {
+    static receive(callback: any, { spark, oncall }: {
         spark: any;
+        oncall: any;
     }): void;
 }
