@@ -1,2 +1,2 @@
-export * from './Signer.js'
-export * from './Ed25519.js'
+export * from './Signer'
+export * from './Ed25519'

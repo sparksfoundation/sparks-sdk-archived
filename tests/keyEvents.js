@@ -1,6 +1,10 @@
-import { Spark, Blake3, Password, Ed25519, X25519SalsaPoly } from '../dist/index.mjs';
-let passed
+import { Spark } from '../dist/index.mjs';
+import { Blake3 } from '../dist/hashers/index.mjs';
+import { Ed25519 } from '../dist/signers/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/index.mjs';
+import { Password } from '../dist/controllers/index.mjs';
 
+let passed
 const identity = new Spark({
   controller: Password,
   signer: Ed25519,

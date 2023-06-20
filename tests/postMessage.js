@@ -1,4 +1,10 @@
-import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, PostMessage } from '../dist/index.mjs';
+import { Spark } from '../dist/index.mjs';
+import { Blake3 } from '../dist/hashers/index.mjs';
+import { Ed25519 } from '../dist/signers/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/index.mjs';
+import { Random } from '../dist/controllers/index.mjs';
+import { PostMessage } from '../dist/channels/PostMessage/index.mjs';
+
 import { _0000, _1111 } from './mocks/MockWindow.js';
 
 const website = new Spark({ 
