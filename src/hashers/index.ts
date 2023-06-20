@@ -1,2 +1,2 @@
-export * from './Hasher.js';
-export * from './Blake3.js';
+export * from './Hasher';
+export * from './Blake3';

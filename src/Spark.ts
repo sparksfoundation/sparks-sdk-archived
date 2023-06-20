@@ -1,8 +1,8 @@
-import { Controller, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index.js';
-import { Agent } from './agents/index.js';
-import { Signer } from './signers/index.js';
-import { Cipher } from './ciphers/index.js';
-import { Hasher } from './hashers/index.js';
+import { Controller, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index';
+import { Agent } from './agents/index';
+import { Signer } from './signers/index';
+import { Cipher } from './ciphers/index';
+import { Hasher } from './hashers/index';
 
 interface Constructable<T> {
   new(...args: any): T;
