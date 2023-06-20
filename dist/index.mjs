@@ -1,6 +1,6 @@
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
-import Peer from 'simple-peer';
+import Peer from 'peerjs';
 import * as scrypt from 'scrypt-pbkdf';
 import { blake3 } from '@noble/hashes/blake3';
 
@@ -679,29 +679,30 @@ class FetchAPI extends Channel {
 }
 
 class WebRTC extends Channel {
-  constructor({ peer, wrtc, ...args }) {
-    super({ channelType: ChannelTypes.WEB_RTC, ...args });
-    this.wrtc = wrtc;
+  constructor({ spark, peerId, connection, ...args }) {
+    super({ channelType: ChannelTypes.WEB_RTC, spark, ...args });
+    this.peerId = peerId.replace(/[^a-zA-Z\-\_]/g, "");
     this.open = this.open.bind(this);
     this.receiveMessage = this.receiveMessage.bind(this);
     this.sendMessage = this.sendMessage.bind(this);
-    if (peer) {
-      this.peer = peer;
-      this.peer.on("error", console.log);
-      this.peer.on("data", this.receiveMessage);
+    if (connection) {
+      this.connection = connection;
+      this.connection.on("data", this.receiveMessage);
     }
   }
   async open(payload, action) {
-    if (this.peer)
+    if (WebRTC.peerjs && this.connection) {
       return super.open(payload, action);
+    }
     return new Promise((resolve, reject) => {
-      const options = { wrtc: this.wrtc, initiator: true };
-      const peer = new Peer(options);
-      peer.on("error", console.log);
-      peer.on("connect", async () => {
-        peer.on("data", this.receiveMessage);
+      const ourId = this.spark.identifier.replace(/[^a-zA-Z\-\_]/g, "");
+      WebRTC.peerjs = WebRTC.peerjs || new Peer(ourId);
+      const connection = WebRTC.peerjs.connect(this.peerId);
+      connection.on("open", async () => {
+        this.connection = connection;
+        connection.on("data", this.receiveMessage);
         const result = await super.open(payload, action);
-        resolve(result);
+        return resolve(result);
       });
     });
   }
@@ -709,20 +710,22 @@ class WebRTC extends Channel {
     super.receiveMessage(payload);
   }
   sendMessage(payload) {
-    this.peer.send(payload);
+    this.connection.send(payload);
   }
-  static receive(callback, { spark, wrtc = {} }) {
-    const peer = new Peer({ wrtc });
-    peer.on("signal", console.log);
-    peer.on("error", console.log);
-    peer.on("connect", () => {
-      peer.on("data", (payload) => {
-        const options = { peer, spark, wrtc };
-        const args = Channel.channelRequest({ payload, options, Channel: WebRTC });
-        if (args)
-          callback(args);
+  static receive(callback, { spark }) {
+    WebRTC.peerjs = WebRTC.peerjs || new Peer(spark.identifier.replace(/[^a-zA-Z\-\_]/g, ""));
+    WebRTC.peerjs.on("open", (id) => {
+      WebRTC.peerjs.on("connection", (connection) => {
+        connection.on("data", (payload) => {
+          const options = { connection, peerId: connection.peer, spark };
+          const args = Channel.channelRequest({ payload, options, Channel: WebRTC });
+          if (args)
+            callback(args);
+        });
       });
     });
+    window.addEventListener("unload", () => WebRTC.peerjs.destroy());
+    window.addEventListener("beforeunload", () => WebRTC.peerjs.destroy());
   }
 }
 
