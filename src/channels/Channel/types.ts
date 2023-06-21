@@ -7,6 +7,13 @@ export enum ChannelActions {
     REJECT = 'reject',
 }
 
+export enum ChannelCallbackEvents {
+    OPEN = 'open',
+    CLOSE = 'close',
+    MESSAGE = 'message',
+    ERROR = 'error',
+}
+
 export enum ChannelTypes {
     POST_MESSAGE = 'post_message',
     WEB_RTC = 'web_rtc',

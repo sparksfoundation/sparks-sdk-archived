@@ -4,6 +4,13 @@ export var ChannelActions = /* @__PURE__ */ ((ChannelActions2) => {
   ChannelActions2["REJECT"] = "reject";
   return ChannelActions2;
 })(ChannelActions || {});
+export var ChannelCallbackEvents = /* @__PURE__ */ ((ChannelCallbackEvents2) => {
+  ChannelCallbackEvents2["OPEN"] = "open";
+  ChannelCallbackEvents2["CLOSE"] = "close";
+  ChannelCallbackEvents2["MESSAGE"] = "message";
+  ChannelCallbackEvents2["ERROR"] = "error";
+  return ChannelCallbackEvents2;
+})(ChannelCallbackEvents || {});
 export var ChannelTypes = /* @__PURE__ */ ((ChannelTypes2) => {
   ChannelTypes2["POST_MESSAGE"] = "post_message";
   ChannelTypes2["WEB_RTC"] = "web_rtc";

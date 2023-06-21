@@ -1,3 +1,4 @@
+// todo - remove old callback code (onmessage, onerror etc.. replace with even sub with on(event, callback))
 import { getTimestamp, randomNonce } from "../../utilities/index";
 import { 
   ChannelError, ChannelErrorCodes, ChannelEventId, 
@@ -5,7 +6,7 @@ import {
   ChannelReceipt, ChannelTypes, ChannelRequestEvent, ChannelAcceptEvent, ChannelConfirmEvent, 
   ChannelCompleteOpenData, ChannelActions, ChannelMessageEvent, ChannelMessageReceiptData, 
   ChannelMessageConfirmEvent, ChannelCloseEvent, ChannelCloseConfirmationEvent, 
-  ChannelClosedReceiptData, ChannelClosedReceipt, ChannelReceiptData, ChannelEventConfirmTypes 
+  ChannelClosedReceiptData, ChannelClosedReceipt, ChannelReceiptData, ChannelEventConfirmTypes, ChannelCallbackEvents 
 } from "./types";
 import { Spark } from "../../Spark";
 import { Identifier, PublicKeys } from "../../controllers/Controller/types";
@@ -17,17 +18,33 @@ export class Channel {
   static MESSAGE_RETRIES = 3;
   static MESSAGE_TIMEOUT = 10000;
   static CLOSE_TIMEOUT = 10000;
-
+  
   protected spark: Spark;
-  protected channelType: ChannelTypes;
-  protected channelId: ChannelEventId;
-  protected identifier: Identifier;
-  protected publicKeys: PublicKeys;
-  protected sharedKey: SharedEncryptionKey;
-  protected receipt: ChannelReceipt;
-
   protected _promiseHandlers = new Map<string, ChannelPromiseHandler>();
   protected _preconnectQueue: ChannelMessageEvent[] = [];
+  protected _callbacks = new Map<string, Set<Function>>();
+
+  public channelId: ChannelEventId;
+  public channelType: ChannelTypes;
+  public identifier: Identifier;
+  public publicKeys: PublicKeys;
+  public sharedKey: SharedEncryptionKey;
+  public receipt: ChannelReceipt;
+
+  // setup callbacks so that we can register multiple for each event 
+  // and if the callback is removed from memory it will be garbage collected
+  public on(event: ChannelCallbackEvents, callback: Function) {
+    if (!this._callbacks.has(event)) this._callbacks.set(event, new Set());
+    this._callbacks.get(event).add(callback);
+  }
+  public off(event: ChannelCallbackEvents, callback: Function) {
+    if (!this._callbacks.has(event)) return;
+    this._callbacks.get(event).delete(callback);
+  }
+  protected callback(event: ChannelCallbackEvents, ...args) {
+    if (!this._callbacks.has(event)) return;
+    this._callbacks.get(event).forEach(callback => callback(...args));
+  }
 
   public onopen: ((error: Channel) => void) | null = null;
   public onclose: ((error: ChannelClosedReceipt) => void) | null = null;
@@ -49,6 +66,10 @@ export class Channel {
     this.receiveMessage = this.receiveMessage.bind(this);
   }
 
+  public get id() {
+    return this.channelId;
+  }
+
   public get publicSigningKey() {
     return this.publicKeys.signing;
   }
@@ -58,6 +79,9 @@ export class Channel {
   }
 
   public open(payload?, action?, attempts = 0): Promise<Channel|ChannelError> {
+    // if it's alread open then return the channel
+    if (this.receipt) return Promise.resolve(this);
+
     return new Promise<Channel|ChannelError>((resolve, reject) => {
       // initiator:request sends channelId and info
       // receiver:accepts triggers via resolve -> sends info and receipt
@@ -213,7 +237,10 @@ export class Channel {
           this._preconnectQueue = [];
         }
 
-        if (this.onopen) this.onopen(this);
+        if (this.onopen) {
+          this.onopen(this);
+          this.callback(ChannelCallbackEvents.OPEN, this);
+        }
         return resolve(this);
       }
 
@@ -236,7 +263,10 @@ export class Channel {
 
       const error = (args: ChannelError) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => open error\n')
-        if (this.onerror) this.onerror(args);
+        if (this.onerror) {
+          this.onerror(args);
+          this.callback(ChannelCallbackEvents.ERROR, args)
+        }
         this._promiseHandlers.delete(args.eventId);
         resolve(args);
       }
@@ -346,20 +376,29 @@ export class Channel {
             message: 'failed to get receipt',
           } as ChannelError)
         }
-        if (this.onmessage) this.onmessage(payload.receipt);
+        if (this.onmessage) {
+          this.onmessage(payload.receipt);
+          this.callback(ChannelCallbackEvents.MESSAGE, payload);
+        }
         return resolve(payload.receipt);
       }
 
       const complete = (payload: ChannelMessageReceiptData) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => send msg complete\n')
 
-        if (this.onmessage) this.onmessage(payload);
+        if (this.onmessage) {
+          this.onmessage(payload);
+          this.callback(ChannelCallbackEvents.MESSAGE, payload);
+        }
         return resolve(payload);
       }
 
       const error = (payload: ChannelError) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => send msg error\n')
-        if (this.onerror) this.onerror(payload);
+        if (this.onerror) {
+          this.onerror(payload);
+          this.callback(ChannelCallbackEvents.ERROR, payload);
+        }
         this._promiseHandlers.delete(payload.eventId);
         return reject(payload);
       }
@@ -370,6 +409,12 @@ export class Channel {
   }
 
   public close(payload, action) {
+    // if it's alread closed, just return
+    if (!this.receipt) return Promise.reject({
+      error: ChannelErrorCodes.CLOSE_REQUEST_ERROR,
+      message: 'channel is already closed',
+    } as ChannelError);
+
     // initiator:request (with receipt)
     // receiver:confirm (with receipt)
     // receiver:complete (with own receipt)
@@ -450,19 +495,28 @@ export class Channel {
 
       const receipt = (payload: ChannelCloseConfirmationEvent) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close receipt\n')
-        if (this.onclose) this.onclose(payload.receipt);
+        if (this.onclose) {
+          this.onclose(payload.receipt);
+          this.callback(ChannelCallbackEvents.CLOSE, payload.receipt);
+        }
         return resolve(payload.receipt);
       }
 
       const complete = (payload: ChannelCloseConfirmationEvent) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close complete\n')
-        if (this.onclose) this.onclose(payload.receipt);
+        if (this.onclose) {
+          this.onclose(payload.receipt);
+          this.callback(ChannelCallbackEvents.CLOSE, payload.receipt);
+        }
         return resolve(payload.receipt);
       }
 
       const error = (payload) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + ' => close error\n')
-        if (this.onerror) this.onerror(payload);
+        if (this.onerror) {
+          this.onerror(payload);
+          this.callback(ChannelCallbackEvents.ERROR, payload);
+        }
         this._promiseHandlers.delete(payload.eventId);
         return reject(payload);
       }

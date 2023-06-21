@@ -5,46 +5,55 @@ import { Cipher } from './ciphers/index';
 import { Hasher } from './hashers/index';
 
 interface Constructable<T> {
-  new(...args: any): T;
+  new (...args: any[]): T;
 }
 
-type SparkOptions = {
-  controller: Constructable<Controller>;
-  signer: Constructable<Signer>;
-  cipher: Constructable<Cipher>;
-  hasher: Constructable<Hasher>;
-  agents: Constructable<Agent>[];
-}
+type SparkOptions<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> = {
+  controller: Constructable<C>;
+  signer: Constructable<S>;
+  cipher: Constructable<Cp>;
+  hasher: Constructable<H>;
+  agents: Constructable<A[number]>[];
+};
 
-export interface SparkI {
+export interface ISpark<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> {
   identifier: Identifier;
   keyEventLog: KeyEventLog;
   publicKeys: PublicKeys;
   encryptionKeys: EncryptionKeyPair;
   signingKeys: SigningKeyPair;
   keyPairs: KeyPairs;
-  hash: (data: any) => Promise<string> | never;
-  sign: ({ data, detached }: { data: object | string; detached: boolean }) => Promise<string> | never;
-  verify: ({ publicKey, signature, data }: { publicKey: string, signature: string, data?: object | string }) => Promise<boolean> | Promise<string | object | null> | never;
+  agents: { [name: string]: InstanceType<Constructable<A[number]>> };
+  sign: S['sign'];
+  verify: S['verify'];
+  hash: H['hash'];
+  encrypt: Cp['encrypt'];
+  decrypt: Cp['decrypt'];
+  computeSharedKey: Cp['computeSharedKey'];
+  incept: C['incept'];
+  rotate: C['rotate'];
+  delete: C['delete'];
 }
 
-export class Spark implements SparkI {
-  private cipher: Cipher;
-  private controller: Controller;
-  private hasher: Hasher;
-  private signer: Signer;
-  private agents: object = {};
+export class Spark<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> implements ISpark<C, S, Cp, H, A> {
+  public cipher: Cp;
+  public controller: C;
+  public hasher: H;
+  public signer: InstanceType<Constructable<S>>;
+  public agents: { [name: string]: InstanceType<Constructable<A[number]>> } = {};
 
-  constructor(options: SparkOptions) {
+  constructor(options: SparkOptions<C, S, Cp, H, A>) {
     this.cipher = new options.cipher(this);
     this.controller = new options.controller(this);
     this.hasher = new options.hasher(this);
     this.signer = new options.signer(this);
+
     const agents = options.agents || [];
-    agents.forEach(agent => {
+    agents.forEach((agent: Constructable<A[number]>) => {
       const mixin = new agent(this);
-      this.agents[agent.name.toLowerCase()] = mixin;
-    })
+      const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
+      this.agents[name] = mixin;
+    });
   }
 
   get identifier(): Identifier {
@@ -71,47 +80,53 @@ export class Spark implements SparkI {
     return this.controller.keyPairs;
   }
 
-  sign(args: any): Promise<string> | never {
-    return this.signer.sign(args);
+  get sign (): S['sign'] {
+    return this.signer.sign;
   }
 
-  verify(args: any): Promise<boolean> | Promise<string | object | null> | never {
-    return this.signer.verify(args);
+  get verify (): S['verify'] {
+    return this.signer.verify;
   }
 
-  hash(args: any): Promise<string> | never {
-    return this.hasher.hash(args);
+  get hash (): H['hash'] {
+    return this.hasher.hash;
   }
 
-  incept(args: any): Promise<void> | never {
-    return this.controller.incept(args);
+  get encrypt (): Cp['encrypt'] {
+    return this.cipher.encrypt;
   }
 
-  rotate(args: any): Promise<void> | never {
-    return this.controller.rotate(args);
+  get decrypt (): Cp['decrypt'] {
+    return this.cipher.decrypt;
   }
 
-  delete(args: any): Promise<void> | never {
-    return this.controller.delete(args);
+  get computeSharedKey (): Cp['computeSharedKey'] {
+    return this.cipher.computeSharedKey;
   }
 
-  encrypt(args: any): Promise<string> | never {
-    return this.cipher.encrypt(args);
+  get incept (): C['incept'] {
+    return this.controller.incept;
   }
 
-  decrypt(args: any): Promise<string | Record<string, any>> | never {
-    return this.cipher.decrypt(args);
+  get rotate (): C['rotate'] {
+    return this.controller.rotate;
   }
 
-  import(args: any): Promise<void> | never {
-    return this.controller.import(args);
+  get delete (): C['delete'] {
+    return this.controller.delete;
   }
-
-  export(args?: any): Promise<string> | never {
-    return this.controller.export(args);
-  }
-
-  computeSharedKey(args: any): Promise<string> | never {
-    return this.cipher.computeSharedKey(args);
-  };
 }
+
+class Test extends Agent {
+  public test: string = 'test'
+}
+
+const user = new Spark<Controller, Signer, Cipher, Hasher, [Test]>({
+  agents: [ Test ],
+  signer: Signer,
+  cipher: Cipher,
+  hasher: Hasher,
+  controller: Controller,
+});
+
+console.log(user.agents.test);

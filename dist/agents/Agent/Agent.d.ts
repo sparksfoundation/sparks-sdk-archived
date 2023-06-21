@@ -1,6 +1,6 @@
-import { Spark } from '../../Spark';
+import { ISpark } from '../../Spark';
 import { IAgent } from './types';
 export declare class Agent implements IAgent {
-    protected spark: Spark;
-    constructor(spark: Spark);
+    protected spark: ISpark<any, any, any, any, any>;
+    constructor(spark: ISpark<any, any, any, any, any>);
 }

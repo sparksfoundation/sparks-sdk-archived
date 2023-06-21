@@ -1,3 +1,8 @@
+import { Controller } from "./controllers/index.mjs";
+import { Agent } from "./agents/index.mjs";
+import { Signer } from "./signers/index.mjs";
+import { Cipher } from "./ciphers/index.mjs";
+import { Hasher } from "./hashers/index.mjs";
 export class Spark {
   constructor(options) {
     this.agents = {};
@@ -8,7 +13,8 @@ export class Spark {
     const agents = options.agents || [];
     agents.forEach((agent) => {
       const mixin = new agent(this);
-      this.agents[agent.name.toLowerCase()] = mixin;
+      const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
+      this.agents[name] = mixin;
     });
   }
   get identifier() {
@@ -29,37 +35,45 @@ export class Spark {
   get keyPairs() {
     return this.controller.keyPairs;
   }
-  sign(args) {
-    return this.signer.sign(args);
+  get sign() {
+    return this.signer.sign;
   }
-  verify(args) {
-    return this.signer.verify(args);
+  get verify() {
+    return this.signer.verify;
   }
-  hash(args) {
-    return this.hasher.hash(args);
+  get hash() {
+    return this.hasher.hash;
   }
-  incept(args) {
-    return this.controller.incept(args);
+  get encrypt() {
+    return this.cipher.encrypt;
   }
-  rotate(args) {
-    return this.controller.rotate(args);
+  get decrypt() {
+    return this.cipher.decrypt;
   }
-  delete(args) {
-    return this.controller.delete(args);
+  get computeSharedKey() {
+    return this.cipher.computeSharedKey;
   }
-  encrypt(args) {
-    return this.cipher.encrypt(args);
+  get incept() {
+    return this.controller.incept;
   }
-  decrypt(args) {
-    return this.cipher.decrypt(args);
+  get rotate() {
+    return this.controller.rotate;
   }
-  import(args) {
-    return this.controller.import(args);
-  }
-  export(args) {
-    return this.controller.export(args);
-  }
-  computeSharedKey(args) {
-    return this.cipher.computeSharedKey(args);
+  get delete() {
+    return this.controller.delete;
   }
 }
+class Test extends Agent {
+  constructor() {
+    super(...arguments);
+    this.test = "test";
+  }
+}
+const user = new Spark({
+  agents: [Test],
+  signer: Signer,
+  cipher: Cipher,
+  hasher: Hasher,
+  controller: Controller
+});
+console.log(user.agents.test);

@@ -5,6 +5,12 @@ export declare enum ChannelActions {
     ACCEPT = "accept",
     REJECT = "reject"
 }
+export declare enum ChannelCallbackEvents {
+    OPEN = "open",
+    CLOSE = "close",
+    MESSAGE = "message",
+    ERROR = "error"
+}
 export declare enum ChannelTypes {
     POST_MESSAGE = "post_message",
     WEB_RTC = "web_rtc",

@@ -13,8 +13,12 @@ export declare class PostMessage extends Channel {
     });
     protected sendMessage(event: any): void;
     protected receiveMessage(payload: any): void;
-    static receive(callback: any, { spark, _window }: {
-        spark: any;
-        _window: any;
+    static receive(callback: ({ details, resolve, reject }: {
+        details: any;
+        resolve: any;
+        reject: any;
+    }) => void, { spark, _window }: {
+        spark: Spark;
+        _window?: Window;
     }): void;
 }

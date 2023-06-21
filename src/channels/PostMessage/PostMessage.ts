@@ -38,7 +38,7 @@ export class PostMessage extends Channel {
     super.receiveMessage(payload.data);
   }
 
-  static receive(callback, { spark, _window }) {
+  static receive(callback: ({ details, resolve, reject }) => void, { spark, _window }: { spark: Spark, _window?: Window }) {
     // how do we receive messages as a recipient
     const win = _window || window;
     win.addEventListener('message', (event) => {

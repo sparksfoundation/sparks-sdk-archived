@@ -3,12 +3,14 @@ import {
   ChannelErrorCodes,
   ChannelEventTypes,
   ChannelActions,
-  ChannelEventConfirmTypes
+  ChannelEventConfirmTypes,
+  ChannelCallbackEvents
 } from "./types.mjs";
 const _Channel = class {
   constructor(args) {
     this._promiseHandlers = /* @__PURE__ */ new Map();
     this._preconnectQueue = [];
+    this._callbacks = /* @__PURE__ */ new Map();
     this.onopen = null;
     this.onclose = null;
     this.onmessage = null;
@@ -27,6 +29,26 @@ const _Channel = class {
     this.receipt = args.receipt;
     this.receiveMessage = this.receiveMessage.bind(this);
   }
+  // setup callbacks so that we can register multiple for each event 
+  // and if the callback is removed from memory it will be garbage collected
+  on(event, callback) {
+    if (!this._callbacks.has(event))
+      this._callbacks.set(event, /* @__PURE__ */ new Set());
+    this._callbacks.get(event).add(callback);
+  }
+  off(event, callback) {
+    if (!this._callbacks.has(event))
+      return;
+    this._callbacks.get(event).delete(callback);
+  }
+  callback(event, ...args) {
+    if (!this._callbacks.has(event))
+      return;
+    this._callbacks.get(event).forEach((callback) => callback(...args));
+  }
+  get id() {
+    return this.channelId;
+  }
   get publicSigningKey() {
     return this.publicKeys.signing;
   }
@@ -34,6 +56,8 @@ const _Channel = class {
     return this.sharedKey;
   }
   open(payload, action, attempts = 0) {
+    if (this.receipt)
+      return Promise.resolve(this);
     return new Promise((resolve, reject) => {
       const request = () => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => open request\n");
@@ -157,8 +181,10 @@ const _Channel = class {
           });
           this._preconnectQueue = [];
         }
-        if (this.onopen)
+        if (this.onopen) {
           this.onopen(this);
+          this.callback(ChannelCallbackEvents.OPEN, this);
+        }
         return resolve(this);
       };
       const deny = (args) => {
@@ -176,8 +202,10 @@ const _Channel = class {
       };
       const error = (args) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => open error\n");
-        if (this.onerror)
+        if (this.onerror) {
           this.onerror(args);
+          this.callback(ChannelCallbackEvents.ERROR, args);
+        }
         this._promiseHandlers.delete(args.eventId);
         resolve(args);
       };
@@ -269,20 +297,26 @@ const _Channel = class {
             message: "failed to get receipt"
           });
         }
-        if (this.onmessage)
+        if (this.onmessage) {
           this.onmessage(payload2.receipt);
+          this.callback(ChannelCallbackEvents.MESSAGE, payload2);
+        }
         return resolve(payload2.receipt);
       };
       const complete = (payload2) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => send msg complete\n");
-        if (this.onmessage)
+        if (this.onmessage) {
           this.onmessage(payload2);
+          this.callback(ChannelCallbackEvents.MESSAGE, payload2);
+        }
         return resolve(payload2);
       };
       const error = (payload2) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => send msg error\n");
-        if (this.onerror)
+        if (this.onerror) {
           this.onerror(payload2);
+          this.callback(ChannelCallbackEvents.ERROR, payload2);
+        }
         this._promiseHandlers.delete(payload2.eventId);
         return reject(payload2);
       };
@@ -293,6 +327,11 @@ const _Channel = class {
     });
   }
   close(payload, action) {
+    if (!this.receipt)
+      return Promise.reject({
+        error: ChannelErrorCodes.CLOSE_REQUEST_ERROR,
+        message: "channel is already closed"
+      });
     return new Promise((resolve, reject) => {
       const eventId = randomNonce(16);
       const close = () => {
@@ -356,20 +395,26 @@ const _Channel = class {
       };
       const receipt = (payload2) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => close receipt\n");
-        if (this.onclose)
+        if (this.onclose) {
           this.onclose(payload2.receipt);
+          this.callback(ChannelCallbackEvents.CLOSE, payload2.receipt);
+        }
         return resolve(payload2.receipt);
       };
       const complete = (payload2) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => close complete\n");
-        if (this.onclose)
+        if (this.onclose) {
           this.onclose(payload2.receipt);
+          this.callback(ChannelCallbackEvents.CLOSE, payload2.receipt);
+        }
         return resolve(payload2.receipt);
       };
       const error = (payload2) => {
         console.log(this.spark.signingKeys.publicKey.slice(0, 4) + " => close error\n");
-        if (this.onerror)
+        if (this.onerror) {
           this.onerror(payload2);
+          this.callback(ChannelCallbackEvents.ERROR, payload2);
+        }
         this._promiseHandlers.delete(payload2.eventId);
         return reject(payload2);
       };
