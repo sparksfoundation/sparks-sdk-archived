@@ -1,3 +1,5 @@
+import { Channel } from  "./Channel";
+import { ISpark } from "../../Spark";
 import { SharedEncryptionKey } from "../../ciphers/Cipher/types";
 import { PublicKeys, Identifier } from "../../controllers/Controller/types";
 
@@ -222,3 +224,37 @@ export type ChannelCloseConfirmationEvent = {
     channelId: ChannelId;
     receipt: ChannelClosedReceipt;
 };
+
+export abstract class AChannel {
+    protected channel: Channel;
+    protected channelType: ChannelTypes;
+    protected spark: ISpark<any, any, any, any, any>;
+
+    constructor(args: { channelType: ChannelTypes, spark: ISpark<any, any, any, any, any>}) {
+        const { channelType, spark } = args;
+        if (!spark) throw new Error('Channel: missing spark');
+        this.spark = spark;
+        this.channelType = channelType;
+        Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+        this.channel = new Channel(args);
+    }
+
+    protected abstract sendMessage(args: any): void;
+    protected abstract receiveMessage(args: any): void;
+
+    open(args: any): Promise<any> | never {
+        return this.channel.open(args);
+    }
+
+    send(args: any): Promise<any> | never {
+        return this.channel.send(args);
+    }
+
+    on(event: ChannelCallbackEvents, callback: any): void {
+        this.channel.on(event, callback);
+    }
+
+    off(event: ChannelCallbackEvents, callback: any): void {
+        this.channel.off(event, callback);
+    }
+}

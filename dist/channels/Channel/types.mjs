@@ -1,3 +1,4 @@
+import { Channel } from "./Channel.mjs";
 export var ChannelActions = /* @__PURE__ */ ((ChannelActions2) => {
   ChannelActions2["CONFIRM"] = "confirm";
   ChannelActions2["ACCEPT"] = "accept";
@@ -48,3 +49,26 @@ export var ChannelErrorCodes = /* @__PURE__ */ ((ChannelErrorCodes2) => {
   ChannelErrorCodes2["MESSAGE_CONFIRM_ERROR"] = "message_confirm_error";
   return ChannelErrorCodes2;
 })(ChannelErrorCodes || {});
+export class AChannel {
+  constructor(args) {
+    const { channelType, spark } = args;
+    if (!spark)
+      throw new Error("Channel: missing spark");
+    this.spark = spark;
+    this.channelType = channelType;
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+    this.channel = new Channel(args);
+  }
+  open(args) {
+    return this.channel.open(args);
+  }
+  send(args) {
+    return this.channel.send(args);
+  }
+  on(event, callback) {
+    this.channel.on(event, callback);
+  }
+  off(event, callback) {
+    this.channel.off(event, callback);
+  }
+}

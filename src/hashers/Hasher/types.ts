@@ -1,3 +1,5 @@
+import { ISpark } from "../../Spark";
+import { Hasher } from "./Hasher";
 
 /**
  * Hasher interface
@@ -12,4 +14,18 @@ export interface IHasher {
    * or rejects with an error.
    */
   hash: (data: any) => Promise<string> | never;
+}
+
+export abstract class AHasher {
+  protected spark: ISpark<any, any, any, any, any>;
+  protected hasher: IHasher;
+
+  constructor(spark: ISpark<any, any, any, any, any>) {
+    if (!spark) throw new Error('Hasher: missing spark');
+    this.spark = spark;
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+    this.hasher = new Hasher(this.spark);
+  }
+
+  abstract hash(data: any): Promise<string> | never;
 }

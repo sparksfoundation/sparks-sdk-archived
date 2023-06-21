@@ -1,6 +1,6 @@
 import { Channel } from "../Channel/Channel.mjs";
-import { ChannelTypes } from "../Channel/types.mjs";
-export class PostMessage extends Channel {
+import { AChannel, ChannelTypes } from "../Channel/types.mjs";
+export class PostMessage extends AChannel {
   constructor({
     _window,
     source,
@@ -9,6 +9,7 @@ export class PostMessage extends Channel {
     ...args
   }) {
     super({ channelType: ChannelTypes.POST_MESSAGE, spark, ...args });
+    console.log(this);
     this._window = _window || window || null;
     if (!this._window)
       throw new Error("PostMessage: missing window");
@@ -20,7 +21,7 @@ export class PostMessage extends Channel {
     this.source.postMessage(event, this.origin);
   }
   receiveMessage(payload) {
-    super.receiveMessage(payload.data);
+    this.channel.receiveMessage(payload.data);
   }
   static receive(callback, { spark, _window }) {
     const win = _window || window;

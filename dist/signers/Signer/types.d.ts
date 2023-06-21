@@ -5,6 +5,7 @@
  * can open detached signatures OR verify attached signatures
  * extend Signer class to implement other signing algorithms
  */
+import { ISpark } from "../../Spark";
 export interface ISigner {
     /**
      * Signs data using ed25519
@@ -30,4 +31,11 @@ export interface ISigner {
         signature: string;
         data?: object | string;
     }) => Promise<string | boolean | Record<string, any> | null> | never;
+}
+export declare abstract class ASigner {
+    protected spark: ISpark<any, any, any, any, any>;
+    protected signer: ISigner;
+    constructor(spark: ISpark<any, any, any, any, any>);
+    abstract sign(args: any): any;
+    abstract verify(args: any): any;
 }

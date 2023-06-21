@@ -2,7 +2,7 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import * as scrypt from "scrypt-pbkdf";
 import { blake3 } from "@noble/hashes/blake3";
-import { Controller } from "../Controller/Controller.mjs";
+import { AController } from "../Controller/types.mjs";
 const generateSalt = (data) => {
   return util.encodeBase64(blake3(JSON.stringify(data)));
 };
@@ -44,30 +44,27 @@ const generateKeyPairs = async ({ password, salt }) => {
     };
   });
 };
-export class Password extends Controller {
-  async incept(args) {
-    const { password } = args;
+export class Password extends AController {
+  async incept({ password, backers = [] }) {
     let salt = util.encodeBase64(nacl.randomBytes(16));
     const keyPairs = await generateKeyPairs({ password, salt });
     salt = generateSalt(keyPairs.signing.publicKey);
     const nextKeyPairs = await generateKeyPairs({ password, salt });
-    await super.incept({ ...args, keyPairs, nextKeyPairs });
-    await this.rotate({ ...args, password, newPassword: null });
+    await this.controller.incept({ keyPairs, nextKeyPairs, backers });
+    await this.rotate({ password, backers });
   }
-  async import(args) {
-    const { password, salt, data } = args;
+  async import({ password, salt, data }) {
     const keyPairs = await generateKeyPairs({ password, salt });
-    await super.import({ keyPairs, data });
+    await this.controller.import({ keyPairs, data });
   }
   async export() {
-    const kel = this.keyEventLog;
+    const kel = this.controller.keyEventLog;
     const salt = generateSalt(this.getSaltInput(kel));
-    const data = await super.export();
+    const data = await this.controller.export();
     return { data, salt };
   }
-  async rotate(args) {
-    const { password, newPassword } = args;
-    const eventLog = this.keyEventLog;
+  async rotate({ password, newPassword, backers = [] }) {
+    const eventLog = this.controller.keyEventLog;
     let salt, nextKeyPairs, keyPairs, keyHash;
     if (!password)
       throw new Error("Password is required to rotate keys.");
@@ -79,10 +76,14 @@ export class Password extends Controller {
     }
     salt = generateSalt(this.getLastEvent(eventLog));
     nextKeyPairs = await generateKeyPairs({ password: newPassword || password, salt });
-    await super.rotate({ ...args, keyPairs, nextKeyPairs });
+    await this.controller.rotate({ keyPairs, nextKeyPairs, backers });
     if (newPassword) {
-      return await this.rotate({ ...args, password: newPassword });
+      return await this.rotate({ password: newPassword, backers });
     }
+  }
+  async delete(args) {
+    const { backers = [] } = args || {};
+    await this.controller.delete({ backers });
   }
   getSaltInput(kel) {
     const hasOneRotation = kel.length < 3;

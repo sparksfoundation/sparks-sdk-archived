@@ -1,7 +1,7 @@
 export class Hasher {
   constructor(spark) {
     if (!spark)
-      throw new Error("Channel: missing spark");
+      throw new Error("Hasher: missing spark");
     this.spark = spark;
     Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }

@@ -63,11 +63,6 @@
       "import": "./dist/agents/Verifier/index.mjs",
       "require": "./dist/agents/Verifier/index.cjs"
     },
-    "./agents/dist": {
-      "types": "./dist/agents/dist/index.d.ts",
-      "import": "./dist/agents/dist/index.mjs",
-      "require": "./dist/agents/dist/index.cjs"
-    },
     "./channels": {
       "types": "./dist/channels/index.d.ts",
       "import": "./dist/channels/index.mjs",

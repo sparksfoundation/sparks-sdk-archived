@@ -1,10 +1,5 @@
-import { Agent } from "../Agent/index.mjs";
-export class Verifier extends Agent {
-  /**
-  * Verifies the data integrity and key commitment of the entire event log
-  * @param eventLog
-  * @returns
-  */
+import { AAgent } from "../Agent/types.mjs";
+export class Verifier extends AAgent {
   async verifyEventLog(eventLog) {
     const valid = eventLog.every(async (event, index) => {
       let valid2 = true;

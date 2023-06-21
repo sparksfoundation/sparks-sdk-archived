@@ -1,12 +1,7 @@
-import { Agent } from "../Agent";
+import { AAgent } from "../Agent/types";
+import { IVerifier } from "./types";
 
-export class Verifier extends Agent {
-
-  /**
- * Verifies the data integrity and key commitment of the entire event log
- * @param eventLog
- * @returns
- */
+export class Verifier extends AAgent implements IVerifier {
   async verifyEventLog(eventLog) {
     const valid = eventLog.every(async (event, index) => {
       let valid = true;

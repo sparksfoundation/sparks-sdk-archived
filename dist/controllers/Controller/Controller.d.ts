@@ -1,25 +1,19 @@
-import { Spark } from '../../Spark';
-import { DeletionArgs, EncryptionKeyPair, IController, Identifier, InceptionArgs, KeriEventArgs, KeriKeyEvent, KeriRotationEvent, KeyPairs, PublicKeys, RotationArgs, SecretKeys, SigningKeyPair } from './types';
+import { ISpark } from '../../Spark';
+import { EncryptionKeyPair, IController, Identifier, KeriKeyEvent, KeyEventMethod, KeyPairs, PublicKeys, SecretKeys, SigningKeyPair } from './types';
 export declare class Controller implements IController {
-    protected _identifier: Identifier;
-    protected _keyPairs: KeyPairs;
-    protected _keyEventLog: KeriKeyEvent[];
-    protected spark: Spark;
-    constructor(spark: Spark);
-    get identifier(): Identifier;
-    get keyEventLog(): KeriKeyEvent[];
-    get keyPairs(): KeyPairs;
+    protected spark: ISpark<any, any, any, any, any>;
+    identifier: Identifier;
+    keyPairs: KeyPairs;
+    keyEventLog: KeriKeyEvent[];
+    constructor(spark: ISpark<any, any, any, any, any>);
     get encryptionKeys(): EncryptionKeyPair;
     get signingKeys(): SigningKeyPair;
     get secretKeys(): SecretKeys;
     get publicKeys(): PublicKeys;
-    incept(args: InceptionArgs): Promise<void>;
-    rotate(args: RotationArgs): Promise<void>;
-    delete(args: DeletionArgs): Promise<void>;
-    protected keyEvent(args: KeriEventArgs): Promise<import("./types").KeriInceptionEvent | KeriRotationEvent>;
-    import({ keyPairs, data }: {
-        keyPairs: any;
-        data: any;
-    }): Promise<void>;
-    export(args?: any): Promise<any>;
+    incept({ keyPairs, nextKeyPairs, backers }: Parameters<IController['incept']>[0]): ReturnType<IController['incept']>;
+    rotate({ keyPairs, nextKeyPairs, backers }: Parameters<IController['rotate']>[0]): ReturnType<IController['rotate']>;
+    delete(args: Parameters<IController['delete']>[0]): ReturnType<IController['delete']>;
+    protected keyEvent(args: Parameters<KeyEventMethod>[0]): ReturnType<KeyEventMethod>;
+    import({ keyPairs, data }: Parameters<IController['import']>[0]): ReturnType<IController['import']>;
+    export(): ReturnType<IController['export']>;
 }

@@ -1,6 +1,11 @@
-import { Agent } from "../Agent";
+import { AAgent } from "../Agent/types";
+import { IUser } from "./types";
 
-export class User extends Agent {
-  protected name: string;
-  protected avatar: string;
+/**
+ * User agent
+ * Provides user specific functionality
+ */
+export class User extends AAgent implements IUser {
+  public handle: string;
+  public avatar: string;
 }

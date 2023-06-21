@@ -1,9 +1,9 @@
 import util from "tweetnacl-util";
-import { Signer } from "../Signer";
+import { ASigner, ISigner } from "../Signer";
 import nacl from "tweetnacl";
 import { parseJSON } from "../../utilities/index";
 
-export class Ed25519 extends Signer {
+export class Ed25519 extends ASigner implements ISigner {
   async sign({ data, detached = false }) {
     const dataString = typeof data === 'string' ? data : JSON.stringify(data);
     const uintData = util.decodeUTF8(dataString as string);

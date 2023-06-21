@@ -1,3 +1,5 @@
+import { Channel } from "./Channel";
+import { ISpark } from "../../Spark";
 import { SharedEncryptionKey } from "../../ciphers/Cipher/types";
 import { PublicKeys, Identifier } from "../../controllers/Controller/types";
 export declare enum ChannelActions {
@@ -185,3 +187,18 @@ export type ChannelCloseConfirmationEvent = {
     channelId: ChannelId;
     receipt: ChannelClosedReceipt;
 };
+export declare abstract class AChannel {
+    protected channel: Channel;
+    protected channelType: ChannelTypes;
+    protected spark: ISpark<any, any, any, any, any>;
+    constructor(args: {
+        channelType: ChannelTypes;
+        spark: ISpark<any, any, any, any, any>;
+    });
+    protected abstract sendMessage(args: any): void;
+    protected abstract receiveMessage(args: any): void;
+    open(args: any): Promise<any> | never;
+    send(args: any): Promise<any> | never;
+    on(event: ChannelCallbackEvents, callback: any): void;
+    off(event: ChannelCallbackEvents, callback: any): void;
+}

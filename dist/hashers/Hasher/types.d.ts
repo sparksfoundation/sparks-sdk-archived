@@ -1,3 +1,4 @@
+import { ISpark } from "../../Spark";
 /**
  * Hasher interface
  * responsible for hashing data
@@ -11,4 +12,10 @@ export interface IHasher {
      * or rejects with an error.
      */
     hash: (data: any) => Promise<string> | never;
+}
+export declare abstract class AHasher {
+    protected spark: ISpark<any, any, any, any, any>;
+    protected hasher: IHasher;
+    constructor(spark: ISpark<any, any, any, any, any>);
+    abstract hash(data: any): Promise<string> | never;
 }

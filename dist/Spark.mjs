@@ -1,8 +1,3 @@
-import { Controller } from "./controllers/index.mjs";
-import { Agent } from "./agents/index.mjs";
-import { Signer } from "./signers/index.mjs";
-import { Cipher } from "./ciphers/index.mjs";
-import { Hasher } from "./hashers/index.mjs";
 export class Spark {
   constructor(options) {
     this.agents = {};
@@ -63,17 +58,3 @@ export class Spark {
     return this.controller.delete;
   }
 }
-class Test extends Agent {
-  constructor() {
-    super(...arguments);
-    this.test = "test";
-  }
-}
-const user = new Spark({
-  agents: [Test],
-  signer: Signer,
-  cipher: Cipher,
-  hasher: Hasher,
-  controller: Controller
-});
-console.log(user.agents.test);

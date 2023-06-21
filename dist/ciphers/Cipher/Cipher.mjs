@@ -2,7 +2,7 @@ export class Cipher {
   constructor(spark) {
     this.spark = spark;
     if (!this.spark)
-      throw new Error("Channel: missing spark");
+      throw new Error("Cipher: missing spark");
     Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }
   async encrypt(args) {

@@ -1,8 +1,8 @@
-import { Spark } from "../../Spark";
+import { ISpark } from "../../Spark";
 import { ISigner } from "./types";
 export declare class Signer implements ISigner {
-    protected spark: Spark;
-    constructor(spark: Spark);
+    protected spark: ISpark<any, any, any, any, any>;
+    constructor(spark: ISpark<any, any, any, any, any>);
     sign({ data, detached }: {
         data: any;
         detached?: boolean | undefined;

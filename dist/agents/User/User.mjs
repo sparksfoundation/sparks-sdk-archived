@@ -1,3 +1,3 @@
-import { Agent } from "../Agent/index.mjs";
-export class User extends Agent {
+import { AAgent } from "../Agent/types.mjs";
+export class User extends AAgent {
 }

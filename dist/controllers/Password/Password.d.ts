@@ -1,16 +1,17 @@
-import { Controller } from '../Controller/Controller';
-import { InceptionArgs, KeyEventLog, RotationArgs } from '../Controller/types';
-export declare class Password extends Controller {
-    incept(args: InceptionArgs): Promise<void>;
-    import(args: any): Promise<void>;
+import { AController } from '../Controller/types';
+import { IPassword } from './types';
+export declare class Password extends AController implements IPassword {
+    incept({ password, backers }: Parameters<IPassword['incept']>[0]): ReturnType<IPassword['incept']>;
+    import({ password, salt, data }: Parameters<IPassword['import']>[0]): ReturnType<IPassword['import']>;
     export(): Promise<{
         data: string;
         salt: string;
     }>;
-    rotate(args: RotationArgs): any;
-    getSaltInput(kel: KeyEventLog): string | import("../Controller/types").KeriInceptionEvent | import("../Controller/types").KeriRotationEvent;
-    inceptionEventSigningKeys(kel: KeyEventLog): string;
-    inceptionOnly(kel: KeyEventLog): boolean;
-    getLastEvent(kel: KeyEventLog): import("../Controller/types").KeriInceptionEvent | import("../Controller/types").KeriRotationEvent;
-    getInceptionEvent(kel: KeyEventLog): import("../Controller/types").KeriInceptionEvent | import("../Controller/types").KeriRotationEvent;
+    rotate({ password, newPassword, backers }: Parameters<IPassword['rotate']>[0]): ReturnType<IPassword['rotate']>;
+    delete(args: Parameters<IPassword['delete']>[0]): ReturnType<IPassword['delete']>;
+    private getSaltInput;
+    private inceptionEventSigningKeys;
+    private inceptionOnly;
+    private getLastEvent;
+    private getInceptionEvent;
 }

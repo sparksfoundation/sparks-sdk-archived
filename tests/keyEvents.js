@@ -13,7 +13,7 @@ const identity = new Spark({
 });
 
 await identity.controller.incept({ password: 'password' })
-passed = identity.keyEventLog.length === 2 && identity.keyEventLog[1].eventType === 'incept'
+passed = identity.keyEventLog.length === 2 && identity.keyEventLog[0].eventType === 'incept'
 console.log(`incepted:`, passed)
 
 await identity.controller.rotate({ password: 'password' })

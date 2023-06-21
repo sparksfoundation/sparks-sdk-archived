@@ -116,17 +116,3 @@ export class Spark<C extends Controller, S extends Signer, Cp extends Cipher, H 
     return this.controller.delete;
   }
 }
-
-class Test extends Agent {
-  public test: string = 'test'
-}
-
-const user = new Spark<Controller, Signer, Cipher, Hasher, [Test]>({
-  agents: [ Test ],
-  signer: Signer,
-  cipher: Cipher,
-  hasher: Hasher,
-  controller: Controller,
-});
-
-console.log(user.agents.test);

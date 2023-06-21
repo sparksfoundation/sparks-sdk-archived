@@ -6,6 +6,9 @@
  * extend Signer class to implement other signing algorithms
  */
 
+import { ISpark } from "../../Spark";
+import { Signer } from "./Signer";
+
 
 export interface ISigner {
   /**
@@ -26,4 +29,21 @@ export interface ISigner {
    * or rejected with an error.
    */
   verify: ({ publicKey, signature, data }: { publicKey: string, signature: string, data?: object | string }) => Promise<string | boolean | Record<string, any> | null> | never;
+}
+
+export abstract class ASigner {
+  protected spark: ISpark<any, any, any, any, any>;
+  protected signer: ISigner;
+
+  constructor(spark: ISpark<any, any, any, any, any>) {
+    if (!spark) throw new Error('Signer: missing spark');
+    this.spark = spark;
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+    this.signer = new Signer(this.spark);
+    this.sign = this.sign.bind(this);
+    this.verify = this.verify.bind(this);
+  }
+
+  public abstract sign(args: any): any;
+  public abstract verify(args: any): any;
 }

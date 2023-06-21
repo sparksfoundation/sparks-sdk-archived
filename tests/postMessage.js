@@ -26,6 +26,8 @@ PostMessage.receive(async ({ details, resolve, reject }) => {
   }
 }, { spark: website, _window: _1111 });
 
+
+
 const alice = new Spark({ 
   controller: Random, 
   signer: Ed25519, 

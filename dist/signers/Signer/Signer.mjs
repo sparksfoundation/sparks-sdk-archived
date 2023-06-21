@@ -1,7 +1,7 @@
 export class Signer {
   constructor(spark) {
     if (!spark)
-      throw new Error("Channel: missing spark");
+      throw new Error("Signer: missing spark");
     this.spark = spark;
     Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }

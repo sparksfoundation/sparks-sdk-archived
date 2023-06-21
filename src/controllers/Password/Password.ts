@@ -2,8 +2,8 @@ import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
 import * as scrypt from 'scrypt-pbkdf';
 import { blake3 } from '@noble/hashes/blake3';
-import { Controller } from '../Controller/Controller';
-import { InceptionArgs, KeyEventLog, KeyPairs, SigningPublicKeyHash, RotationArgs } from '../Controller/types';
+import { AController, KeyEventLog, KeyPairs, SigningPublicKeyHash } from '../Controller/types';
+import { IPassword } from './types';
 
 const generateSalt = (data) => {
   return util.encodeBase64(blake3(JSON.stringify(data)));
@@ -55,36 +55,30 @@ const generateKeyPairs = async ({ password, salt }) => {
   });
 }
 
-export class Password extends Controller {
-  async incept(args: InceptionArgs) {
-    const { password } = args;
+export class Password extends AController implements IPassword {
+  public async incept({ password, backers = [] }: Parameters<IPassword['incept']>[0]): ReturnType<IPassword['incept']> {
     let salt = util.encodeBase64(nacl.randomBytes(16));
     const keyPairs = await generateKeyPairs({ password, salt });
     salt = generateSalt(keyPairs.signing.publicKey);
     const nextKeyPairs = await generateKeyPairs({ password, salt });
-    await super.incept({ ...args, keyPairs, nextKeyPairs });
-
-    // rotate to the first key so that we can maintain salts
-    await this.rotate({ ...args, password: password, newPassword: null });
+    await this.controller.incept({ keyPairs, nextKeyPairs, backers });
+    await this.rotate({ password, backers });
   }
 
-  async import(args) {
-    // TODO: difference between this import and the one here? src/controllers/Random.ts:47
-    const { password, salt, data } = args;
+  async import({ password, salt, data }: Parameters<IPassword['import']>[0]): ReturnType<IPassword['import']> {
     const keyPairs = await generateKeyPairs({ password, salt });
-    await super.import({ keyPairs, data });
+    await this.controller.import({ keyPairs, data });
   }
 
   async export(): Promise<{ data: string, salt: string }> {
-    const kel = this.keyEventLog;
+    const kel = this.controller.keyEventLog;
     const salt = generateSalt(this.getSaltInput(kel));
-    const data = await super.export();
+    const data = await this.controller.export();
     return { data, salt };
   }
 
-  async rotate(args: RotationArgs) {
-    const { password, newPassword } = args;
-    const eventLog: KeyEventLog = this.keyEventLog;
+  async rotate({ password, newPassword, backers = [] }: Parameters<IPassword['rotate']>[0]): ReturnType<IPassword['rotate']> {
+    const eventLog: KeyEventLog = this.controller.keyEventLog;
     let salt: string, nextKeyPairs: KeyPairs, keyPairs: KeyPairs, keyHash: SigningPublicKeyHash;
 
     if (!password) throw new Error('Password is required to rotate keys.');
@@ -101,16 +95,20 @@ export class Password extends Controller {
     salt = generateSalt(this.getLastEvent(eventLog));
     nextKeyPairs = await generateKeyPairs({ password: newPassword || password, salt });
 
-    await super.rotate({ ...args, keyPairs, nextKeyPairs });
+    await this.controller.rotate({ keyPairs, nextKeyPairs, backers });
 
     if (newPassword) {
-      return await this.rotate({ ...args, password: newPassword });
+      return await this.rotate({ password: newPassword, backers });
     }
   }
 
-  getSaltInput(kel: KeyEventLog) {
-    const hasOneRotation = kel.length < 3;
+  async delete(args: Parameters<IPassword['delete']>[0]): ReturnType<IPassword['delete']> {
+    const { backers = [] } = args || {};
+    await this.controller.delete({ backers });
+  }
 
+  private getSaltInput(kel: KeyEventLog) {
+    const hasOneRotation = kel.length < 3;
     if (this.inceptionOnly(kel) || hasOneRotation) {
       return this.inceptionEventSigningKeys(kel)
     } else {
@@ -120,19 +118,19 @@ export class Password extends Controller {
     }
   }
 
-  inceptionEventSigningKeys(kel: KeyEventLog) {
+  private inceptionEventSigningKeys(kel: KeyEventLog) {
     return this.getInceptionEvent(kel).signingKeys[0];
   }
 
-  inceptionOnly(kel: KeyEventLog) {
+  private inceptionOnly(kel: KeyEventLog) {
     return 2 > kel.length;
   }
 
-  getLastEvent(kel: KeyEventLog) {
+  private getLastEvent(kel: KeyEventLog) {
     return kel[kel.length - 1];
   }
 
-  getInceptionEvent(kel: KeyEventLog) {
+  private getInceptionEvent(kel: KeyEventLog) {
     return kel[0];
   }
 }

@@ -1,7 +1,7 @@
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
-import { ImportArgs, InceptionArgs, RotationArgs } from '../Controller/types';
-import { Controller } from "../Controller/Controller";
+import { AController, KeyPairs } from '../Controller';
+import { IRandom } from './types';
 
 const signingKeyPair = () => {
   const signing = nacl.sign.keyPair();
@@ -26,24 +26,41 @@ const generateKeyPairs = () => {
   };
 }
 
-export class Random extends Controller {
-  private randomKeyPairs = [] as any[];
+export class Random extends AController implements IRandom {
+  private randomKeys: { keyPairs?: KeyPairs, nextKeyPairs?: KeyPairs };
 
-  async incept(args: InceptionArgs) {
+  constructor(args) {
+    super(args);
+    this.randomKeys = {};
+  }
+
+  async incept(args: { backers?: Parameters<IRandom['incept']>[0]['backers']}) {
+    const { backers = [] } = args || {};
     const keyPairs = generateKeyPairs();
     const nextKeyPairs = generateKeyPairs();
-    this.randomKeyPairs = [keyPairs, nextKeyPairs];
-    await super.incept({ ...args, keyPairs, nextKeyPairs });
+    this.randomKeys.keyPairs = keyPairs;
+    this.randomKeys.nextKeyPairs = nextKeyPairs;
+    await this.controller.incept({ keyPairs, nextKeyPairs, backers });
   }
 
-  async rotate(args: RotationArgs) {
-    const keyPairs = { ...this.randomKeyPairs[this.randomKeyPairs.length - 1] };
+  async rotate(args: { backers?: Parameters<IRandom['rotate']>[0]['backers']}) {
+    const { backers = [] } = args || {};
+    const keyPairs = { ...this.randomKeys.nextKeyPairs }
     const nextKeyPairs = generateKeyPairs();
-    this.randomKeyPairs.push(nextKeyPairs);
-    await super.rotate({ ...args, keyPairs, nextKeyPairs });
+    this.randomKeys = { keyPairs, nextKeyPairs };
+    await this.controller.rotate({ keyPairs, nextKeyPairs, backers });
   }
 
-  async import(args: ImportArgs) {
-    await super.import({ ...args });
+  async delete(args: { backers?: Parameters<IRandom['delete']>[0]['backers']}) {
+    const { backers = [] } = args || {};
+    await this.controller.delete({ backers });
+  }
+
+  async import({ data }) {
+    await this.controller.import({ keyPairs: this.randomKeys.keyPairs, data });
+  }
+
+  async export() {
+    await this.controller.export();
   }
 }

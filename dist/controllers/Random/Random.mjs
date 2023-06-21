@@ -1,6 +1,6 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
-import { Controller } from "../Controller/Controller.mjs";
+import { AController } from "../Controller/index.mjs";
 const signingKeyPair = () => {
   const signing = nacl.sign.keyPair();
   return {
@@ -21,24 +21,34 @@ const generateKeyPairs = () => {
     encryption: encryptionKeyPair()
   };
 };
-export class Random extends Controller {
-  constructor() {
-    super(...arguments);
-    this.randomKeyPairs = [];
+export class Random extends AController {
+  constructor(args) {
+    super(args);
+    this.randomKeys = {};
   }
   async incept(args) {
+    const { backers = [] } = args || {};
     const keyPairs = generateKeyPairs();
     const nextKeyPairs = generateKeyPairs();
-    this.randomKeyPairs = [keyPairs, nextKeyPairs];
-    await super.incept({ ...args, keyPairs, nextKeyPairs });
+    this.randomKeys.keyPairs = keyPairs;
+    this.randomKeys.nextKeyPairs = nextKeyPairs;
+    await this.controller.incept({ keyPairs, nextKeyPairs, backers });
   }
   async rotate(args) {
-    const keyPairs = { ...this.randomKeyPairs[this.randomKeyPairs.length - 1] };
+    const { backers = [] } = args || {};
+    const keyPairs = { ...this.randomKeys.nextKeyPairs };
     const nextKeyPairs = generateKeyPairs();
-    this.randomKeyPairs.push(nextKeyPairs);
-    await super.rotate({ ...args, keyPairs, nextKeyPairs });
+    this.randomKeys = { keyPairs, nextKeyPairs };
+    await this.controller.rotate({ keyPairs, nextKeyPairs, backers });
   }
-  async import(args) {
-    await super.import({ ...args });
+  async delete(args) {
+    const { backers = [] } = args || {};
+    await this.controller.delete({ backers });
+  }
+  async import({ data }) {
+    await this.controller.import({ keyPairs: this.randomKeys.keyPairs, data });
+  }
+  async export() {
+    await this.controller.export();
   }
 }

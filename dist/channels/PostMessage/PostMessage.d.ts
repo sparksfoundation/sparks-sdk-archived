@@ -1,6 +1,6 @@
-import { Spark } from "../../Spark";
-import { Channel } from "../Channel/Channel";
-export declare class PostMessage extends Channel {
+import { ISpark } from "../../Spark";
+import { AChannel } from "../Channel/types";
+export declare class PostMessage extends AChannel {
     private source;
     private origin;
     private _window?;
@@ -8,7 +8,7 @@ export declare class PostMessage extends Channel {
         _window?: Window;
         source: Window;
         origin: string;
-        spark: Spark;
+        spark: ISpark<any, any, any, any, any>;
         args?: any;
     });
     protected sendMessage(event: any): void;
@@ -18,7 +18,7 @@ export declare class PostMessage extends Channel {
         resolve: any;
         reject: any;
     }) => void, { spark, _window }: {
-        spark: Spark;
+        spark: ISpark<any, any, any, any, any>;
         _window?: Window;
     }): void;
 }

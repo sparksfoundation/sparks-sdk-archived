@@ -1,5 +1,5 @@
 import { ChannelError, ChannelEventId, ChannelMessage, ChannelReceipt, ChannelTypes, ChannelActions, ChannelMessageEvent, ChannelClosedReceipt, ChannelCallbackEvents } from "./types";
-import { Spark } from "../../Spark";
+import { ISpark } from "../../Spark";
 import { Identifier, PublicKeys } from "../../controllers/Controller/types";
 import { SharedEncryptionKey } from "../../ciphers/Cipher/types";
 export declare class Channel {
@@ -8,7 +8,7 @@ export declare class Channel {
     static MESSAGE_RETRIES: number;
     static MESSAGE_TIMEOUT: number;
     static CLOSE_TIMEOUT: number;
-    protected spark: Spark;
+    protected spark: ISpark<any, any, any, any, any>;
     protected _promiseHandlers: Map<string, any>;
     protected _preconnectQueue: ChannelMessageEvent[];
     protected _callbacks: Map<string, Set<Function>>;
@@ -32,8 +32,8 @@ export declare class Channel {
     open(payload?: any, action?: any, attempts?: number): Promise<Channel | ChannelError>;
     send(payload: any, action?: ChannelActions, attempts?: number): Promise<unknown>;
     close(payload: any, action: any): Promise<unknown>;
-    protected sendMessage(event: any): void;
-    protected receiveMessage(payload: any): void;
+    sendMessage(event: any): void;
+    receiveMessage(payload: any): void;
     static receive(callback: any, options: any): void;
     static channelRequest({ payload, Channel, options }: {
         payload: any;

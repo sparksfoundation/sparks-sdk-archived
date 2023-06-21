@@ -8,7 +8,7 @@ import {
   ChannelMessageConfirmEvent, ChannelCloseEvent, ChannelCloseConfirmationEvent, 
   ChannelClosedReceiptData, ChannelClosedReceipt, ChannelReceiptData, ChannelEventConfirmTypes, ChannelCallbackEvents 
 } from "./types";
-import { Spark } from "../../Spark";
+import { ISpark } from "../../Spark";
 import { Identifier, PublicKeys } from "../../controllers/Controller/types";
 import { SharedEncryptionKey } from "../../ciphers/Cipher/types";
 
@@ -19,7 +19,7 @@ export class Channel {
   static MESSAGE_TIMEOUT = 10000;
   static CLOSE_TIMEOUT = 10000;
   
-  protected spark: Spark;
+  protected spark: ISpark<any, any, any, any, any>;
   protected _promiseHandlers = new Map<string, ChannelPromiseHandler>();
   protected _preconnectQueue: ChannelMessageEvent[] = [];
   protected _callbacks = new Map<string, Set<Function>>();
@@ -526,11 +526,11 @@ export class Channel {
     });
   }
 
-  protected sendMessage(event: any) {
+  public sendMessage(event: any) {
     throw new Error('sendMessage not implemented');
   }
 
-  protected receiveMessage(payload: any) {
+  public receiveMessage(payload: any) {
     const { eventType, eventId, messageId } = payload;
     if (!eventType || !eventId) return;
 

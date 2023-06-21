@@ -1,3 +1,6 @@
+import { ISpark } from "../../Spark";
+import { Controller } from "./Controller";
+
 export type Identifier = string;                            // base64 identifier of inception event digest
 
 export type SigningPublicKey = string;                      // base64 signing keypair's public key
@@ -101,30 +104,6 @@ export type KeriDeletionEvent = KeriRotationEvent & {
 export type KeriKeyEvent = KeriInceptionEvent | KeriRotationEvent | KeriDeletionEvent;
 export type KeyEventLog = KeriKeyEvent[];
 
-export type InceptionArgs = {
-  password: string;
-  keyPairs: KeyPairs;
-  nextKeyPairs: KeyPairs;
-  backers: Backers;
-}
-
-export type RotationArgs = {
-  password: string;
-  newPassword: string | null;
-  keyPairs: KeyPairs;
-  nextKeyPairs: KeyPairs;
-  backers: Backers;
-}
-
-export type DeletionArgs = {
-  backers: Backers;
-}
-
-export type ImportArgs = {
-  keyPairs: KeyPairs,
-  data: string
-}
-
 /**
  * Controller interface
  * responsible for managing keypairs and key event log
@@ -134,6 +113,7 @@ export type ImportArgs = {
  * this is the main interface for the spark Identity
  * extend Controller class provide custom key derivation functionality
  */
+
 export interface IController {
   /**
    * Incepts a new identity
@@ -144,7 +124,7 @@ export interface IController {
    * @returns {Promise<void> | never} A promise that resolves when the incept operation is complete,
    * or rejects with an error.
    */
-  incept(args: InceptionArgs): Promise<void> | never;
+  incept({ keyPairs, nextKeyPairs, backers }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers?: Backers }): Promise<void> | never;
 
   /**
    * Rotates the current key pairs to a new key pair
@@ -154,7 +134,7 @@ export interface IController {
    * @param {Array} args.backers - List of backers to back this inception.
    * @returns {Promise<void> | never} A promise that resolves when the rotate operation is complete,
    */
-  rotate(args: RotationArgs): Promise<void> | never;
+  rotate({ keyPairs, nextKeyPairs, backers }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers: Backers }): Promise<void> | never;
 
   /**
    * Deletes the current key pairs by rotating to a null set
@@ -163,7 +143,7 @@ export interface IController {
    * @returns {Promise<void> | never} A promise that resolves when the delete operation is complete,
    * or rejects with an error.
    */
-  delete(args: DeletionArgs): Promise<void> | never;
+  delete({ backers }: { backers: Backers }): Promise<void> | never;
 
   /**
    * Imports an identity from an encrypted serialized base64 string
@@ -173,21 +153,72 @@ export interface IController {
    * @returns {Promise<void> | never} A promise that resolves when the import operation is complete,
    * or rejects with an error.
    */
-  import(args: ImportArgs): Promise<void> | never;
+  import({ keyPairs, data }: { keyPairs: KeyPairs, data: string | Record<string, any> }): Promise<void> | never;
 
   /**
    * Exports an identity to an encrypted serialized base64 string
    * @returns {Promise<string> | never} A promise that resolves to the encrypted serialized base64 string.
    * or rejects with an error.
    */
-  export(args?: any): Promise<any> | never;
+  export(): Promise<any> | never;
 
   // getters
-  identifier: Identifier;
-  keyEventLog: KeriKeyEvent[]
   keyPairs: KeyPairs;
+  identifier: Identifier;
+  keyEventLog: KeyEventLog;
+  publicKeys: PublicKeys;
   encryptionKeys: EncryptionKeyPair;
   signingKeys: SigningKeyPair;
   secretKeys: SecretKeys;
-  publicKeys: PublicKeys;
+}
+
+/**
+* Creates a key event
+* @param {Object} args - The args for creating a key event.
+* @param {string} args.eventType - The type of key event.
+* @param {Object} args.keyPairs - Key pairs to incept with.
+* @param {Object} args.nextKeyPairs - Next key pairs to rotate to.
+* @param {Array} args.backers - List of backers to back this inception.
+* @param {string} args.previousEventDigest - The previous event digest.
+* @returns {Promise<KeriKeyEvent> | never} A promise that resolves to the key event.
+* or rejects with an error.
+*/
+export type KeyEventMethod = (args: KeriEventArgs) => Promise<KeriKeyEvent> | never;
+
+// only for others to extend
+export abstract class AController {
+  public controller: IController;
+  public spark: ISpark<any, any, any, any, any>;
+  constructor(spark: ISpark<any, any, any, any, any>) {
+    if (!spark) throw new Error('Controller: missing spark');
+    this.spark = spark;
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
+    this.controller = new Controller(this.spark);
+  }
+
+  public abstract incept(args: any): any;
+  public abstract rotate(args: any): any;
+  public abstract delete(args: any): any;
+  public abstract import(args: any): any;
+  public abstract export(args?: any): any;
+
+  get keyEventLog(): KeyEventLog {
+    return this.controller.keyEventLog;
+  }
+
+  get encryptionKeys(): EncryptionKeyPair { 
+    return this.controller.encryptionKeys;
+  }
+  
+  get signingKeys(): SigningKeyPair {
+    return this.controller.signingKeys;
+  }
+
+  get secretKeys(): SecretKeys { 
+    return this.controller.secretKeys;
+  }
+
+  get publicKeys(): PublicKeys { 
+    return this.controller.publicKeys;
+  }
 }

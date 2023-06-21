@@ -1,8 +1,8 @@
-import { Spark } from "../../Spark";
+import { ISpark } from "../../Spark";
 import { Channel } from "../Channel/Channel";
-import { ChannelTypes } from "../Channel/types";
+import { AChannel, ChannelTypes } from "../Channel/types";
 
-export class PostMessage extends Channel {
+export class PostMessage extends AChannel {
   private source: Window;
   private origin: string;
   private _window?: Window;
@@ -17,10 +17,11 @@ export class PostMessage extends Channel {
     _window?: Window,
     source: Window,
     origin: string,
-    spark: Spark,
+    spark: ISpark<any, any, any, any, any>,
     args?: any
   }) {
     super({ channelType: ChannelTypes.POST_MESSAGE, spark, ...args });
+    console.log(this)
     this._window = _window || window || null;
     if (!this._window) throw new Error('PostMessage: missing window');
     this.origin = origin;
@@ -35,10 +36,10 @@ export class PostMessage extends Channel {
 
   protected receiveMessage(payload: any) {
     // how do we receive messages
-    super.receiveMessage(payload.data);
+    this.channel.receiveMessage(payload.data);
   }
 
-  static receive(callback: ({ details, resolve, reject }) => void, { spark, _window }: { spark: Spark, _window?: Window }) {
+  static receive(callback: ({ details, resolve, reject }) => void, { spark, _window }: { spark: ISpark<any, any, any, any, any>, _window?: Window }) {
     // how do we receive messages as a recipient
     const win = _window || window;
     win.addEventListener('message', (event) => {

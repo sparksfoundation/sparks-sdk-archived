@@ -1,9 +1,5 @@
-import { Agent } from "../Agent";
-export declare class Verifier extends Agent {
-    /**
-   * Verifies the data integrity and key commitment of the entire event log
-   * @param eventLog
-   * @returns
-   */
+import { AAgent } from "../Agent/types";
+import { IVerifier } from "./types";
+export declare class Verifier extends AAgent implements IVerifier {
     verifyEventLog(eventLog: any): Promise<any>;
 }
