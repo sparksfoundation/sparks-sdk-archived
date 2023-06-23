@@ -31,7 +31,10 @@ export var SparksChannel;
       Types2["RECEIPT_VERIFICATION_ERROR"] = "RECEIPT_VERIFICATION_ERROR";
       Types2["SHARED_KEY_CREATION_ERROR"] = "SHARED_KEY_CREATION_ERROR";
       Types2["OPEN_REQUEST_REJECTED"] = "OPEN_REQUEST_REJECTED";
+      Types2["COMPUTE_SHARED_KEY_ERROR"] = "COMPUTE_SHARED_KEY_ERROR";
       Types2["UNEXPECTED_ERROR"] = "UNEXPECTED_ERROR";
+      Types2["INVALID_PUBLIC_KEYS"] = "INVALID_PUBLIC_KEYS";
+      Types2["INVALID_IDENTIFIER"] = "INVALID_IDENTIFIER";
     })(Types = Error2.Types || (Error2.Types = {}));
   })(Error = SparksChannel2.Error || (SparksChannel2.Error = {}));
 })(SparksChannel || (SparksChannel = {}));
@@ -39,11 +42,18 @@ export class AChannel {
   constructor(spark) {
     this.spark = spark;
     this.channel = new Channel(spark);
+    Object.defineProperties(this, {
+      spark: { enumerable: false },
+      channel: { enumerable: false }
+    });
   }
   get cid() {
     return this.channel.cid;
   }
   get peer() {
     return this.channel.peer;
+  }
+  get receipts() {
+    return this.channel.receipts;
   }
 }

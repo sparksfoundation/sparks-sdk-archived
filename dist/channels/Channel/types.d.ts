@@ -1,4 +1,5 @@
 import { ISpark } from "../../Spark";
+import { SharedEncryptionKey } from "../../ciphers";
 import { Identifier, PublicKeys } from "../../controllers";
 import { Channel } from "./Channel";
 export declare namespace SparksChannel {
@@ -6,6 +7,7 @@ export declare namespace SparksChannel {
     type Eid = string;
     type Mid = string;
     type Timestamp = number;
+    type SharedKey = SharedEncryptionKey;
     type Peer = {
         identifier: Identifier;
         publicKeys: PublicKeys;
@@ -13,6 +15,7 @@ export declare namespace SparksChannel {
     type Peers = [Peer, Peer];
     namespace Receipt {
         type Cipher = string;
+        type Log = Cipher[];
         enum Types {
             OPEN_ACCEPTED = "OPEN_ACCEPTED",
             OPEN_CONFIRMED = "OPEN_CONFIRMED",
@@ -44,6 +47,10 @@ export declare namespace SparksChannel {
         type Any = OpenAccepted | OpenConfirmed | MessageConfirmed;
     }
     namespace Event {
+        type Promise = {
+            resolve: (args?: any) => any;
+            reject: (args?: any) => any;
+        };
         enum Types {
             OPEN_REQUEST = "OPEN_REQUEST",
             OPEN_ACCEPT = "OPEN_ACCEPT",
@@ -94,6 +101,10 @@ export declare namespace SparksChannel {
     }
     namespace Message {
         type Payload = string | Record<string, any>;
+        type Result = {
+            payload: Payload;
+            receipt: Receipt.Cipher;
+        };
     }
     namespace Error {
         type Message = string;
@@ -104,7 +115,10 @@ export declare namespace SparksChannel {
             RECEIPT_VERIFICATION_ERROR = "RECEIPT_VERIFICATION_ERROR",
             SHARED_KEY_CREATION_ERROR = "SHARED_KEY_CREATION_ERROR",
             OPEN_REQUEST_REJECTED = "OPEN_REQUEST_REJECTED",
-            UNEXPECTED_ERROR = "UNEXPECTED_ERROR"
+            COMPUTE_SHARED_KEY_ERROR = "COMPUTE_SHARED_KEY_ERROR",
+            UNEXPECTED_ERROR = "UNEXPECTED_ERROR",
+            INVALID_PUBLIC_KEYS = "INVALID_PUBLIC_KEYS",
+            INVALID_IDENTIFIER = "INVALID_IDENTIFIER"
         }
         type Meta = {
             cid: Cid;
@@ -130,6 +144,15 @@ export declare namespace SparksChannel {
         type OpenRequestRejected = Meta & {
             type: Types.OPEN_REQUEST_REJECTED;
         };
+        type ComputeSharedKey = Meta & {
+            type: Types.COMPUTE_SHARED_KEY_ERROR;
+        };
+        type InvalidPublicKeys = Meta & {
+            type: Types.INVALID_PUBLIC_KEYS;
+        };
+        type InvalidIdentifier = Meta & {
+            type: Types.INVALID_IDENTIFIER;
+        };
         type Unexpected = Meta & {
             type: Types.UNEXPECTED_ERROR;
         };
@@ -140,9 +163,12 @@ export declare namespace SparksChannel {
             [Types.RECEIPT_VERIFICATION_ERROR]: ReceiptVerification;
             [Types.SHARED_KEY_CREATION_ERROR]: SharedKeyCreation;
             [Types.OPEN_REQUEST_REJECTED]: OpenRequestRejected;
+            [Types.COMPUTE_SHARED_KEY_ERROR]: ComputeSharedKey;
+            [Types.INVALID_PUBLIC_KEYS]: InvalidPublicKeys;
+            [Types.INVALID_IDENTIFIER]: InvalidIdentifier;
             [Types.UNEXPECTED_ERROR]: Unexpected;
         };
-        type Any = SendRequest | EventPromise | ReceiptCreation | ReceiptVerification | SharedKeyCreation | OpenRequestRejected | Unexpected;
+        type Any = SendRequest | EventPromise | ReceiptCreation | ReceiptVerification | SharedKeyCreation | OpenRequestRejected | Unexpected | ComputeSharedKey | InvalidPublicKeys | InvalidIdentifier;
     }
     type RequestHandler = (event: Event.Any | Error.Any) => boolean;
 }
@@ -152,7 +178,10 @@ export declare abstract class AChannel {
     constructor(spark: any);
     protected get cid(): SparksChannel.Cid;
     protected get peer(): SparksChannel.Peer;
+    protected get receipts(): SparksChannel.Receipt.Log;
     protected abstract open(): void;
+    protected abstract acceptOpen(request: SparksChannel.Event.OpenRequest): void;
+    protected abstract rejectOpen(request: SparksChannel.Event.OpenRequest): void;
     protected abstract close(): void;
     protected abstract send(message: string | Record<string, any>): void;
 }

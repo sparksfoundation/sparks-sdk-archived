@@ -19,6 +19,8 @@ await website.controller.incept();
 PostMessage.receive(async ({ details, resolve, reject }) => {
   // reject() remove reolve below to test this
   const channel = await resolve();
+  const receipt = await channel.send('hey app');
+  console.log(channel.receipts)
 
   channel.onmessage = res => {
     console.log('\npotential channel message\n', res, '\n')
@@ -46,11 +48,7 @@ channel.onerror = err => {
 }
 
 // wait for channel to open
-const test = await channel.open()
+const receipt = await channel.open()
+const msgReceipt = await channel.send('hey website')
 
-setTimeout(async () => {
-  const msgReceipt = await channel.send('hey website')
-  console.log('\nmessage receipt\n', msgReceipt, '\n')
-  const closeReceipt = await channel.close()
-  console.log('\nclose receipt\n', closeReceipt, '\n')
-}, 1000)
+console.log(channel.receipts)

@@ -29,6 +29,12 @@ export class PostMessage extends AChannel {
   send(message) {
     return this.channel.send(message);
   }
+  acceptOpen(request) {
+    return this.channel.acceptOpen(request);
+  }
+  rejectOpen(request) {
+    return this.channel.rejectOpen(request);
+  }
   handleResponses(event) {
     const payload = event.data;
     return this.channel.handleResponses(payload);
@@ -43,16 +49,21 @@ export class PostMessage extends AChannel {
       const { type, cid } = event.data;
       if (type !== SparksChannel.Event.Types.OPEN_REQUEST)
         return;
+      const channel = new PostMessage({
+        _window: win,
+        source: event.source,
+        origin: event.origin,
+        spark,
+        channel: new Channel({ spark, cid })
+      });
       callback({
         details: event.data,
         resolve: async () => {
-          const channel = new Channel({ spark, cid });
-          const postMessage = new PostMessage({ _window: win, source: event.source, origin: event.origin, spark, channel });
-          await channel.onOpenRequested(event.data);
-          return postMessage;
+          const opend = await channel.acceptOpen(event.data);
+          return channel;
         },
-        reject: async (event2) => {
-          const channel = new Channel({ spark, cid });
+        reject: async () => {
+          await channel.rejectOpen(event.data);
           return null;
         }
       });

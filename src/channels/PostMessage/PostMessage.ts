@@ -47,6 +47,14 @@ export class PostMessage extends AChannel {
     return this.channel.send(message);
   }
 
+  protected acceptOpen(request) {
+    return this.channel.acceptOpen(request); 
+  }
+
+  protected rejectOpen(request) {
+    return this.channel.rejectOpen(request);
+  }
+
   protected handleResponses(event) {
     const payload = event.data;
     return this.channel.handleResponses(payload);
@@ -62,17 +70,23 @@ export class PostMessage extends AChannel {
     win.addEventListener('message', async (event) => {
       const { type, cid } = event.data;
       if (type !== SparksChannel.Event.Types.OPEN_REQUEST) return;
+      
+      const channel = new PostMessage({ 
+        _window: win, 
+        source: event.source as Window, 
+        origin: event.origin, 
+        spark, 
+        channel: new Channel({ spark, cid }) 
+      });
+
       callback({
         details: event.data,
         resolve: async () => {
-          const channel = new Channel({ spark, cid });
-          const postMessage = new PostMessage({ _window: win, source: event.source as Window, origin: event.origin, spark, channel });
-          await channel.onOpenRequested(event.data);
-          return postMessage;
+          const opend = await channel.acceptOpen(event.data);
+          return channel;
         },
-        reject: async (event) => {
-          const channel = new Channel({ spark, cid });
-          //await channel.rejectOpen(event.data);
+        reject: async () => {
+          await channel.rejectOpen(event.data);
           return null;
         }
       })

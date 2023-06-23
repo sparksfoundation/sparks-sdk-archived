@@ -1,4 +1,5 @@
 import { ISpark } from "../../Spark";
+import { SharedEncryptionKey } from "../../ciphers";
 import { Identifier, PublicKeys } from "../../controllers";
 import { Channel } from "./Channel";
 
@@ -7,11 +8,14 @@ export namespace SparksChannel {
   export type Eid = string;
   export type Mid = string;
   export type Timestamp = number;
+  export type SharedKey = SharedEncryptionKey;
   export type Peer = { identifier: Identifier, publicKeys: PublicKeys };
-  export type Peers = [ Peer, Peer ];
+  export type Peers = [Peer, Peer];
 
   export namespace Receipt {
     export type Cipher = string;
+
+    export type Log = Cipher[];
 
     export enum Types {
       OPEN_ACCEPTED = 'OPEN_ACCEPTED',
@@ -52,6 +56,11 @@ export namespace SparksChannel {
   }
 
   export namespace Event {
+    export type Promise = {
+      resolve: (args?: any) => any,
+      reject: (args?: any) => any,
+    };
+
     export enum Types {
       OPEN_REQUEST = 'OPEN_REQUEST',
       OPEN_ACCEPT = 'OPEN_ACCEPT',
@@ -71,14 +80,14 @@ export namespace SparksChannel {
       identifier: Identifier,
       publicKeys: PublicKeys,
     }
-  
+
     export type OpenAccept = Meta & {
       type: Types.OPEN_ACCEPT,
       identifier: Identifier,
       publicKeys: PublicKeys,
       receipt: Receipt.Cipher,
     }
-  
+
     export type OpenConfirm = Meta & {
       type: Types.OPEN_CONFIRM,
       identifier: Identifier,
@@ -106,11 +115,17 @@ export namespace SparksChannel {
       [Types.MESSAGE_CONFIRM]: MessageConfirm,
     }
 
-    export type Any = OpenRequest | OpenAccept | OpenConfirm | MessageRequest | MessageConfirm ;
+    export type Any = OpenRequest | OpenAccept | OpenConfirm | MessageRequest | MessageConfirm;
   }
 
   export namespace Message {
     export type Payload = string | Record<string, any>;
+
+    export type Result = {
+
+      payload: Payload,
+      receipt: Receipt.Cipher,
+    }
   }
 
   export namespace Error {
@@ -123,7 +138,10 @@ export namespace SparksChannel {
       RECEIPT_VERIFICATION_ERROR = 'RECEIPT_VERIFICATION_ERROR', // failed to verify a receipt
       SHARED_KEY_CREATION_ERROR = 'SHARED_KEY_CREATION_ERROR', // failed to create a shared key
       OPEN_REQUEST_REJECTED = 'OPEN_REQUEST_REJECTED', // open request was rejected
+      COMPUTE_SHARED_KEY_ERROR = 'COMPUTE_SHARED_KEY_ERROR', // failed to compute a shared key
       UNEXPECTED_ERROR = 'UNEXPECTED_ERROR', // unexpected error
+      INVALID_PUBLIC_KEYS = 'INVALID_PUBLIC_KEYS', // invalid public keys
+      INVALID_IDENTIFIER = 'INVALID_IDENTIFIER', // invalid identifier
     }
 
     export type Meta = {
@@ -157,9 +175,22 @@ export namespace SparksChannel {
       type: Types.OPEN_REQUEST_REJECTED,
     }
 
+    export type ComputeSharedKey = Meta & {
+      type: Types.COMPUTE_SHARED_KEY_ERROR,
+    }
+
+    export type InvalidPublicKeys = Meta & {
+      type: Types.INVALID_PUBLIC_KEYS,
+    }
+
+    export type InvalidIdentifier = Meta & {
+      type: Types.INVALID_IDENTIFIER,
+    }
+
     export type Unexpected = Meta & {
       type: Types.UNEXPECTED_ERROR,
     }
+
 
     export type All = {
       [Types.SEND_REQUEST_ERROR]: SendRequest,
@@ -168,10 +199,13 @@ export namespace SparksChannel {
       [Types.RECEIPT_VERIFICATION_ERROR]: ReceiptVerification,
       [Types.SHARED_KEY_CREATION_ERROR]: SharedKeyCreation,
       [Types.OPEN_REQUEST_REJECTED]: OpenRequestRejected,
+      [Types.COMPUTE_SHARED_KEY_ERROR]: ComputeSharedKey,
+      [Types.INVALID_PUBLIC_KEYS]: InvalidPublicKeys,
+      [Types.INVALID_IDENTIFIER]: InvalidIdentifier,
       [Types.UNEXPECTED_ERROR]: Unexpected,
     }
 
-    export type Any = SendRequest | EventPromise | ReceiptCreation | ReceiptVerification | SharedKeyCreation | OpenRequestRejected | Unexpected;
+    export type Any = SendRequest | EventPromise | ReceiptCreation | ReceiptVerification | SharedKeyCreation | OpenRequestRejected | Unexpected | ComputeSharedKey | InvalidPublicKeys | InvalidIdentifier;
   }
 
   export type RequestHandler = (event: Event.Any | Error.Any) => boolean
@@ -183,6 +217,10 @@ export abstract class AChannel {
   constructor(spark) {
     this.spark = spark;
     this.channel = new Channel(spark);
+    Object.defineProperties(this, {
+      spark: { enumerable: false },
+      channel: { enumerable: false },
+    })
   }
 
   protected get cid(): SparksChannel.Cid {
@@ -193,7 +231,15 @@ export abstract class AChannel {
     return this.channel.peer;
   }
 
+  protected get receipts(): SparksChannel.Receipt.Log {
+    return this.channel.receipts;
+  }
+
+
   protected abstract open(): void;
+  protected abstract acceptOpen(request: SparksChannel.Event.OpenRequest): void;
+  protected abstract rejectOpen(request: SparksChannel.Event.OpenRequest): void;
+
   protected abstract close(): void;
   protected abstract send(message: string | Record<string, any>): void;
 }
