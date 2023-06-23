@@ -41,7 +41,7 @@ export class PostMessage extends AChannel {
     const win = _window || window;
     win.addEventListener("message", async (event) => {
       const { type, cid } = event.data;
-      if (type !== SparksChannel.EventTypes.OPEN_REQUEST)
+      if (type !== SparksChannel.Event.Types.OPEN_REQUEST)
         return;
       callback({
         details: event.data,

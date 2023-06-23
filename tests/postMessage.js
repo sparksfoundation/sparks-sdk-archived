@@ -19,7 +19,6 @@ await website.controller.incept();
 PostMessage.receive(async ({ details, resolve, reject }) => {
   // reject() remove reolve below to test this
   const channel = await resolve();
-  console.log('hey', channel.peer)
 
   channel.onmessage = res => {
     console.log('\npotential channel message\n', res, '\n')
@@ -48,7 +47,6 @@ channel.onerror = err => {
 
 // wait for channel to open
 const test = await channel.open()
-console.log(test.peer)
 
 setTimeout(async () => {
   const msgReceipt = await channel.send('hey website')

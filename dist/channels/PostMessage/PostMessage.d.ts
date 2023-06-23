@@ -14,7 +14,7 @@ export declare class PostMessage extends AChannel {
     });
     protected open(): Promise<unknown>;
     protected close(): void;
-    protected send(message: any): void;
+    protected send(message: any): Promise<unknown>;
     protected handleResponses(event: any): void;
     protected sendRequests(event: any): boolean;
     static receive(callback: ({ details, resolve, reject }: {

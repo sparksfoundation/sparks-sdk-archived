@@ -6,7 +6,7 @@ export interface IChannel {
 }
 export declare class Channel implements IChannel {
     private openingPromises;
-    private openingSharedKeys;
+    private messagePromises;
     private requestHandler;
     private spark;
     cid: SparksChannel.Cid;
@@ -21,21 +21,21 @@ export declare class Channel implements IChannel {
         cid?: SparksChannel.Cid;
         spark: ISpark<any, any, any, any, any>;
     });
-    private channelError;
-    private getSharedKey;
-    private channelReceipt;
+    private logReceipt;
+    private sealReceipt;
     private verifyReceipt;
     open(): Promise<unknown>;
-    onOpenRequested(requestEvent: SparksChannel.OpenRequestEvent): Promise<unknown>;
-    onOpenAccepted(acceptEvent: SparksChannel.OpenAcceptEvent): Promise<void>;
-    onOpenConfirmed(confirmEvent: SparksChannel.OpenConfirmEvent): Promise<void>;
-    completeOpen(data: any): Promise<void>;
+    setPeer(event: SparksChannel.Event.OpenRequest | SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenConfirm): Promise<void>;
+    onOpenRequested(requestEvent: SparksChannel.Event.OpenRequest): Promise<unknown>;
+    onOpenAccepted(acceptEvent: SparksChannel.Event.OpenAccept): Promise<void>;
+    onOpenConfirmed(confirmEvent: SparksChannel.Event.OpenConfirm): Promise<void>;
+    completeOpen(data: SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenConfirm): Promise<void>;
+    send(payload: SparksChannel.Message.Payload): Promise<unknown>;
+    onMessageRequest(messageRequest: SparksChannel.Event.MessageRequest): Promise<void>;
+    onMessageConfirmed(messageConfirm: SparksChannel.Event.MessageConfirm): Promise<void>;
     close(): void;
-    send(args: any): void;
-    handleError(errorEvent: any): void;
-    protected request(event: any): Promise<{
-        ok: any;
-    }>;
-    sendRequests(callback: any): void;
+    handleError(errorEvent: SparksChannel.Error.Any): void;
+    protected request(event: SparksChannel.Event.Any | SparksChannel.Error.Any): Promise<boolean>;
+    sendRequests(callback: SparksChannel.RequestHandler): void;
     handleResponses(event: any): void;
 }
