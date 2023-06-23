@@ -194,6 +194,11 @@ export abstract class AController {
     this.spark = spark;
     Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
     this.controller = new Controller(this.spark);
+    this.incept = this.incept.bind(this);
+    this.rotate = this.rotate.bind(this);
+    this.delete = this.delete.bind(this);
+    this.import = this.import.bind(this);
+    this.export = this.export.bind(this);
   }
 
   public abstract incept(args: any): any;
@@ -201,6 +206,14 @@ export abstract class AController {
   public abstract delete(args: any): any;
   public abstract import(args: any): any;
   public abstract export(args?: any): any;
+
+  get identifier(): Identifier {
+    return this.controller.identifier;
+  }
+
+  get keyPairs(): KeyPairs {
+    return this.controller.keyPairs;
+  }
 
   get keyEventLog(): KeyEventLog {
     return this.controller.keyEventLog;

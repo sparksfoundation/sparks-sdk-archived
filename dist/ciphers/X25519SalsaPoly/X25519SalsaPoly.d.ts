@@ -1,6 +1,6 @@
-import { Cipher } from "../Cipher/Cipher";
+import { ACipher } from "../Cipher/types";
 import { IX25519SalsaPoly } from "./types";
-export declare class X25519SalsaPoly extends Cipher implements IX25519SalsaPoly {
+export declare class X25519SalsaPoly extends ACipher implements IX25519SalsaPoly {
     computeSharedKey({ publicKey }: {
         publicKey: any;
     }): Promise<any>;

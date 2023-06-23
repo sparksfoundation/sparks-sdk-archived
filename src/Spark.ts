@@ -101,7 +101,7 @@ export class Spark<C extends Controller, S extends Signer, Cp extends Cipher, H 
   }
 
   get computeSharedKey (): Cp['computeSharedKey'] {
-    return this.cipher.computeSharedKey;
+    return this.cipher.computeSharedKey.bind(this.cipher);
   }
 
   get incept (): C['incept'] {

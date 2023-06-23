@@ -7,32 +7,30 @@ import { PostMessage } from '../dist/channels/PostMessage/index.mjs';
 
 import { _0000, _1111 } from './mocks/MockWindow.js';
 
-const website = new Spark({ 
-  controller: Random, 
-  signer: Ed25519, 
-  hasher: Blake3, 
-  cipher: X25519SalsaPoly 
+const website = new Spark({
+  controller: Random,
+  signer: Ed25519,
+  hasher: Blake3,
+  cipher: X25519SalsaPoly
 });
 
 await website.controller.incept();
 
 PostMessage.receive(async ({ details, resolve, reject }) => {
-  console.log('\nchannel details\n', details, '\n')
   // reject() remove reolve below to test this
-
   const channel = await resolve();
+  console.log('hey', channel.peer)
+
   channel.onmessage = res => {
     console.log('\npotential channel message\n', res, '\n')
   }
 }, { spark: website, _window: _1111 });
 
-
-
-const alice = new Spark({ 
-  controller: Random, 
-  signer: Ed25519, 
-  hasher: Blake3, 
-  cipher: X25519SalsaPoly 
+const alice = new Spark({
+  controller: Random,
+  signer: Ed25519,
+  hasher: Blake3,
+  cipher: X25519SalsaPoly
 });
 
 await alice.controller.incept();
@@ -49,8 +47,8 @@ channel.onerror = err => {
 }
 
 // wait for channel to open
-await channel.open()
-console.log('\nchannel ready\n')
+const test = await channel.open()
+console.log(test.peer)
 
 setTimeout(async () => {
   const msgReceipt = await channel.send('hey website')

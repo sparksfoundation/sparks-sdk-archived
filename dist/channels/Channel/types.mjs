@@ -1,74 +1,37 @@
 import { Channel } from "./Channel.mjs";
-export var ChannelActions = /* @__PURE__ */ ((ChannelActions2) => {
-  ChannelActions2["CONFIRM"] = "confirm";
-  ChannelActions2["ACCEPT"] = "accept";
-  ChannelActions2["REJECT"] = "reject";
-  return ChannelActions2;
-})(ChannelActions || {});
-export var ChannelCallbackEvents = /* @__PURE__ */ ((ChannelCallbackEvents2) => {
-  ChannelCallbackEvents2["OPEN"] = "open";
-  ChannelCallbackEvents2["CLOSE"] = "close";
-  ChannelCallbackEvents2["MESSAGE"] = "message";
-  ChannelCallbackEvents2["ERROR"] = "error";
-  return ChannelCallbackEvents2;
-})(ChannelCallbackEvents || {});
-export var ChannelTypes = /* @__PURE__ */ ((ChannelTypes2) => {
-  ChannelTypes2["POST_MESSAGE"] = "post_message";
-  ChannelTypes2["WEB_RTC"] = "web_rtc";
-  ChannelTypes2["WEB_SOCKET"] = "web_socket";
-  ChannelTypes2["BLUE_TOOTH"] = "blue_tooth";
-  ChannelTypes2["NFC"] = "nfc";
-  ChannelTypes2["QR_CODE"] = "qr_code";
-  ChannelTypes2["REST_API"] = "rest_api";
-  ChannelTypes2["FETCH_API"] = "fetch_api";
-  return ChannelTypes2;
-})(ChannelTypes || {});
-export var ChannelEventTypes = /* @__PURE__ */ ((ChannelEventTypes2) => {
-  ChannelEventTypes2["OPEN_REQUEST"] = "open_request";
-  ChannelEventTypes2["OPEN_ACCEPT"] = "open_accept";
-  ChannelEventTypes2["OPEN_CONFIRM"] = "open_confirm";
-  ChannelEventTypes2["CLOSE_REQUEST"] = "close_request";
-  ChannelEventTypes2["CLOSE_CONFIRM"] = "close_confirm";
-  ChannelEventTypes2["MESSAGE_SEND"] = "message_send";
-  ChannelEventTypes2["MESSAGE_CONFIRM"] = "message_confirm";
-  return ChannelEventTypes2;
-})(ChannelEventTypes || {});
-export var ChannelEventConfirmTypes = /* @__PURE__ */ ((ChannelEventConfirmTypes2) => {
-  ChannelEventConfirmTypes2["CLOSE_REQUEST"] = "close_request" /* CLOSE_REQUEST */;
-  ChannelEventConfirmTypes2["MESSAGE_SEND"] = "message_send" /* MESSAGE_SEND */;
-  return ChannelEventConfirmTypes2;
-})(ChannelEventConfirmTypes || {});
-export var ChannelErrorCodes = /* @__PURE__ */ ((ChannelErrorCodes2) => {
-  ChannelErrorCodes2["OPEN_REQUEST_ERROR"] = "open_request_error";
-  ChannelErrorCodes2["OPEN_ACCEPT_ERROR"] = "open_accept_error";
-  ChannelErrorCodes2["OPEN_CONFIRM_ERROR"] = "open_confirm_error";
-  ChannelErrorCodes2["TIMEOUT_ERROR"] = "timeout_error";
-  ChannelErrorCodes2["CLOSE_REQUEST_ERROR"] = "close_request_error";
-  ChannelErrorCodes2["CLOSE_CONFIRM_ERROR"] = "close_confirm_error";
-  ChannelErrorCodes2["MESSAGE_SEND_ERROR"] = "message_send_error";
-  ChannelErrorCodes2["MESSAGE_CONFIRM_ERROR"] = "message_confirm_error";
-  return ChannelErrorCodes2;
-})(ChannelErrorCodes || {});
+export var SparksChannel;
+((SparksChannel2) => {
+  let EventTypes;
+  ((EventTypes2) => {
+    EventTypes2["OPEN_REQUEST"] = "OPEN_REQUEST";
+    EventTypes2["OPEN_ACCEPT"] = "OPEN_ACCEPT";
+    EventTypes2["OPEN_CONFIRM"] = "OPEN_CONFIRM";
+  })(EventTypes = SparksChannel2.EventTypes || (SparksChannel2.EventTypes = {}));
+  let ErrorTypes;
+  ((ErrorTypes2) => {
+    ErrorTypes2["OPEN_REQUEST_FAILED"] = "OPEN_REQUEST_FAILED";
+    ErrorTypes2["OPEN_REQUEST_REJECTED"] = "OPEN_REQUEST_REJECTED";
+    ErrorTypes2["OPEN_CONFIRM_FAILED"] = "OPEN_CONFIRM_FAILED";
+    ErrorTypes2["RECEIPT_CREATION_FAILED"] = "RECEIPT_CREATION_FAILED";
+    ErrorTypes2["RECEIPT_VERIFICATION_FAILED"] = "RECEIPT_VERIFICATION_FAILED";
+    ErrorTypes2["OPEN_ACCEPT_FAILED"] = "OPEN_ACCEPT_FAILED";
+    ErrorTypes2["OPEN_ACCEPT_REJECTED"] = "OPEN_ACCEPT_REJECTED";
+    ErrorTypes2["CHANNEL_ERROR"] = "CHANNEL_ERROR";
+  })(ErrorTypes = SparksChannel2.ErrorTypes || (SparksChannel2.ErrorTypes = {}));
+  let ReceiptTypes;
+  ((ReceiptTypes2) => {
+    ReceiptTypes2["OPEN_CONFIRMED"] = "OPEN_CONFIRMED";
+  })(ReceiptTypes = SparksChannel2.ReceiptTypes || (SparksChannel2.ReceiptTypes = {}));
+})(SparksChannel || (SparksChannel = {}));
 export class AChannel {
-  constructor(args) {
-    const { channelType, spark } = args;
-    if (!spark)
-      throw new Error("Channel: missing spark");
+  constructor(spark) {
     this.spark = spark;
-    this.channelType = channelType;
-    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
-    this.channel = new Channel(args);
+    this.channel = new Channel(spark);
   }
-  open(args) {
-    return this.channel.open(args);
+  get cid() {
+    return this.channel.cid;
   }
-  send(args) {
-    return this.channel.send(args);
-  }
-  on(event, callback) {
-    this.channel.on(event, callback);
-  }
-  off(event, callback) {
-    this.channel.off(event, callback);
+  get peer() {
+    return this.channel.peer;
   }
 }

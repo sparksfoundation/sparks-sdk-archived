@@ -1,3 +1,4 @@
+import { ISpark } from "../../Spark";
 export type SharedEncryptionKey = string;
 /**
  * Cipher interface
@@ -39,4 +40,12 @@ export interface ICipher {
     computeSharedKey: (args: {
         publicKey: string;
     }) => Promise<string> | never;
+}
+export declare abstract class ACipher {
+    protected spark: ISpark<any, any, any, any, any>;
+    protected cipher: ICipher;
+    constructor(spark: ISpark<any, any, any, any, any>);
+    abstract encrypt(args: any): any;
+    abstract decrypt(args: any): any;
+    abstract computeSharedKey(args: any): any;
 }

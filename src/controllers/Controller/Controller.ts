@@ -1,6 +1,5 @@
 import { ISpark } from '../../Spark';
 import {
-  AController,
   EncryptionKeyPair,
   IController,
   Identifier,

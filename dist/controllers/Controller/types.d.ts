@@ -178,6 +178,8 @@ export declare abstract class AController {
     abstract delete(args: any): any;
     abstract import(args: any): any;
     abstract export(args?: any): any;
+    get identifier(): Identifier;
+    get keyPairs(): KeyPairs;
     get keyEventLog(): KeyEventLog;
     get encryptionKeys(): EncryptionKeyPair;
     get signingKeys(): SigningKeyPair;

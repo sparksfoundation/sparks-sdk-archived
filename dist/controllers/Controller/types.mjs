@@ -12,6 +12,17 @@ export class AController {
     this.spark = spark;
     Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
     this.controller = new Controller(this.spark);
+    this.incept = this.incept.bind(this);
+    this.rotate = this.rotate.bind(this);
+    this.delete = this.delete.bind(this);
+    this.import = this.import.bind(this);
+    this.export = this.export.bind(this);
+  }
+  get identifier() {
+    return this.controller.identifier;
+  }
+  get keyPairs() {
+    return this.controller.keyPairs;
   }
   get keyEventLog() {
     return this.controller.keyEventLog;

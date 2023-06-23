@@ -46,7 +46,7 @@ export class Spark {
     return this.cipher.decrypt;
   }
   get computeSharedKey() {
-    return this.cipher.computeSharedKey;
+    return this.cipher.computeSharedKey.bind(this.cipher);
   }
   get incept() {
     return this.controller.incept;

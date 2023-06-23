@@ -1,8 +1,8 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
-import { Cipher } from "../Cipher/Cipher.mjs";
+import { ACipher } from "../Cipher/types.mjs";
 import { parseJSON } from "../../utilities/index.mjs";
-export class X25519SalsaPoly extends Cipher {
+export class X25519SalsaPoly extends ACipher {
   async computeSharedKey({ publicKey }) {
     if (!this.spark.encryptionKeys) {
       throw new Error("No key pairs found, please import or incept identity");
