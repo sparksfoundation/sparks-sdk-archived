@@ -4,21 +4,15 @@ export declare class PostMessage extends AChannel {
     private source;
     private origin;
     private _window?;
-    constructor({ _window, source, origin, spark, channel, ...args }: {
+    constructor({ _window, source, origin, spark, channel, }: {
         _window?: Window;
         source: Window;
         origin: string;
         spark: ISpark<any, any, any, any, any>;
         channel?: Channel;
-        args?: any;
     });
-    protected open(): Promise<unknown>;
-    protected close(): void;
-    protected send(message: any): Promise<unknown>;
-    protected acceptOpen(request: any): Promise<unknown>;
-    protected rejectOpen(request: any): Promise<void>;
-    protected handleResponses(event: any): void;
-    protected sendRequests(event: any): boolean;
+    protected handleResponse(event: any): void;
+    protected sendRequest(event: any): Promise<void>;
     static receive(callback: ({ details, resolve, reject }: {
         details: any;
         resolve: any;

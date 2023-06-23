@@ -13,13 +13,14 @@ export declare namespace SparksChannel {
         publicKeys: PublicKeys;
     };
     type Peers = [Peer, Peer];
+    type EventLog = any[];
     namespace Receipt {
         type Cipher = string;
-        type Log = Cipher[];
         enum Types {
             OPEN_ACCEPTED = "OPEN_ACCEPTED",
             OPEN_CONFIRMED = "OPEN_CONFIRMED",
-            MESSAGE_RECEIVED = "MESSAGE_RECEIVED"
+            MESSAGE_CONFIRMED = "MESSAGE_CONFIRMED",
+            CLOSE_CONFIRMED = "CLOSE_CONFIRMED"
         }
         type Meta = {
             cid: Cid;
@@ -34,17 +35,21 @@ export declare namespace SparksChannel {
             peers: Peers;
         };
         type MessageConfirmed = Meta & {
-            type: Types.MESSAGE_RECEIVED;
+            type: Types.MESSAGE_CONFIRMED;
             mid: Mid;
             payload: Message.Payload;
+        };
+        type CloseConfirmed = Meta & {
+            type: Types.CLOSE_CONFIRMED;
         };
         type All = {
             [Types.OPEN_ACCEPTED]: OpenAccepted;
             [Types.OPEN_CONFIRMED]: OpenConfirmed;
-            [Types.MESSAGE_RECEIVED]: MessageConfirmed;
+            [Types.MESSAGE_CONFIRMED]: MessageConfirmed;
+            [Types.CLOSE_CONFIRMED]: CloseConfirmed;
         };
-        type Events = SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenRequest | SparksChannel.Event.MessageConfirm;
-        type Any = OpenAccepted | OpenConfirmed | MessageConfirmed;
+        type Events = SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenConfirm | SparksChannel.Event.MessageConfirm | SparksChannel.Event.CloseConfirm;
+        type Any = OpenAccepted | OpenConfirmed | MessageConfirmed | CloseConfirmed;
     }
     namespace Event {
         type Promise = {
@@ -56,7 +61,9 @@ export declare namespace SparksChannel {
             OPEN_ACCEPT = "OPEN_ACCEPT",
             OPEN_CONFIRM = "OPEN_CONFIRM",
             MESSAGE_REQUEST = "MESSAGE_REQUEST",
-            MESSAGE_CONFIRM = "MESSAGE_CONFIRM"
+            MESSAGE_CONFIRM = "MESSAGE_CONFIRM",
+            CLOSE_REQUEST = "CLOSE_REQUEST",
+            CLOSE_CONFIRM = "CLOSE_CONFIRM"
         }
         type Meta = {
             eid: Eid;
@@ -90,14 +97,23 @@ export declare namespace SparksChannel {
             type: Types.MESSAGE_CONFIRM;
             receipt: Receipt.Cipher;
         };
+        type CloseRequest = Meta & {
+            type: Types.CLOSE_REQUEST;
+        };
+        type CloseConfirm = Meta & {
+            type: Types.CLOSE_CONFIRM;
+            receipt: Receipt.Cipher;
+        };
         type All = {
             [Types.OPEN_REQUEST]: OpenRequest;
             [Types.OPEN_ACCEPT]: OpenAccept;
             [Types.OPEN_CONFIRM]: OpenConfirm;
             [Types.MESSAGE_REQUEST]: MessageRequest;
             [Types.MESSAGE_CONFIRM]: MessageConfirm;
+            [Types.CLOSE_REQUEST]: CloseRequest;
+            [Types.CLOSE_CONFIRM]: CloseConfirm;
         };
-        type Any = OpenRequest | OpenAccept | OpenConfirm | MessageRequest | MessageConfirm;
+        type Any = OpenRequest | OpenAccept | OpenConfirm | MessageRequest | MessageConfirm | CloseRequest | CloseConfirm;
     }
     namespace Message {
         type Payload = string | Record<string, any>;
@@ -170,7 +186,7 @@ export declare namespace SparksChannel {
         };
         type Any = SendRequest | EventPromise | ReceiptCreation | ReceiptVerification | SharedKeyCreation | OpenRequestRejected | Unexpected | ComputeSharedKey | InvalidPublicKeys | InvalidIdentifier;
     }
-    type RequestHandler = (event: Event.Any | Error.Any) => boolean;
+    type RequestHandler = (event: Event.Any | Error.Any) => Promise<void> | never;
 }
 export declare abstract class AChannel {
     protected spark: ISpark<any, any, any, any, any>;
@@ -178,10 +194,13 @@ export declare abstract class AChannel {
     constructor(spark: any);
     protected get cid(): SparksChannel.Cid;
     protected get peer(): SparksChannel.Peer;
-    protected get receipts(): SparksChannel.Receipt.Log;
-    protected abstract open(): void;
-    protected abstract acceptOpen(request: SparksChannel.Event.OpenRequest): void;
-    protected abstract rejectOpen(request: SparksChannel.Event.OpenRequest): void;
-    protected abstract close(): void;
-    protected abstract send(message: string | Record<string, any>): void;
+    protected get eventLog(): SparksChannel.EventLog;
+    protected get opened(): boolean;
+    protected open(): Promise<unknown>;
+    protected close(): Promise<unknown>;
+    protected send(message: any): Promise<unknown>;
+    protected acceptOpen(request: any): Promise<unknown>;
+    protected rejectOpen(request: any): Promise<void>;
+    protected abstract sendRequest(request: SparksChannel.Event.Any): Promise<void | never>;
+    protected abstract handleResponse(response?: any): any | never;
 }

@@ -5,22 +5,12 @@ export class Channel {
     this.promises = /* @__PURE__ */ new Map();
     this.pendingMessages = [];
     this.opened = false;
+    this.eventLog = [];
     this.spark = spark;
     this.cid = cid || randomNonce(16);
-    this.receipts = [];
+    this.eventLog = [];
   }
   // utilities
-  async logReceipt(receiptCipher) {
-    const peer = this.peer;
-    const sharedKey = this.sharedKey;
-    const opened = await this.spark.verify({ signature: receiptCipher, publicKey: peer.publicKeys.signing });
-    const decrypted = await this.spark.decrypt({ sharedKey, data: opened });
-    const receipt = {
-      ...decrypted,
-      ciphertext: receiptCipher
-    };
-    this.receipts.push(receipt);
-  }
   async sealReceipt(data, event) {
     let error = null;
     const sharedKey = this.sharedKey;
@@ -106,7 +96,8 @@ export class Channel {
   async request(event) {
     let error = null;
     try {
-      this.requestHandler(event);
+      await this.requestHandler(event);
+      this.eventLog.push({ response: true, ...event });
     } catch (err) {
       error = {
         eid: event.eid,
@@ -115,12 +106,19 @@ export class Channel {
         cid: this.cid,
         timestamp: getTimestamp()
       };
+      this.eventLog.push({ response: true, ...error });
     }
     return { error };
   }
   handleResponses(event) {
-    let type = event.type;
-    type = Object.values(SparksChannel.Error.Types).includes(type) ? SparksChannel.Error.Types.UNEXPECTED_ERROR : type;
+    const isEvent = Object.values(SparksChannel.Event.Types).includes(event.type);
+    const isError = Object.values(SparksChannel.Error.Types).includes(event.type);
+    if (!isEvent && !isError)
+      return;
+    const type = isError ? SparksChannel.Error.Types.UNEXPECTED_ERROR : event.type;
+    if (isEvent || isError) {
+      this.eventLog.push({ request: true, ...event });
+    }
     switch (type) {
       case SparksChannel.Event.Types.OPEN_REQUEST:
         this.onOpenRequested(event);
@@ -139,6 +137,12 @@ export class Channel {
         break;
       case SparksChannel.Event.Types.MESSAGE_CONFIRM:
         this.onMessageConfirmed(event);
+        break;
+      case SparksChannel.Event.Types.CLOSE_REQUEST:
+        this.onCloseRequested(event);
+        break;
+      case SparksChannel.Event.Types.CLOSE_CONFIRM:
+        this.onCloseConfirmed(event);
         break;
       case SparksChannel.Error.Types.UNEXPECTED_ERROR:
         const { promise } = this.getPromise(event.eid);
@@ -258,7 +262,6 @@ export class Channel {
     const { promise } = this.getPromise(confirmOrAcceptEvent.eid);
     if (!promise)
       return;
-    await this.logReceipt(confirmOrAcceptEvent.receipt);
     promise.resolve(confirmOrAcceptEvent);
     this.promises.delete(confirmOrAcceptEvent.eid);
     this.opened = true;
@@ -268,35 +271,32 @@ export class Channel {
     this.pendingMessages = [];
   }
   // message flow
-  onMessageRequest(messageRequest) {
-    return new Promise(async (resolve, reject) => {
-      const receiptData = {
-        type: SparksChannel.Receipt.Types.MESSAGE_RECEIVED,
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        mid: messageRequest.mid,
-        payload: messageRequest.payload
-      };
-      const { receipt, error: receiptError } = await this.sealReceipt(receiptData, messageRequest);
-      if (receiptError) {
-        this.request(receiptError);
-        return reject(receiptError);
-      }
-      const event = {
-        eid: messageRequest.eid,
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        type: SparksChannel.Event.Types.MESSAGE_CONFIRM,
-        mid: messageRequest.mid,
-        receipt
-      };
-      const { error: requestError } = await this.request(event);
-      if (requestError) {
-        this.request(requestError);
-        return reject(requestError);
-      }
-      resolve();
-    });
+  async onMessageRequest(messageRequest) {
+    const receiptData = {
+      type: SparksChannel.Receipt.Types.MESSAGE_CONFIRMED,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      mid: messageRequest.mid,
+      payload: messageRequest.payload
+    };
+    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, messageRequest);
+    if (receiptError) {
+      this.request(receiptError);
+      return;
+    }
+    const event = {
+      eid: messageRequest.eid,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      type: SparksChannel.Event.Types.MESSAGE_CONFIRM,
+      mid: messageRequest.mid,
+      receipt
+    };
+    const { error: requestError } = await this.request(event);
+    if (requestError) {
+      this.request(requestError);
+      return;
+    }
   }
   async onMessageConfirmed(confirmEvent) {
     const { promise } = this.getPromise(confirmEvent.eid);
@@ -309,9 +309,64 @@ export class Channel {
       this.promises.delete(confirmEvent.eid);
       return;
     }
-    await this.logReceipt(confirmEvent.receipt);
     this.promises.delete(confirmEvent.eid);
     promise.resolve(confirmEvent);
+    this.completeMessage(confirmEvent);
+  }
+  async completeMessage(messageRequestOrConfirm) {
+    const { promise } = this.getPromise(messageRequestOrConfirm.eid);
+    if (!promise)
+      return;
+    promise.resolve(messageRequestOrConfirm);
+    this.promises.delete(messageRequestOrConfirm.eid);
+  }
+  // close flow
+  async onCloseRequested(requestEvent) {
+    const receiptData = {
+      type: SparksChannel.Receipt.Types.CLOSE_CONFIRMED,
+      cid: this.cid,
+      timestamp: getTimestamp()
+    };
+    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, requestEvent);
+    if (receiptError) {
+      this.request(receiptError);
+      return;
+    }
+    const event = {
+      eid: requestEvent.eid,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      type: SparksChannel.Event.Types.CLOSE_CONFIRM,
+      receipt
+    };
+    const { error: requestError } = await this.request(event);
+    if (requestError) {
+      this.request(requestError);
+      return;
+    }
+    this.completeClose(requestEvent);
+  }
+  async onCloseConfirmed(confirmEvent) {
+    const { promise } = this.getPromise(confirmEvent.eid);
+    if (!promise)
+      return;
+    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt);
+    if (validReceiptError) {
+      this.request(validReceiptError);
+      promise.reject(validReceiptError);
+      this.promises.delete(confirmEvent.eid);
+      return;
+    }
+    this.promises.delete(confirmEvent.eid);
+    promise.resolve(confirmEvent);
+    this.completeClose(confirmEvent);
+  }
+  completeClose(requestOrConfirmEvent) {
+    this.opened = false;
+    this.pendingMessages = [];
+    this.promises.clear();
+    this.peer = null;
+    this.sharedKey = null;
   }
   // public methods
   open() {
@@ -333,6 +388,7 @@ export class Channel {
     });
   }
   async acceptOpen(requestEvent) {
+    this.eventLog.push({ request: true, requestEvent });
     return await this.onOpenRequested(requestEvent);
   }
   async rejectOpen(requestEvent) {
@@ -366,8 +422,24 @@ export class Channel {
     });
   }
   close() {
+    return new Promise(async (resolve, reject) => {
+      if (!this.opened)
+        return reject("Channel already closed");
+      const event = {
+        eid: randomNonce(16),
+        cid: this.cid,
+        timestamp: getTimestamp(),
+        type: SparksChannel.Event.Types.CLOSE_REQUEST
+      };
+      this.promises.set(event.eid, { resolve, reject });
+      const { error: requestError } = await this.request(event);
+      if (requestError) {
+        this.request(requestError);
+        return reject(requestError);
+      }
+    });
   }
-  sendRequests(callback) {
+  setSendRequest(callback) {
     this.requestHandler = callback;
   }
 }

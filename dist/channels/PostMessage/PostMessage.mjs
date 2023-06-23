@@ -5,8 +5,7 @@ export class PostMessage extends AChannel {
     source,
     origin,
     spark,
-    channel,
-    ...args
+    channel
   }) {
     super(spark);
     this._window = _window || window || null;
@@ -15,36 +14,22 @@ export class PostMessage extends AChannel {
     this.origin = origin;
     this.source = source;
     this.channel = channel ? channel : new Channel({ spark });
-    this.sendRequests = this.sendRequests.bind(this);
-    this.handleResponses = this.handleResponses.bind(this);
-    this.channel.sendRequests(this.sendRequests);
-    this._window.addEventListener("message", this.handleResponses);
+    this.sendRequest = this.sendRequest.bind(this);
+    this.channel.setSendRequest(this.sendRequest);
+    this.handleResponse = this.handleResponse.bind(this);
+    this._window.addEventListener("message", this.handleResponse);
   }
-  open() {
-    return this.channel.open();
-  }
-  close() {
-    return this.channel.close();
-  }
-  send(message) {
-    return this.channel.send(message);
-  }
-  acceptOpen(request) {
-    return this.channel.acceptOpen(request);
-  }
-  rejectOpen(request) {
-    return this.channel.rejectOpen(request);
-  }
-  handleResponses(event) {
+  handleResponse(event) {
     const payload = event.data;
     return this.channel.handleResponses(payload);
   }
-  sendRequests(event) {
+  async sendRequest(event) {
     this.source.postMessage(event, this.origin);
-    return true;
   }
   static receive(callback, { spark, _window }) {
     const win = _window || window;
+    if (!win)
+      throw new Error("PostMessage: missing window");
     win.addEventListener("message", async (event) => {
       const { type, cid } = event.data;
       if (type !== SparksChannel.Event.Types.OPEN_REQUEST)

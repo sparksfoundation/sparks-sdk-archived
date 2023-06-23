@@ -20,7 +20,7 @@ PostMessage.receive(async ({ details, resolve, reject }) => {
   // reject() remove reolve below to test this
   const channel = await resolve();
   const receipt = await channel.send('hey app');
-  console.log(channel.receipts)
+  console.log(channel.eventLog)
 
   channel.onmessage = res => {
     console.log('\npotential channel message\n', res, '\n')
@@ -50,5 +50,3 @@ channel.onerror = err => {
 // wait for channel to open
 const receipt = await channel.open()
 const msgReceipt = await channel.send('hey website')
-
-console.log(channel.receipts)

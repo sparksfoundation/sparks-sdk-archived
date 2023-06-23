@@ -7,7 +7,8 @@ export var SparksChannel;
     ((Types2) => {
       Types2["OPEN_ACCEPTED"] = "OPEN_ACCEPTED";
       Types2["OPEN_CONFIRMED"] = "OPEN_CONFIRMED";
-      Types2["MESSAGE_RECEIVED"] = "MESSAGE_RECEIVED";
+      Types2["MESSAGE_CONFIRMED"] = "MESSAGE_CONFIRMED";
+      Types2["CLOSE_CONFIRMED"] = "CLOSE_CONFIRMED";
     })(Types = Receipt2.Types || (Receipt2.Types = {}));
   })(Receipt = SparksChannel2.Receipt || (SparksChannel2.Receipt = {}));
   let Event;
@@ -19,6 +20,8 @@ export var SparksChannel;
       Types2["OPEN_CONFIRM"] = "OPEN_CONFIRM";
       Types2["MESSAGE_REQUEST"] = "MESSAGE_REQUEST";
       Types2["MESSAGE_CONFIRM"] = "MESSAGE_CONFIRM";
+      Types2["CLOSE_REQUEST"] = "CLOSE_REQUEST";
+      Types2["CLOSE_CONFIRM"] = "CLOSE_CONFIRM";
     })(Types = Event2.Types || (Event2.Types = {}));
   })(Event = SparksChannel2.Event || (SparksChannel2.Event = {}));
   let Error;
@@ -53,7 +56,25 @@ export class AChannel {
   get peer() {
     return this.channel.peer;
   }
-  get receipts() {
-    return this.channel.receipts;
+  get eventLog() {
+    return this.channel.eventLog;
+  }
+  get opened() {
+    return this.channel.opened;
+  }
+  open() {
+    return this.channel.open();
+  }
+  close() {
+    return this.channel.close();
+  }
+  send(message) {
+    return this.channel.send(message);
+  }
+  acceptOpen(request) {
+    return this.channel.acceptOpen(request);
+  }
+  rejectOpen(request) {
+    return this.channel.rejectOpen(request);
   }
 }

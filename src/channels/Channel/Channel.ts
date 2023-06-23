@@ -2,7 +2,7 @@ import { SharedEncryptionKey } from "../../ciphers";
 import { Identifier, PublicKeys } from "../../controllers";
 import { SparksChannel } from "./types";
 import { getTimestamp, randomNonce } from "../../utilities";
-import { ISpark, Spark } from "../../Spark";
+import { ISpark } from "../../Spark";
 
 export interface IChannel { }
 
@@ -14,7 +14,7 @@ export class Channel implements IChannel {
   private pendingMessages: SparksChannel.Event.MessageRequest[] = [];
 
   public opened: boolean = false;
-  public receipts: any[];
+  public eventLog: SparksChannel.EventLog = [];
   public cid: SparksChannel.Cid;
   public peer: {
     identifier: Identifier,
@@ -24,22 +24,10 @@ export class Channel implements IChannel {
   constructor({ spark, cid }: { cid?: SparksChannel.Cid, spark: ISpark<any, any, any, any, any> }) {
     this.spark = spark;
     this.cid = cid || randomNonce(16);
-    this.receipts = [];
+    this.eventLog = [];
   }
 
   // utilities
-  private async logReceipt(receiptCipher: SparksChannel.Receipt.Cipher) {
-    const peer = this.peer;
-    const sharedKey = this.sharedKey;
-    const opened = await this.spark.verify({ signature: receiptCipher, publicKey: peer.publicKeys.signing });
-    const decrypted = await this.spark.decrypt({ sharedKey, data: opened });
-    const receipt = {
-      ...decrypted,
-      ciphertext: receiptCipher,
-    }
-    this.receipts.push(receipt);
-  }
-
   private async sealReceipt(
     data: SparksChannel.Receipt.Any,
     event?: SparksChannel.Event.Any
@@ -165,7 +153,8 @@ export class Channel implements IChannel {
   }> {
     let error: SparksChannel.Error.Unexpected | null = null;
     try {
-      this.requestHandler(event)
+      await this.requestHandler(event);
+      this.eventLog.push({ response: true, ...event });
     } catch (err) {
       error = {
         eid: event.eid,
@@ -174,14 +163,21 @@ export class Channel implements IChannel {
         cid: this.cid,
         timestamp: getTimestamp(),
       };
+      this.eventLog.push({ response: true, ...error });
     }
-
     return { error };
   }
 
   public handleResponses(event) {
-    let type = event.type;
-    type = Object.values(SparksChannel.Error.Types).includes(type) ? SparksChannel.Error.Types.UNEXPECTED_ERROR : type;
+    const isEvent = Object.values(SparksChannel.Event.Types).includes(event.type);
+    const isError = Object.values(SparksChannel.Error.Types).includes(event.type);
+    if (!isEvent && !isError) return;
+
+    const type = isError ? SparksChannel.Error.Types.UNEXPECTED_ERROR : event.type;
+    if (isEvent || isError) {
+      this.eventLog.push({ request: true, ...event });
+    }
+
     switch (type) {
       case SparksChannel.Event.Types.OPEN_REQUEST:
         this.onOpenRequested(event);
@@ -198,6 +194,12 @@ export class Channel implements IChannel {
         break;
       case SparksChannel.Event.Types.MESSAGE_CONFIRM:
         this.onMessageConfirmed(event);
+        break;
+      case SparksChannel.Event.Types.CLOSE_REQUEST:
+        this.onCloseRequested(event);
+        break;
+      case SparksChannel.Event.Types.CLOSE_CONFIRM:
+        this.onCloseConfirmed(event);
         break;
       case SparksChannel.Error.Types.UNEXPECTED_ERROR:
         const { promise } = this.getPromise(event.eid);
@@ -330,7 +332,6 @@ export class Channel implements IChannel {
   private async completeOpen(confirmOrAcceptEvent: SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenConfirm) {
     const { promise } = this.getPromise(confirmOrAcceptEvent.eid);
     if (!promise) return;
-    await this.logReceipt(confirmOrAcceptEvent.receipt);    
     promise.resolve(confirmOrAcceptEvent);
     this.promises.delete(confirmOrAcceptEvent.eid);
     this.opened = true;
@@ -341,39 +342,35 @@ export class Channel implements IChannel {
   }
 
   // message flow
-  private onMessageRequest(messageRequest: SparksChannel.Event.MessageRequest): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      const receiptData: SparksChannel.Receipt.MessageConfirmed = {
-        type: SparksChannel.Receipt.Types.MESSAGE_RECEIVED,
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        mid: messageRequest.mid,
-        payload: messageRequest.payload,
-      }
+  private async onMessageRequest(messageRequest: SparksChannel.Event.MessageRequest): Promise<void> {
+    const receiptData: SparksChannel.Receipt.MessageConfirmed = {
+      type: SparksChannel.Receipt.Types.MESSAGE_CONFIRMED,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      mid: messageRequest.mid,
+      payload: messageRequest.payload,
+    }
 
-      const { receipt, error: receiptError } = await this.sealReceipt(receiptData, messageRequest);
-      if (receiptError) {
-        this.request(receiptError);
-        return reject(receiptError);
-      }
+    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, messageRequest);
+    if (receiptError) {
+      this.request(receiptError);
+      return;
+    }
 
-      const event: SparksChannel.Event.MessageConfirm = {
-        eid: messageRequest.eid,
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        type: SparksChannel.Event.Types.MESSAGE_CONFIRM,
-        mid: messageRequest.mid,
-        receipt,
-      };
+    const event: SparksChannel.Event.MessageConfirm = {
+      eid: messageRequest.eid,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      type: SparksChannel.Event.Types.MESSAGE_CONFIRM,
+      mid: messageRequest.mid,
+      receipt,
+    };
 
-      const { error: requestError } = await this.request(event);
-      if (requestError) {
-        this.request(requestError);
-        return reject(requestError);
-      }
-
-      resolve();
-    });
+    const { error: requestError } = await this.request(event);
+    if (requestError) {
+      this.request(requestError);
+      return;
+    }
   }
 
   private async onMessageConfirmed(confirmEvent: SparksChannel.Event.MessageConfirm) {
@@ -387,10 +384,73 @@ export class Channel implements IChannel {
       this.promises.delete(confirmEvent.eid);
       return;
     }
-
-    await this.logReceipt(confirmEvent.receipt);
     this.promises.delete(confirmEvent.eid);
     promise.resolve(confirmEvent);
+    this.completeMessage(confirmEvent);
+  }
+
+  private async completeMessage(messageRequestOrConfirm: SparksChannel.Event.MessageRequest | SparksChannel.Event.MessageConfirm) {
+    const { promise } = this.getPromise(messageRequestOrConfirm.eid);
+    if (!promise) return;
+    promise.resolve(messageRequestOrConfirm);
+    this.promises.delete(messageRequestOrConfirm.eid);
+  }
+
+  // close flow
+  private async onCloseRequested(requestEvent: SparksChannel.Event.CloseRequest) {
+    // just like onMessageRequest but for closeRequest
+    const receiptData: SparksChannel.Receipt.CloseConfirmed = {
+      type: SparksChannel.Receipt.Types.CLOSE_CONFIRMED,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+    };
+
+    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, requestEvent);
+    if (receiptError) {
+      this.request(receiptError);
+      return;
+    }
+
+    const event: SparksChannel.Event.CloseConfirm = {
+      eid: requestEvent.eid,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      type: SparksChannel.Event.Types.CLOSE_CONFIRM,
+      receipt,
+    };
+
+    const { error: requestError } = await this.request(event);
+    if (requestError) {
+      this.request(requestError);
+      return;
+    }
+
+    this.completeClose(requestEvent);
+  }
+
+  private async onCloseConfirmed(confirmEvent: SparksChannel.Event.CloseConfirm) {
+    const { promise } = this.getPromise(confirmEvent.eid);
+    if (!promise) return;
+
+    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt);
+    if (validReceiptError) {
+      this.request(validReceiptError);
+      promise.reject(validReceiptError);
+      this.promises.delete(confirmEvent.eid);
+      return;
+    }
+
+    this.promises.delete(confirmEvent.eid);
+    promise.resolve(confirmEvent);
+    this.completeClose(confirmEvent);
+  }
+
+  private completeClose(requestOrConfirmEvent: SparksChannel.Event.CloseRequest | SparksChannel.Event.CloseConfirm) {
+    this.opened = false;
+    this.pendingMessages = [];
+    this.promises.clear();
+    this.peer = null;
+    this.sharedKey = null;
   }
 
   // public methods
@@ -416,6 +476,7 @@ export class Channel implements IChannel {
   }
 
   public async acceptOpen(requestEvent) {
+    this.eventLog.push({ request: true, requestEvent });
     return await this.onOpenRequested(requestEvent);
   }
 
@@ -452,9 +513,28 @@ export class Channel implements IChannel {
     });
   }
 
-  public close() { }
+  public close() {
+    // send close request, wait for response, log receipt
+    return new Promise(async (resolve, reject) => {
+      if (!this.opened) return reject('Channel already closed');
 
-  public sendRequests(callback: SparksChannel.RequestHandler) {
+      const event: SparksChannel.Event.CloseRequest = {
+        eid: randomNonce(16),
+        cid: this.cid,
+        timestamp: getTimestamp(),
+        type: SparksChannel.Event.Types.CLOSE_REQUEST,
+      }
+
+      this.promises.set(event.eid, { resolve, reject });
+      const { error: requestError } = await this.request(event);
+      if (requestError) {
+        this.request(requestError);
+        return reject(requestError);
+      }
+    });
+  }
+
+  public setSendRequest(callback: SparksChannel.RequestHandler) {
     this.requestHandler = callback;
   }
 }

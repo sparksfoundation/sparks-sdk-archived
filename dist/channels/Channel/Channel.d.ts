@@ -10,7 +10,7 @@ export declare class Channel implements IChannel {
     private sharedKey;
     private pendingMessages;
     opened: boolean;
-    receipts: any[];
+    eventLog: SparksChannel.EventLog;
     cid: SparksChannel.Cid;
     peer: {
         identifier: Identifier;
@@ -20,7 +20,6 @@ export declare class Channel implements IChannel {
         cid?: SparksChannel.Cid;
         spark: ISpark<any, any, any, any, any>;
     });
-    private logReceipt;
     private sealReceipt;
     private verifyReceipt;
     private setPeer;
@@ -33,10 +32,14 @@ export declare class Channel implements IChannel {
     private completeOpen;
     private onMessageRequest;
     private onMessageConfirmed;
+    private completeMessage;
+    private onCloseRequested;
+    private onCloseConfirmed;
+    private completeClose;
     open(): Promise<unknown>;
     acceptOpen(requestEvent: any): Promise<unknown>;
     rejectOpen(requestEvent: any): Promise<void>;
     send(payload: SparksChannel.Message.Payload): Promise<unknown>;
-    close(): void;
-    sendRequests(callback: SparksChannel.RequestHandler): void;
+    close(): Promise<unknown>;
+    setSendRequest(callback: SparksChannel.RequestHandler): void;
 }

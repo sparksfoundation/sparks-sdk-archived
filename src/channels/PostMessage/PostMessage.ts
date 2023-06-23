@@ -12,14 +12,12 @@ export class PostMessage extends AChannel {
     origin,
     spark,
     channel,
-    ...args
   }: {
     _window?: Window,
     source: Window,
     origin: string,
     spark: ISpark<any, any, any, any, any>,
     channel?: Channel,
-    args?: any
   }) {
     super(spark)
     this._window = _window || window || null;
@@ -29,44 +27,26 @@ export class PostMessage extends AChannel {
     this.source = source;
     this.channel = channel ? channel : new Channel({ spark })
 
-    this.sendRequests = this.sendRequests.bind(this);
-    this.handleResponses = this.handleResponses.bind(this);
-    this.channel.sendRequests(this.sendRequests);
-    this._window.addEventListener('message', this.handleResponses);
+    this.sendRequest = this.sendRequest.bind(this);
+    this.channel.setSendRequest(this.sendRequest);
+
+    this.handleResponse = this.handleResponse.bind(this);
+    this._window.addEventListener('message', this.handleResponse);
   }
 
-  protected open() {
-    return this.channel.open();
-  }
-
-  protected close() {
-    return this.channel.close();
-  }
-
-  protected send(message) {
-    return this.channel.send(message);
-  }
-
-  protected acceptOpen(request) {
-    return this.channel.acceptOpen(request); 
-  }
-
-  protected rejectOpen(request) {
-    return this.channel.rejectOpen(request);
-  }
-
-  protected handleResponses(event) {
+  protected handleResponse(event) {
     const payload = event.data;
     return this.channel.handleResponses(payload);
   }
 
-  protected sendRequests(event) {
+  protected async sendRequest(event) {
     this.source.postMessage(event, this.origin);
-    return true;
   }
 
   public static receive(callback: ({ details, resolve, reject }) => true | void, { spark, _window }: { spark: ISpark<any, any, any, any, any>, _window?: Window }) {
     const win = _window || window;
+    if (!win) throw new Error('PostMessage: missing window');
+    
     win.addEventListener('message', async (event) => {
       const { type, cid } = event.data;
       if (type !== SparksChannel.Event.Types.OPEN_REQUEST) return;
