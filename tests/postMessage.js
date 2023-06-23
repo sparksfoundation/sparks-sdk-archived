@@ -4,7 +4,6 @@ import { Ed25519 } from '../dist/signers/index.mjs';
 import { X25519SalsaPoly } from '../dist/ciphers/index.mjs';
 import { Random } from '../dist/controllers/index.mjs';
 import { PostMessage } from '../dist/channels/PostMessage/index.mjs';
-
 import { _0000, _1111 } from './mocks/MockWindow.js';
 
 const website = new Spark({
@@ -19,8 +18,6 @@ await website.controller.incept();
 PostMessage.receive(async ({ details, resolve, reject }) => {
   // reject() remove reolve below to test this
   const channel = await resolve();
-  const receipt = await channel.send('hey app');
-  console.log(channel.eventLog)
 
   channel.onmessage = res => {
     console.log('\npotential channel message\n', res, '\n')
@@ -49,4 +46,12 @@ channel.onerror = err => {
 
 // wait for channel to open
 const receipt = await channel.open()
-const msgReceipt = await channel.send('hey website')
+console.log('\nchannel receipt\n', receipt, '\n')
+
+setTimeout(async () => {
+  console.log('sending')
+  const msgReceipt = await channel.send('hey website')
+  console.log('\nmessage receipt\n', msgReceipt, '\n')
+  const closeReceipt = await channel.close()
+  console.log('\nclose receipt\n', closeReceipt, '\n')
+}, 1000)
