@@ -1,11 +1,16 @@
-import { Channel } from '../Channel/Channel';
-export declare class RestAPI extends Channel {
+import { ISpark } from '../../Spark';
+import { Channel, AChannel } from '../Channel';
+export declare class RestAPI extends AChannel {
     static promises: Map<string, any>;
     static receives: Map<string, any>;
-    static eventHandler: Function;
-    constructor({ ...args }: any);
-    protected sendMessage(payload: any): Promise<void>;
+    static requestHandler: Function;
+    constructor({ spark, channel }: {
+        spark: ISpark<any, any, any, any, any>;
+        channel: Channel;
+    });
+    protected handleResponse(response: any): void;
+    protected sendRequest(request: any): Promise<void>;
     static receive(callback: any, { spark }: {
-        spark: any;
+        spark: ISpark<any, any, any, any, any>;
     }): void;
 }

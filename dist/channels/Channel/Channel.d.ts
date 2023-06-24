@@ -25,7 +25,7 @@ export declare class Channel implements IChannel {
     private setPeer;
     private getPromise;
     private request;
-    handleResponses(event: any): void;
+    handleResponse(event: any): void;
     private onOpenRequested;
     private onOpenAccepted;
     private onOpenConfirmed;

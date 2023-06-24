@@ -41,17 +41,17 @@ const channel = new PostMessage({
 })
 
 channel.onerror = err => {
-  console.log('\nchannel error\n', err, '\n')
+  //console.log('\nchannel error\n', err, '\n')
 }
 
 // wait for channel to open
 const receipt = await channel.open()
-console.log('\nchannel receipt\n', receipt, '\n')
+//console.log('\nchannel receipt\n', receipt, '\n')
 
 setTimeout(async () => {
-  console.log('sending')
+  //console.log('sending')
   const msgReceipt = await channel.send('hey website')
-  console.log('\nmessage receipt\n', msgReceipt, '\n')
+  //console.log('\nmessage receipt\n', msgReceipt, '\n')
   const closeReceipt = await channel.close()
-  console.log('\nclose receipt\n', closeReceipt, '\n')
+  //console.log('\nclose receipt\n', closeReceipt, '\n')
 }, 1000)

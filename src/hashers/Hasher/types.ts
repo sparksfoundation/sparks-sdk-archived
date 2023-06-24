@@ -25,6 +25,7 @@ export abstract class AHasher {
     this.spark = spark;
     Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
     this.hasher = new Hasher(this.spark);
+    this.hash = this.hash.bind(this);
   }
 
   abstract hash(data: any): Promise<string> | never;

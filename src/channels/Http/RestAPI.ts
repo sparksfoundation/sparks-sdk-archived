@@ -1,55 +1,65 @@
-import { Channel } from '../Channel/Channel';
-import { ChannelTypes } from '../Channel/types';
+import { ISpark } from '../../Spark';
+import { Channel, AChannel, SparksChannel } from '../Channel';
 
-export class RestAPI extends Channel {
+export class RestAPI extends AChannel {
   static promises: Map<string, any> = new Map();
   static receives: Map<string, any> = new Map();
-  static eventHandler: Function;
-  
-  constructor({ ...args }: any) {
-    super({ channelType: ChannelTypes.REST_API, ...args });
-    this.receiveMessage = this.receiveMessage.bind(this);
-    this.sendMessage = this.sendMessage.bind(this);
-    RestAPI.receives.set(this.channelId, this.receiveMessage);
+  static requestHandler: Function;
+
+  constructor({ spark, channel }: { spark: ISpark<any, any, any, any, any>, channel: Channel }) {
+    super({ spark, channel });
+    this.handleResponse = this.handleResponse.bind(this);
+    this.sendRequest = this.sendRequest.bind(this);
+    this.channel.setSendRequest(this.sendRequest);
+    RestAPI.receives.set(this.cid, this.handleResponse);
   }
 
-  protected async sendMessage(payload: any) {
-    const { eventId } = payload;
-    if (eventId) {
-      const promise = RestAPI.promises.get(eventId);
-      if (promise) promise.resolve(payload);
-    }
+  protected handleResponse(response) {
+    const promise = RestAPI.promises.get(response.eid);
+    if (promise) promise.resolve();
+    return this.channel.handleResponse(response);
   }
 
-  static receive(callback, { spark }) {
+  protected async sendRequest(request) {
+    if (!request.eid) return;
+    const promise = RestAPI.promises.get(request.eid);
+    if (promise) promise.resolve(request);
+  }
+
+  static receive(callback, { spark }: { spark: ISpark<any, any, any, any, any> }) {
     if (!spark || !callback) {
       throw new Error('missing required arguments: spark, callback');
     }
 
-    RestAPI.eventHandler = async (payload) => {
+    RestAPI.requestHandler = async (request) => {
       return new Promise((resolve, reject) => {
-        const eventId = payload.eventId;
-        const eventType = payload.eventType;
-        const channelId = payload.channelId;
-
-        if (!eventId || !eventType || !channelId) {
-          return reject({ error: 'Invalid payload' });
+        const { eid, cid, type } = request;
+        if (!eid || !cid || !type) {
+          return reject({ error: 'Invalid request' });
         }
+        
+        RestAPI.promises.set(eid, { resolve, reject });
+        const receive = RestAPI.receives.get(cid);
+        if (receive) return receive(request);
 
-        RestAPI.promises.set(eventId, { resolve, reject });
-        const receive = RestAPI.receives.get(channelId);
-        if (receive) return receive(payload);
+        if (type === SparksChannel.Event.Types.OPEN_REQUEST) {
 
-        if (eventType === 'open_request') {
-          const args = Channel.channelRequest({
-            payload,
-            options: {
-              spark,
-            },
-            Channel: RestAPI,
+          const channel = new RestAPI({
+            spark,
+            channel: new Channel({ spark, cid })
           });
 
-          if (args) return callback(args);
+          callback({
+            details: request,
+            resolve: async () => {
+              await channel.acceptOpen(request);
+              return channel;
+            },
+            reject: async () => {
+              await channel.rejectOpen(request);
+              return null;
+            }
+          })
         }
       })
     };

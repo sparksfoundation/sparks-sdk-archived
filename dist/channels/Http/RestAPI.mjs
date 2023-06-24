@@ -1,46 +1,55 @@
-import { Channel } from "../Channel/Channel.mjs";
-import { ChannelTypes } from "../Channel/types.mjs";
-const _RestAPI = class extends Channel {
-  constructor({ ...args }) {
-    super({ channelType: ChannelTypes.REST_API, ...args });
-    this.receiveMessage = this.receiveMessage.bind(this);
-    this.sendMessage = this.sendMessage.bind(this);
-    _RestAPI.receives.set(this.channelId, this.receiveMessage);
+import { Channel, AChannel, SparksChannel } from "../Channel/index.mjs";
+const _RestAPI = class extends AChannel {
+  constructor({ spark, channel }) {
+    super({ spark, channel });
+    this.handleResponse = this.handleResponse.bind(this);
+    this.sendRequest = this.sendRequest.bind(this);
+    this.channel.setSendRequest(this.sendRequest);
+    _RestAPI.receives.set(this.cid, this.handleResponse);
   }
-  async sendMessage(payload) {
-    const { eventId } = payload;
-    if (eventId) {
-      const promise = _RestAPI.promises.get(eventId);
-      if (promise)
-        promise.resolve(payload);
-    }
+  handleResponse(response) {
+    const promise = _RestAPI.promises.get(response.eid);
+    if (promise)
+      promise.resolve();
+    return this.channel.handleResponse(response);
+  }
+  async sendRequest(request) {
+    if (!request.eid)
+      return;
+    const promise = _RestAPI.promises.get(request.eid);
+    if (promise)
+      promise.resolve(request);
   }
   static receive(callback, { spark }) {
     if (!spark || !callback) {
       throw new Error("missing required arguments: spark, callback");
     }
-    _RestAPI.eventHandler = async (payload) => {
+    _RestAPI.requestHandler = async (request) => {
       return new Promise((resolve, reject) => {
-        const eventId = payload.eventId;
-        const eventType = payload.eventType;
-        const channelId = payload.channelId;
-        if (!eventId || !eventType || !channelId) {
-          return reject({ error: "Invalid payload" });
+        const { eid, cid, type } = request;
+        if (!eid || !cid || !type) {
+          return reject({ error: "Invalid request" });
         }
-        _RestAPI.promises.set(eventId, { resolve, reject });
-        const receive = _RestAPI.receives.get(channelId);
+        _RestAPI.promises.set(eid, { resolve, reject });
+        const receive = _RestAPI.receives.get(cid);
         if (receive)
-          return receive(payload);
-        if (eventType === "open_request") {
-          const args = Channel.channelRequest({
-            payload,
-            options: {
-              spark
-            },
-            Channel: _RestAPI
+          return receive(request);
+        if (type === SparksChannel.Event.Types.OPEN_REQUEST) {
+          const channel = new _RestAPI({
+            spark,
+            channel: new Channel({ spark, cid })
           });
-          if (args)
-            return callback(args);
+          callback({
+            details: request,
+            resolve: async () => {
+              await channel.acceptOpen(request);
+              return channel;
+            },
+            reject: async () => {
+              await channel.rejectOpen(request);
+              return null;
+            }
+          });
         }
       });
     };

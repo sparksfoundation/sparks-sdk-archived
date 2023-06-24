@@ -1,10 +1,12 @@
-import { Channel } from "../Channel/Channel";
-export declare class FetchAPI extends Channel {
+import { ISpark } from "../../Spark";
+import { AChannel } from "../Channel";
+export declare class FetchAPI extends AChannel {
     private url;
-    constructor({ url, ...args }: {
+    constructor({ spark, url, }: {
+        spark: ISpark<any, any, any, any, any>;
         url: string;
-        args: any;
     });
-    protected sendMessage(payload: any): Promise<void>;
-    static receive(): Promise<void>;
+    protected handleResponse(response: any): void;
+    protected sendRequest(request: any): Promise<void>;
+    static receive(): void;
 }

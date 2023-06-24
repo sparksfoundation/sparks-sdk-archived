@@ -1,4 +1,10 @@
-import { Spark, Blake3, Random, Ed25519, X25519SalsaPoly, FetchAPI } from '../dist/index.mjs';
+import { Spark } from '../dist/index.mjs';
+import { Random } from '../dist/controllers/index.mjs';
+import { Ed25519 } from '../dist/signers/index.mjs';
+import { Blake3 } from '../dist/hashers/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/index.mjs';
+import { FetchAPI } from '../dist/channels/Http/index.mjs';
+
 import fetch  from 'node-fetch';
 global.fetch = fetch;
 
@@ -15,8 +21,9 @@ const channel = new FetchAPI({
   spark: client,
 })
 
-await channel.open()
+await channel.open().catch(console.error);
+
 setInterval(async () => {
   const receipt = await channel.send({ test: 'secret message' })
-  console.log(receipt)
+  console.log('receipt')
 }, 5000);

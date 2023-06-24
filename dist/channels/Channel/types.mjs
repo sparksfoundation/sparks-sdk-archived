@@ -42,9 +42,9 @@ export var SparksChannel;
   })(Error = SparksChannel2.Error || (SparksChannel2.Error = {}));
 })(SparksChannel || (SparksChannel = {}));
 export class AChannel {
-  constructor(spark) {
+  constructor({ spark, channel }) {
     this.spark = spark;
-    this.channel = new Channel(spark);
+    this.channel = channel || new Channel({ spark });
     Object.defineProperties(this, {
       spark: { enumerable: false },
       channel: { enumerable: false }

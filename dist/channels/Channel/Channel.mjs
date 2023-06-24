@@ -95,14 +95,15 @@ export class Channel {
   }
   async request(event) {
     let error = null;
+    console.log("S:", event.type);
     try {
       await this.requestHandler(event);
       this.eventLog.push({ response: true, ...event });
     } catch (err) {
       error = {
         eid: event.eid,
-        type: SparksChannel.Error.Types.UNEXPECTED_ERROR,
-        message: "failed to send request",
+        type: SparksChannel.Error.Types.SEND_REQUEST_ERROR,
+        message: err.message || "failed to send request",
         cid: this.cid,
         timestamp: getTimestamp()
       };
@@ -110,11 +111,12 @@ export class Channel {
     }
     return { error };
   }
-  handleResponses(event) {
+  handleResponse(event) {
     const isEvent = Object.values(SparksChannel.Event.Types).includes(event.type);
     const isError = Object.values(SparksChannel.Error.Types).includes(event.type);
     if (!isEvent && !isError)
       return;
+    console.log("R:", event.type);
     const type = isError ? SparksChannel.Error.Types.UNEXPECTED_ERROR : event.type;
     if (isEvent || isError) {
       this.eventLog.push({ request: true, ...event });
@@ -206,7 +208,7 @@ export class Channel {
       this.promises.delete(acceptEvent.eid);
       return;
     }
-    const { error: validReceiptError } = await this.verifyReceipt(acceptEvent.receipt);
+    const { error: validReceiptError } = await this.verifyReceipt(acceptEvent.receipt, acceptEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);
@@ -248,7 +250,7 @@ export class Channel {
     this.completeOpen(acceptEvent);
   }
   async onOpenConfirmed(confirmEvent) {
-    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt);
+    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       const { promise } = this.getPromise(confirmEvent.eid);
@@ -302,7 +304,7 @@ export class Channel {
     const { promise } = this.getPromise(confirmEvent.eid);
     if (!promise)
       return;
-    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt);
+    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);
@@ -350,7 +352,7 @@ export class Channel {
     const { promise } = this.getPromise(confirmEvent.eid);
     if (!promise)
       return;
-    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt);
+    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);

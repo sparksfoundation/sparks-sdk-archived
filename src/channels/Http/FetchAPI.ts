@@ -1,29 +1,38 @@
-import { Channel } from "../Channel/Channel";
-import { ChannelTypes } from "../Channel/types";
+import { ISpark } from "../../Spark";
+import { AChannel } from "../Channel";
 
-export class FetchAPI extends Channel {
+export class FetchAPI extends AChannel {
   private url: string;
 
-  constructor({ url, ...args }: { url: string, args: any }) {
-    super({ channelType: ChannelTypes.FETCH_API, ...args });
+  constructor({ 
+    spark, 
+    url,
+  }: { 
+    spark: ISpark<any, any, any, any, any>, 
+    url: string, 
+  }) {
+    super({ spark });
     this.url = url;
-    this.sendMessage = this.sendMessage.bind(this);
-    this.receiveMessage = this.receiveMessage.bind(this);
+    this.handleResponse = this.handleResponse.bind(this);
+    this.sendRequest = this.sendRequest.bind(this);
+    this.channel.setSendRequest(this.sendRequest);
   }
 
-  protected async sendMessage(payload: any) {
+  protected handleResponse(response: any) {
+    return this.channel.handleResponse(response);
+  }
+
+  protected async sendRequest(request) {
     const response = await fetch(this.url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(request),
     });
-
     const json = await response.json();
-    if (json.error) throw new Error(json.error);
-    this.receiveMessage(json);
+    if (!json.error) this.handleResponse(json);
   }
 
-  static async receive() {
+  static receive() {
     throw new Error("Fetch channels are outgoing only");
   }
 }

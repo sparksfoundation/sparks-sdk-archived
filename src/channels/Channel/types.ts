@@ -234,9 +234,9 @@ export namespace SparksChannel {
 export abstract class AChannel {
   protected spark: ISpark<any, any, any, any, any>;
   protected channel: Channel;
-  constructor(spark) {
+  constructor({ spark, channel }: { spark: ISpark<any, any, any, any, any>, channel?: Channel }) {
     this.spark = spark;
-    this.channel = new Channel(spark);
+    this.channel = channel || new Channel({ spark });
     Object.defineProperties(this, {
       spark: { enumerable: false },
       channel: { enumerable: false },

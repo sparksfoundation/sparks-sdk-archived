@@ -191,7 +191,10 @@ export declare namespace SparksChannel {
 export declare abstract class AChannel {
     protected spark: ISpark<any, any, any, any, any>;
     protected channel: Channel;
-    constructor(spark: any);
+    constructor({ spark, channel }: {
+        spark: ISpark<any, any, any, any, any>;
+        channel?: Channel;
+    });
     protected get cid(): SparksChannel.Cid;
     protected get peer(): SparksChannel.Peer;
     protected get eventLog(): SparksChannel.EventLog;
