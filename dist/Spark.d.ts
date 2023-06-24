@@ -1,19 +1,19 @@
-import { Controller, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index';
-import { Agent } from './agents/index';
-import { Signer } from './signers/index';
-import { Cipher } from './ciphers/index';
-import { Hasher } from './hashers/index';
+import { AController, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index';
+import { ASigner } from './signers/index';
+import { ACipher } from './ciphers/index';
+import { AHasher } from './hashers/index';
+import { AAgent } from './agents/Agent/types';
 interface Constructable<T> {
     new (...args: any[]): T;
 }
-type SparkOptions<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> = {
+type SparkOptions<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> = {
     controller: Constructable<C>;
     signer: Constructable<S>;
     cipher: Constructable<Cp>;
     hasher: Constructable<H>;
     agents: Constructable<A[number]>[];
 };
-export interface ISpark<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> {
+export interface ISpark<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> {
     identifier: Identifier;
     keyEventLog: KeyEventLog;
     publicKeys: PublicKeys;
@@ -33,7 +33,7 @@ export interface ISpark<C extends Controller, S extends Signer, Cp extends Ciphe
     rotate: C['rotate'];
     delete: C['delete'];
 }
-export declare class Spark<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> implements ISpark<C, S, Cp, H, A> {
+export declare class Spark<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> implements ISpark<C, S, Cp, H, A> {
     cipher: Cp;
     controller: C;
     hasher: H;
@@ -57,5 +57,7 @@ export declare class Spark<C extends Controller, S extends Signer, Cp extends Ci
     get incept(): C['incept'];
     get rotate(): C['rotate'];
     get delete(): C['delete'];
+    get import(): C['import'];
+    get export(): C['export'];
 }
 export {};

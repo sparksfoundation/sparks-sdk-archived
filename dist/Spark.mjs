@@ -57,4 +57,10 @@ export class Spark {
   get delete() {
     return this.controller.delete;
   }
+  get import() {
+    return this.controller.import;
+  }
+  get export() {
+    return this.controller.export;
+  }
 }

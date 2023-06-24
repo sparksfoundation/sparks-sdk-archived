@@ -13,8 +13,8 @@ export class PostMessage extends AChannel {
       throw new Error("PostMessage: missing window");
     this.origin = origin;
     this.source = source;
-    this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setRequestHandler(this.sendRequest);
+    this.handleRequest = this.handleRequest.bind(this);
+    this.channel.setRequestHandler(this.handleRequest);
     this.handleResponse = this.handleResponse.bind(this);
     this._window.addEventListener("message", this.handleResponse);
   }
@@ -23,8 +23,8 @@ export class PostMessage extends AChannel {
     const payload = event.data;
     return this.channel.handleResponse(payload);
   }
-  async sendRequest(event) {
-    console.log("sendRequest", event.type);
+  async handleRequest(event) {
+    console.log("handleRequest", event.type);
     this.source.postMessage(event, this.origin);
   }
   static receive(callback, { spark, _window }) {

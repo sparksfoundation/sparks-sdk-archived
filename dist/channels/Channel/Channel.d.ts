@@ -1,3 +1,4 @@
+import { SharedEncryptionKey } from "../../ciphers";
 import { Identifier, PublicKeys } from "../../controllers";
 import { SparksChannel } from "./types";
 import { ISpark } from "../../Spark";
@@ -7,9 +8,12 @@ export declare class Channel implements IChannel {
     private promises;
     private requestHandler;
     private messageHandler;
+    private closeHandler;
+    private errorHandler;
+    private openHandler;
     private spark;
-    private sharedKey;
     private pendingMessages;
+    sharedKey: SharedEncryptionKey;
     opened: boolean;
     eventLog: SparksChannel.EventLog;
     cid: SparksChannel.Cid;
@@ -45,4 +49,7 @@ export declare class Channel implements IChannel {
     private completeClose;
     setRequestHandler(callback: SparksChannel.RequestHandler): void;
     setMessageHandler(callback: SparksChannel.Message.Handler): void;
+    setOpenHandler(callback: SparksChannel.Open.Handler): void;
+    setCloseHandler(callback: SparksChannel.Close.Handler): void;
+    setErrorHandler(callback: SparksChannel.Error.Handler): void;
 }

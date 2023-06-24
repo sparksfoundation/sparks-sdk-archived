@@ -96,6 +96,10 @@ export class Channel {
   async request(event) {
     let error = null;
     try {
+      const type = event.type;
+      const isError = Object.values(SparksChannel.Error.Types).includes(type);
+      if (isError && this.errorHandler)
+        this.errorHandler({ error: event });
       await this.requestHandler(event);
       this.eventLog.push({ response: true, ...event });
     } catch (err) {
@@ -107,6 +111,8 @@ export class Channel {
         timestamp: getTimestamp()
       };
       this.eventLog.push({ response: true, ...error });
+      if (this.errorHandler)
+        this.errorHandler({ error });
     }
     return { error };
   }
@@ -148,6 +154,8 @@ export class Channel {
       throw new Error(error.message);
     promise.reject(error);
     this.promises.delete(error.eid);
+    if (this.errorHandler)
+      this.errorHandler({ error });
   }
   // open flow
   open() {
@@ -299,6 +307,8 @@ export class Channel {
       this.onMessage(pendingMessage);
     });
     this.pendingMessages = [];
+    if (this.openHandler)
+      this.openHandler({ event: confirmOrAcceptEvent });
   }
   // message flow
   send(payload) {
@@ -349,19 +359,18 @@ export class Channel {
       mid: messageEvent.mid,
       receipt
     };
-    if (this.messageHandler)
-      this.messageHandler({ event: messageEvent, data });
     const { error: requestError } = await this.request(event);
     if (requestError) {
       this.request(requestError);
       return;
     }
+    this.completeMessage(messageEvent, data);
   }
   async onMessageConfirmed(confirmEvent) {
     const { promise } = this.getPromise(confirmEvent.eid);
     if (!promise)
       return;
-    const { error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
+    const { data: payload, error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);
@@ -370,14 +379,16 @@ export class Channel {
     }
     this.promises.delete(confirmEvent.eid);
     promise.resolve(confirmEvent);
-    this.completeMessage(confirmEvent);
+    this.completeMessage(confirmEvent, payload);
   }
-  async completeMessage(messageRequestOrConfirm) {
+  async completeMessage(messageRequestOrConfirm, data) {
     const { promise } = this.getPromise(messageRequestOrConfirm.eid);
     if (!promise)
       return;
     promise.resolve(messageRequestOrConfirm);
     this.promises.delete(messageRequestOrConfirm.eid);
+    if (this.messageHandler)
+      this.messageHandler({ event: messageRequestOrConfirm, data });
   }
   // close flow
   close() {
@@ -444,11 +455,22 @@ export class Channel {
     this.promises.clear();
     this.peer = null;
     this.sharedKey = null;
+    if (this.closeHandler)
+      this.closeHandler({ event: requestOrConfirmEvent });
   }
   setRequestHandler(callback) {
     this.requestHandler = callback;
   }
   setMessageHandler(callback) {
     this.messageHandler = callback;
+  }
+  setOpenHandler(callback) {
+    this.openHandler = callback;
+  }
+  setCloseHandler(callback) {
+    this.closeHandler = callback;
+  }
+  setErrorHandler(callback) {
+    this.errorHandler = callback;
   }
 }

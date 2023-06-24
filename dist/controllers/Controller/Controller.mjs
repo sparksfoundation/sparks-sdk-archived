@@ -5,6 +5,12 @@ export class Controller {
   constructor(spark) {
     this.spark = spark;
     this.keyEventLog = [];
+    this.incept = this.incept.bind(this);
+    this.rotate = this.rotate.bind(this);
+    this.delete = this.delete.bind(this);
+    this.import = this.import.bind(this);
+    this.export = this.export.bind(this);
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }
   get encryptionKeys() {
     return {
@@ -137,6 +143,7 @@ export class Controller {
     Object.assign(this, deepCopy);
   }
   async export() {
+    console.log("exporting", this);
     const { keyPairs, ...data } = this;
     const encrypted = await this.spark.encrypt({ data: JSON.stringify(data) });
     return encrypted;

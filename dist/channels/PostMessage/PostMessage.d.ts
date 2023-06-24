@@ -12,7 +12,7 @@ export declare class PostMessage extends AChannel {
         channel?: Channel;
     });
     protected handleResponse(event: any): Promise<unknown>;
-    protected sendRequest(event: any): Promise<void>;
+    protected handleRequest(event: any): Promise<void>;
     static receive(callback: ({ details, resolve, reject }: {
         details: any;
         resolve: any;

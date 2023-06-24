@@ -3,8 +3,8 @@ const _RestAPI = class extends AChannel {
   constructor({ spark, channel }) {
     super({ spark, channel });
     this.handleResponse = this.handleResponse.bind(this);
-    this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setRequestHandler(this.sendRequest);
+    this.handleRequest = this.handleRequest.bind(this);
+    this.channel.setRequestHandler(this.handleRequest);
     _RestAPI.receives.set(this.cid, this.handleResponse);
   }
   async handleResponse(response) {
@@ -15,7 +15,7 @@ const _RestAPI = class extends AChannel {
     promise.resolve();
     _RestAPI.promises.delete(response.eid);
   }
-  async sendRequest(request) {
+  async handleRequest(request) {
     const promise = _RestAPI.promises.get(request.eid);
     promise.resolve(request);
     _RestAPI.promises.delete(request.eid);

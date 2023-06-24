@@ -49,9 +49,21 @@ export class AChannel {
       spark: { enumerable: false },
       channel: { enumerable: false }
     });
-    this.channel.setMessageHandler((message) => {
+    this.channel.setMessageHandler((payload) => {
       if (this.onmessage)
-        this.onmessage(message);
+        this.onmessage(payload);
+    });
+    this.channel.setErrorHandler((payload) => {
+      if (this.onerror)
+        this.onerror(payload);
+    });
+    this.channel.setCloseHandler((payload) => {
+      if (this.onclose)
+        this.onclose(payload);
+    });
+    this.channel.setOpenHandler((payload) => {
+      if (this.onopen)
+        this.onopen(payload);
     });
   }
   get cid() {
@@ -65,6 +77,9 @@ export class AChannel {
   }
   get opened() {
     return this.channel.opened;
+  }
+  get sharedKey() {
+    return this.channel.sharedKey;
   }
   open() {
     return this.channel.open();

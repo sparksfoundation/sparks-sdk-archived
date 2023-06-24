@@ -7,6 +7,6 @@ export declare class FetchAPI extends AChannel {
         url: string;
     });
     protected handleResponse(response: any): Promise<unknown>;
-    protected sendRequest(request: any): Promise<void>;
+    protected handleRequest(request: any): Promise<void>;
     static receive(): void;
 }

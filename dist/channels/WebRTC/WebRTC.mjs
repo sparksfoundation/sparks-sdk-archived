@@ -1,6 +1,7 @@
-import { Channel } from "../Channel/Channel.mjs";
-import { ChannelTypes } from "../Channel/types.mjs";
+import { blake3 } from "@noble/hashes/blake3";
+import { AChannel, Channel, SparksChannel } from "../Channel/index.mjs";
 import Peer from "peerjs";
+import util from "tweetnacl-util";
 const iceServers = [
   {
     urls: "stun:stun.relay.metered.ca:80"
@@ -26,87 +27,68 @@ const iceServers = [
     credential: "PqVetG0J+Kn//OUc"
   }
 ];
-export class WebRTC extends Channel {
-  constructor({ spark, peerId, connection, oncall, ...args }) {
-    super({ channelType: ChannelTypes.WEB_RTC, spark, ...args });
-    this.peerId = peerId.replace(/[^a-zA-Z\-\_]/g, "");
-    this.open = this.open.bind(this);
-    this.receiveMessage = this.receiveMessage.bind(this);
-    this.sendMessage = this.sendMessage.bind(this);
-    if (connection) {
-      this.connection = connection;
-      this.connection.on("error", (err) => console.error(err));
-      this.connection.on("data", this.receiveMessage);
-    }
-    if (oncall) {
-      WebRTC.peerjs.on("call", (call) => {
-        const accept = async () => {
-          return new Promise((resolve, reject) => {
-            const navigator = window.navigator || {};
-            const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-            if (!getUserMedia)
-              return reject({ error: "getUserMedia not supported" });
-            getUserMedia({ video: true, audio: true }, function(stream) {
-              call.answer(stream);
-              call.on("stream", function(remoteStream) {
-                return resolve(remoteStream);
-              });
-            }, (err) => {
-              return reject({ error: err });
-            });
-          });
-        };
-        oncall({ call, accept });
-      });
-    }
-  }
-  async open(payload, action) {
-    if (WebRTC.peerjs && this.connection) {
-      return super.open(payload, action);
-    }
-    return new Promise((resolve, reject) => {
-      const ourId = this.spark.identifier.replace(/[^a-zA-Z\-\_]/g, "");
-      WebRTC.peerjs = WebRTC.peerjs || new Peer(ourId, { config: { iceServers } });
-      WebRTC.peerjs.on("error", (err) => console.error(err));
-      const connection = WebRTC.peerjs.connect(this.peerId);
-      connection.on("open", async () => {
-        this.connection = connection;
-        connection.on("data", this.receiveMessage);
-        const result = await super.open(payload, action);
-        return resolve(result);
-      });
+export class WebRTC extends AChannel {
+  constructor({
+    spark,
+    connection,
+    channel,
+    address
+  }) {
+    super({ spark, channel });
+    this.address = WebRTC.idFromIdentifier(spark.identifier);
+    this.peerAddress = address;
+    WebRTC.peerjs = WebRTC.peerjs || new Peer(this.address, { config: { iceServers } });
+    this.connection = connection || WebRTC.peerjs.connect(this.peer.address);
+    this.handleResponse = this.handleResponse.bind(this);
+    this.handleRequest = this.handleRequest.bind(this);
+    connection.on("open", async () => {
+      connection.on("data", this.handleResponse);
     });
+    this.handleRequest = this.handleRequest.bind(this);
+    this.channel.setRequestHandler(this.handleRequest);
   }
-  async call() {
-    return new Promise((resolve, reject) => {
-      const navigator = window.navigator || {};
-      const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-      if (!getUserMedia)
-        return resolve({ error: "getUserMedia not supported" });
-      getUserMedia({ video: true, audio: true }, (stream) => {
-        const call = WebRTC.peerjs.call(this.peerId, stream);
-        call.on("stream", (remoteStream) => {
-          return resolve(remoteStream);
-        });
-      }, (err) => reject({ error: err }));
-    });
+  get peer() {
+    const peer = super.peer;
+    return { ...peer, address: this.peerAddress };
   }
-  receiveMessage(payload) {
-    super.receiveMessage(payload);
+  async handleResponse(response) {
+    return this.channel.handleResponse(response);
   }
-  sendMessage(payload) {
-    this.connection.send(payload);
+  async handleRequest(request) {
+    this.connection.send(request);
   }
-  static receive(callback, { spark, oncall }) {
-    WebRTC.peerjs = WebRTC.peerjs || new Peer(spark.identifier.replace(/[^a-zA-Z\-\_]/g, ""), { config: { iceServers } });
+  static idFromIdentifier(identifier) {
+    const id = util.encodeBase64(blake3(identifier));
+    return id.replace(/[^a-zA-Z\-\_]/g, "");
+  }
+  static receive(callback, {
+    spark
+  }) {
+    const address = WebRTC.idFromIdentifier(spark.identifier);
+    WebRTC.peerjs = WebRTC.peerjs || new Peer(address, { config: { iceServers } });
     WebRTC.peerjs.on("error", (err) => console.error(err));
-    WebRTC.peerjs.on("open", (id) => {
+    WebRTC.peerjs.on("open", () => {
       WebRTC.peerjs.on("connection", (connection) => {
-        connection.on("data", (payload) => {
-          const options = { connection, peerId: connection.peer, spark, oncall };
-          const args = Channel.channelRequest({ payload, options, Channel: WebRTC });
-          if (args)
-            callback(args);
+        connection.on("data", (data) => {
+          const { type, cid } = data;
+          if (type !== SparksChannel.Event.Types.OPEN_REQUEST)
+            return;
+          const channel = new WebRTC({
+            spark,
+            channel: new Channel({ spark, cid }),
+            address
+          });
+          callback({
+            details: data,
+            resolve: async () => {
+              await channel.acceptOpen(data);
+              return channel;
+            },
+            reject: async () => {
+              await channel.rejectOpen(data);
+              return null;
+            }
+          });
         });
       });
     });
