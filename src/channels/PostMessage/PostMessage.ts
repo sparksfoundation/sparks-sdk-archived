@@ -27,7 +27,7 @@ export class PostMessage extends AChannel {
     this.source = source;
 
     this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setSendRequest(this.sendRequest);
+    this.channel.setRequestHandler(this.sendRequest);
 
     this.handleResponse = this.handleResponse.bind(this);
     this._window.addEventListener('message', this.handleResponse);

@@ -8,7 +8,7 @@ export declare class RestAPI extends AChannel {
         spark: ISpark<any, any, any, any, any>;
         channel: Channel;
     });
-    protected handleResponse(response: any): void;
+    protected handleResponse(response: any): Promise<void>;
     protected sendRequest(request: any): Promise<void>;
     static receive(callback: any, { spark }: {
         spark: ISpark<any, any, any, any, any>;

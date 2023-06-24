@@ -6,7 +6,7 @@ export declare class FetchAPI extends AChannel {
         spark: ISpark<any, any, any, any, any>;
         url: string;
     });
-    protected handleResponse(response: any): void;
+    protected handleResponse(response: any): Promise<unknown>;
     protected sendRequest(request: any): Promise<void>;
     static receive(): void;
 }

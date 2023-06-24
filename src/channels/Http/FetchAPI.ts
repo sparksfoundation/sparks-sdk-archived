@@ -15,7 +15,7 @@ export class FetchAPI extends AChannel {
     this.url = url;
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setSendRequest(this.sendRequest);
+    this.channel.setRequestHandler(this.sendRequest);
   }
 
   protected handleResponse(response: any) {

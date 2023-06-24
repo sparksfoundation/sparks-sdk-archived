@@ -9,10 +9,10 @@ export interface IChannel { }
 export class Channel implements IChannel {
   private promises: Map<SparksChannel.Eid, SparksChannel.Event.Promise> = new Map();
   private requestHandler: SparksChannel.RequestHandler;
+  private messageHandler: SparksChannel.Message.Handler;
   private spark: ISpark<any, any, any, any, any>;
   private sharedKey: SharedEncryptionKey;
-  private pendingMessages: SparksChannel.Event.MessageRequest[] = [];
-
+  private pendingMessages: SparksChannel.Event.Message[] = [];
   public opened: boolean = false;
   public eventLog: SparksChannel.EventLog = [];
   public cid: SparksChannel.Cid;
@@ -28,57 +28,57 @@ export class Channel implements IChannel {
   }
 
   // utilities
-  private async sealReceipt(
+  private async sealData(
     data: SparksChannel.Receipt.Any,
     event?: SparksChannel.Event.Any
   ): Promise<{
-    error: SparksChannel.Error.ReceiptCreation | null,
-    receipt: SparksChannel.Receipt.Cipher
+    error: SparksChannel.Error.CreateCiphertext | null,
+    ciphertext: SparksChannel.Receipt.Cipher
   }> {
 
-    let error: SparksChannel.Error.ReceiptCreation = null;
+    let error: SparksChannel.Error.CreateCiphertext = null;
     const sharedKey = this.sharedKey;
     const encrypted = sharedKey ? await this.spark.encrypt({ sharedKey, data }) : null;
-    const receipt = encrypted ? await this.spark.sign({ data: encrypted }) : null;
+    const ciphertext = encrypted ? await this.spark.sign({ data: encrypted }) : null;
 
-    if (!receipt) {
+    if (!ciphertext) {
       error = {
         eid: event.eid,
-        type: SparksChannel.Error.Types.RECEIPT_CREATION_ERROR,
-        message: 'failed to create receipt',
+        type: SparksChannel.Error.Types.CREATE_CIPHERTEXT_ERROR,
+        message: 'failed to create ciphertext',
         cid: this.cid,
         timestamp: getTimestamp(),
       };
     }
 
-    return { receipt, error }
+    return { ciphertext, error }
   }
 
-  private async verifyReceipt(
-    receipt: SparksChannel.Receipt.Cipher,
+  private async openCipher(
+    receipt: SparksChannel.Receipt.Cipher | SparksChannel.Message.Cipher,
     event?: SparksChannel.Event.Any
   ): Promise<{
-    valid: boolean,
-    error: SparksChannel.Error.ReceiptVerification
+    data: string | Record<string, any>,
+    error: SparksChannel.Error.OpenCiphertext | null,
   }> {
 
-    let error: SparksChannel.Error.ReceiptVerification = null;
+    let error: SparksChannel.Error.OpenCiphertext = null;
     const peer = this.peer;
     const sharedKey = this.sharedKey;
-    const openedReceipt = sharedKey ? await this.spark.verify({ signature: receipt, publicKey: peer.publicKeys.signing }) : null;
-    const decryptedReceipt = openedReceipt ? await this.spark.decrypt({ sharedKey, data: openedReceipt }) : null;
+    const openedCipher = sharedKey ? await this.spark.verify({ signature: receipt, publicKey: peer.publicKeys.signing }) : null;
+    const decryptedCipher = openedCipher ? await this.spark.decrypt({ sharedKey, data: openedCipher }) : null;
 
-    if (!decryptedReceipt) {
+    if (!decryptedCipher) {
       error = {
-        type: SparksChannel.Error.Types.RECEIPT_VERIFICATION_ERROR,
+        type: SparksChannel.Error.Types.OPEN_CIPHERTEXT_ERROR,
         eid: event.eid,
-        message: 'failed to verify receipt',
+        message: 'failed to open ciphertext',
         cid: this.cid,
         timestamp: getTimestamp(),
       };
     }
 
-    return { valid: !!decryptedReceipt, error };
+    return { data: decryptedCipher, error };
   }
 
   private async setPeer(
@@ -122,7 +122,6 @@ export class Channel implements IChannel {
 
     this.peer = { identifier, publicKeys };
     this.sharedKey = pendingSharedKey;
-
     return { error };
   }
 
@@ -152,7 +151,6 @@ export class Channel implements IChannel {
     error: SparksChannel.Error.SendRequest | null,
   }> {
     let error: SparksChannel.Error.SendRequest | null = null;
-    console.log('S:', event.type)
     try {
       await this.requestHandler(event);
       this.eventLog.push({ response: true, ...event });
@@ -169,49 +167,68 @@ export class Channel implements IChannel {
     return { error };
   }
 
-  public handleResponse(event) {
+  public async handleResponse(event) {
     const isEvent = Object.values(SparksChannel.Event.Types).includes(event.type);
     const isError = Object.values(SparksChannel.Error.Types).includes(event.type);
     if (!isEvent && !isError) return;
 
-    console.log('R:', event.type)
     const type = isError ? SparksChannel.Error.Types.UNEXPECTED_ERROR : event.type;
     if (isEvent || isError) {
       this.eventLog.push({ request: true, ...event });
     }
-    switch (type) {
-      case SparksChannel.Event.Types.OPEN_REQUEST:
-        this.onOpenRequested(event);
-        break;
-      case SparksChannel.Event.Types.OPEN_ACCEPT:
-        this.onOpenAccepted(event);
-        break;
-      case SparksChannel.Event.Types.OPEN_CONFIRM:
-        this.onOpenConfirmed(event);
-        break;
-      case SparksChannel.Event.Types.MESSAGE_REQUEST:
-        if (this.opened) this.onMessageRequest(event);
-        else this.pendingMessages.push(event);
-        break;
-      case SparksChannel.Event.Types.MESSAGE_CONFIRM:
-        this.onMessageConfirmed(event);
-        break;
-      case SparksChannel.Event.Types.CLOSE_REQUEST:
-        this.onCloseRequested(event);
-        break;
-      case SparksChannel.Event.Types.CLOSE_CONFIRM:
-        this.onCloseConfirmed(event);
-        break;
-      case SparksChannel.Error.Types.UNEXPECTED_ERROR:
-        const { promise } = this.getPromise(event.eid);
-        if (!promise) throw new Error(event);
-        promise.reject(event);
-        this.promises.delete(event.eid);
-        break;
+    switch (true) {
+      case type === SparksChannel.Event.Types.OPEN_REQUEST:
+        return this.onOpenRequested(event);
+      case type === SparksChannel.Event.Types.OPEN_ACCEPT:
+        return this.onOpenAccepted(event);
+      case type === SparksChannel.Event.Types.OPEN_CONFIRM:
+        return this.onOpenConfirmed(event);
+      case this.opened && type === SparksChannel.Event.Types.MESSAGE:
+        return this.onMessage(event);
+      case !this.opened && type === SparksChannel.Event.Types.MESSAGE:
+        return this.pendingMessages.push(event);
+      case type === SparksChannel.Event.Types.MESSAGE_CONFIRM:
+        return this.onMessageConfirmed(event);
+      case type === SparksChannel.Event.Types.CLOSE:
+        return this.onClose(event);
+      case type === SparksChannel.Event.Types.CLOSE_CONFIRM:
+        return this.onCloseConfirmed(event);
+      case type === SparksChannel.Error.Types.UNEXPECTED_ERROR:
+        return this.handleResponseError(event);
+      default:
+        return;
     }
   }
 
+  private handleResponseError(error: SparksChannel.Error.Any) {
+    const { promise } = this.getPromise(error.eid);
+    if (!promise) throw new Error(error.message);
+    promise.reject(error);
+    this.promises.delete(error.eid);
+  }
+
   // open flow
+  public open() {
+    return new Promise(async (resolve, reject) => {
+      const event: SparksChannel.Event.OpenRequest = {
+        eid: randomNonce(16),
+        cid: this.cid,
+        timestamp: getTimestamp(),
+        type: SparksChannel.Event.Types.OPEN_REQUEST,
+        identifier: this.spark.identifier,
+        publicKeys: this.spark.publicKeys,
+      };
+
+      this.promises.set(event.eid, { resolve, reject });
+
+      const { error: requestError } = await this.request(event);
+      if (requestError) {
+        this.promises.delete(event.eid);
+        return reject(requestError);
+      }
+    });
+  }
+
   private onOpenRequested(requestEvent: SparksChannel.Event.OpenRequest) {
     return new Promise(async (resolve, reject) => {
       const { error: setPeerError } = await this.setPeer(requestEvent);
@@ -230,10 +247,11 @@ export class Channel implements IChannel {
         ]
       };
 
-      const { error: receiptError, receipt } = await this.sealReceipt(receiptData, requestEvent);
-      if (receiptError) {
-        this.request(receiptError);
-        return reject(receiptError);
+      const { error: sealError, ciphertext: receipt } = await this.sealData(receiptData, requestEvent);
+      if (sealError) {
+        const message = 'error creating open accept receipt';
+        this.request({ ...sealError, message });
+        return reject({ ...sealError, message });
       }
 
       const event: SparksChannel.Event.OpenAccept = {
@@ -257,6 +275,22 @@ export class Channel implements IChannel {
     });
   }
 
+  public async acceptOpen(requestEvent) {
+    this.eventLog.push({ request: true, requestEvent });
+    return await this.onOpenRequested(requestEvent);
+  }
+
+  public async rejectOpen(requestEvent) {
+    const event: SparksChannel.Error.OpenRequestRejected = {
+      eid: requestEvent.eid,
+      cid: this.cid,
+      timestamp: getTimestamp(),
+      type: SparksChannel.Error.Types.OPEN_REQUEST_REJECTED,
+      message: 'Open request rejected',
+    }
+    await this.request(event);
+  }
+
   private async onOpenAccepted(acceptEvent: SparksChannel.Event.OpenAccept) {
     const { promise, error: promiseError } = this.getPromise(acceptEvent.eid);
     if (promiseError) {
@@ -272,7 +306,7 @@ export class Channel implements IChannel {
       return;
     }
 
-    const { error: validReceiptError } = await this.verifyReceipt(acceptEvent.receipt, acceptEvent);
+    const { error: validReceiptError } = await this.openCipher(acceptEvent.receipt, acceptEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);
@@ -290,10 +324,11 @@ export class Channel implements IChannel {
       ]
     };
 
-    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, acceptEvent)
-    if (receiptError) {
-      this.request(receiptError);
-      promise.reject(receiptError);
+    const { ciphertext: receipt, error: sealError } = await this.sealData(receiptData, acceptEvent)
+    if (sealError) {
+      const message = 'error creating open confirm receipt';
+      this.request({ ...sealError, message });
+      promise.reject({ ...sealError, message });
       this.promises.delete(acceptEvent.eid);
       return;
     }
@@ -321,7 +356,7 @@ export class Channel implements IChannel {
   }
 
   private async onOpenConfirmed(confirmEvent: SparksChannel.Event.OpenConfirm) {
-    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt, confirmEvent);
+    const { error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       const { promise } = this.getPromise(confirmEvent.eid);
@@ -339,36 +374,68 @@ export class Channel implements IChannel {
     this.promises.delete(confirmOrAcceptEvent.eid);
     this.opened = true;
     this.pendingMessages.forEach((pendingMessage) => {
-      this.onMessageRequest(pendingMessage);
+      this.onMessage(pendingMessage);
     });
     this.pendingMessages = [];
   }
 
   // message flow
-  private async onMessageRequest(messageRequest: SparksChannel.Event.MessageRequest): Promise<void> {
+  public send(payload: SparksChannel.Message.Data) {
+    return new Promise(async (resolve, reject) => {
+      if (!this.opened) return reject('Channel not opened');
+      // send the payload, wait for response, log receipt
+      const encrypted = await this.spark.encrypt({ data: payload, sharedKey: this.sharedKey });
+      const ciphertext = await this.spark.sign({ data: encrypted });
+
+      const event: SparksChannel.Event.Message = {
+        eid: randomNonce(16),
+        cid: this.cid,
+        timestamp: getTimestamp(),
+        type: SparksChannel.Event.Types.MESSAGE,
+        mid: randomNonce(16),
+        ciphertext,
+      }
+
+      this.promises.set(event.eid, { resolve, reject });
+      const { error: requestError } = await this.request(event);
+      if (requestError) {
+        this.request(requestError);
+        return reject(requestError);
+      }
+    });
+  }
+
+  private async onMessage(messageEvent: SparksChannel.Event.Message): Promise<void> {
+    const { data, error } = await this.openCipher(messageEvent.ciphertext, messageEvent);
+    if (error) {
+      this.request({ ...error, message: 'error decrypting message' });
+      return;
+    }
+
     const receiptData: SparksChannel.Receipt.MessageConfirmed = {
       type: SparksChannel.Receipt.Types.MESSAGE_CONFIRMED,
       cid: this.cid,
       timestamp: getTimestamp(),
-      mid: messageRequest.mid,
-      payload: messageRequest.payload,
+      mid: messageEvent.mid,
+      data: data,
     }
 
-    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, messageRequest);
+    const { ciphertext: receipt, error: receiptError } = await this.sealData(receiptData, messageEvent);
     if (receiptError) {
-      this.request(receiptError);
+      this.request({ ...receiptError, message: 'error creating message receipt' });
       return;
     }
 
     const event: SparksChannel.Event.MessageConfirm = {
-      eid: messageRequest.eid,
+      eid: messageEvent.eid,
       cid: this.cid,
       timestamp: getTimestamp(),
       type: SparksChannel.Event.Types.MESSAGE_CONFIRM,
-      mid: messageRequest.mid,
+      mid: messageEvent.mid,
       receipt,
     };
 
+    if (this.messageHandler) this.messageHandler({ event: messageEvent, data } as { event: SparksChannel.Event.Message, data: SparksChannel.Message.Data });
     const { error: requestError } = await this.request(event);
     if (requestError) {
       this.request(requestError);
@@ -380,7 +447,7 @@ export class Channel implements IChannel {
     const { promise } = this.getPromise(confirmEvent.eid);
     if (!promise) return;
 
-    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt, confirmEvent);
+    const { error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);
@@ -392,7 +459,7 @@ export class Channel implements IChannel {
     this.completeMessage(confirmEvent);
   }
 
-  private async completeMessage(messageRequestOrConfirm: SparksChannel.Event.MessageRequest | SparksChannel.Event.MessageConfirm) {
+  private async completeMessage(messageRequestOrConfirm: SparksChannel.Event.Message | SparksChannel.Event.MessageConfirm) {
     const { promise } = this.getPromise(messageRequestOrConfirm.eid);
     if (!promise) return;
     promise.resolve(messageRequestOrConfirm);
@@ -400,17 +467,38 @@ export class Channel implements IChannel {
   }
 
   // close flow
-  private async onCloseRequested(requestEvent: SparksChannel.Event.CloseRequest) {
-    // just like onMessageRequest but for closeRequest
+  public close() {
+    // send close request, wait for response, log receipt
+    return new Promise(async (resolve, reject) => {
+      if (!this.opened) return reject('Channel already closed');
+
+      const event: SparksChannel.Event.Close = {
+        eid: randomNonce(16),
+        cid: this.cid,
+        timestamp: getTimestamp(),
+        type: SparksChannel.Event.Types.CLOSE,
+      }
+
+      this.promises.set(event.eid, { resolve, reject });
+      const { error: requestError } = await this.request(event);
+      if (requestError) {
+        this.request(requestError);
+        return reject(requestError);
+      }
+    });
+  }
+
+  private async onClose(requestEvent: SparksChannel.Event.Close) {
+    // just like onMessage but for closeRequest
     const receiptData: SparksChannel.Receipt.CloseConfirmed = {
       type: SparksChannel.Receipt.Types.CLOSE_CONFIRMED,
       cid: this.cid,
       timestamp: getTimestamp(),
     };
 
-    const { receipt, error: receiptError } = await this.sealReceipt(receiptData, requestEvent);
+    const { ciphertext: receipt, error: receiptError } = await this.sealData(receiptData, requestEvent);
     if (receiptError) {
-      this.request(receiptError);
+      this.request({ ...receiptError, message: 'error creating close receipt' });
       return;
     }
 
@@ -435,7 +523,7 @@ export class Channel implements IChannel {
     const { promise } = this.getPromise(confirmEvent.eid);
     if (!promise) return;
 
-    const { error: validReceiptError } = await this.verifyReceipt(confirmEvent.receipt, confirmEvent);
+    const { error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
       promise.reject(validReceiptError);
@@ -448,7 +536,7 @@ export class Channel implements IChannel {
     this.completeClose(confirmEvent);
   }
 
-  private completeClose(requestOrConfirmEvent: SparksChannel.Event.CloseRequest | SparksChannel.Event.CloseConfirm) {
+  private completeClose(requestOrConfirmEvent: SparksChannel.Event.Close | SparksChannel.Event.CloseConfirm) {
     this.opened = false;
     this.pendingMessages = [];
     this.promises.clear();
@@ -456,88 +544,11 @@ export class Channel implements IChannel {
     this.sharedKey = null;
   }
 
-  // public methods
-  public open() {
-    return new Promise(async (resolve, reject) => {
-      const event: SparksChannel.Event.OpenRequest = {
-        eid: randomNonce(16),
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        type: SparksChannel.Event.Types.OPEN_REQUEST,
-        identifier: this.spark.identifier,
-        publicKeys: this.spark.publicKeys,
-      };
-
-      this.promises.set(event.eid, { resolve, reject });
-
-      const { error: requestError } = await this.request(event);
-      if (requestError) {
-        this.promises.delete(event.eid);
-        return reject(requestError);
-      }
-    });
-  }
-
-  public async acceptOpen(requestEvent) {
-    this.eventLog.push({ request: true, requestEvent });
-    return await this.onOpenRequested(requestEvent);
-  }
-
-  public async rejectOpen(requestEvent) {
-    const event: SparksChannel.Error.OpenRequestRejected = {
-      eid: requestEvent.eid,
-      cid: this.cid,
-      timestamp: getTimestamp(),
-      type: SparksChannel.Error.Types.OPEN_REQUEST_REJECTED,
-      message: 'Open request rejected',
-    }
-    await this.request(event);
-  }
-
-  public send(payload: SparksChannel.Message.Payload) {
-    return new Promise(async (resolve, reject) => {
-      if (!this.opened) return reject('Channel not opened');
-      // send the payload, wait for response, log receipt
-      const event: SparksChannel.Event.MessageRequest = {
-        eid: randomNonce(16),
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        type: SparksChannel.Event.Types.MESSAGE_REQUEST,
-        mid: randomNonce(16),
-        payload,
-      }
-
-      this.promises.set(event.eid, { resolve, reject });
-      const { error: requestError } = await this.request(event);
-      if (requestError) {
-        this.request(requestError);
-        return reject(requestError);
-      }
-    });
-  }
-
-  public close() {
-    // send close request, wait for response, log receipt
-    return new Promise(async (resolve, reject) => {
-      if (!this.opened) return reject('Channel already closed');
-
-      const event: SparksChannel.Event.CloseRequest = {
-        eid: randomNonce(16),
-        cid: this.cid,
-        timestamp: getTimestamp(),
-        type: SparksChannel.Event.Types.CLOSE_REQUEST,
-      }
-
-      this.promises.set(event.eid, { resolve, reject });
-      const { error: requestError } = await this.request(event);
-      if (requestError) {
-        this.request(requestError);
-        return reject(requestError);
-      }
-    });
-  }
-
-  public setSendRequest(callback: SparksChannel.RequestHandler) {
+  public setRequestHandler(callback: SparksChannel.RequestHandler) {
     this.requestHandler = callback;
+  }
+
+  public setMessageHandler(callback: SparksChannel.Message.Handler) {
+    this.messageHandler = callback;
   }
 }

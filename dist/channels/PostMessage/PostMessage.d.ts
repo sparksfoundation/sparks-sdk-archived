@@ -11,7 +11,7 @@ export declare class PostMessage extends AChannel {
         spark: ISpark<any, any, any, any, any>;
         channel?: Channel;
     });
-    protected handleResponse(event: any): void;
+    protected handleResponse(event: any): Promise<unknown>;
     protected sendRequest(event: any): Promise<void>;
     static receive(callback: ({ details, resolve, reject }: {
         details: any;

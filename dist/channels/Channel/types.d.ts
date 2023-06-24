@@ -37,7 +37,7 @@ export declare namespace SparksChannel {
         type MessageConfirmed = Meta & {
             type: Types.MESSAGE_CONFIRMED;
             mid: Mid;
-            payload: Message.Payload;
+            data: Message.Data;
         };
         type CloseConfirmed = Meta & {
             type: Types.CLOSE_CONFIRMED;
@@ -60,9 +60,9 @@ export declare namespace SparksChannel {
             OPEN_REQUEST = "OPEN_REQUEST",
             OPEN_ACCEPT = "OPEN_ACCEPT",
             OPEN_CONFIRM = "OPEN_CONFIRM",
-            MESSAGE_REQUEST = "MESSAGE_REQUEST",
+            MESSAGE = "MESSAGE",
             MESSAGE_CONFIRM = "MESSAGE_CONFIRM",
-            CLOSE_REQUEST = "CLOSE_REQUEST",
+            CLOSE = "CLOSE",
             CLOSE_CONFIRM = "CLOSE_CONFIRM"
         }
         type Meta = {
@@ -87,18 +87,18 @@ export declare namespace SparksChannel {
             publicKeys: PublicKeys;
             receipt: Receipt.Cipher;
         };
-        type MessageRequest = Meta & {
+        type Message = Meta & {
             mid: Mid;
-            type: Types.MESSAGE_REQUEST;
-            payload: Message.Payload;
+            type: Types.MESSAGE;
+            ciphertext: Message.Cipher;
         };
         type MessageConfirm = Meta & {
             mid: Mid;
             type: Types.MESSAGE_CONFIRM;
             receipt: Receipt.Cipher;
         };
-        type CloseRequest = Meta & {
-            type: Types.CLOSE_REQUEST;
+        type Close = Meta & {
+            type: Types.CLOSE;
         };
         type CloseConfirm = Meta & {
             type: Types.CLOSE_CONFIRM;
@@ -108,33 +108,34 @@ export declare namespace SparksChannel {
             [Types.OPEN_REQUEST]: OpenRequest;
             [Types.OPEN_ACCEPT]: OpenAccept;
             [Types.OPEN_CONFIRM]: OpenConfirm;
-            [Types.MESSAGE_REQUEST]: MessageRequest;
+            [Types.MESSAGE]: Message;
             [Types.MESSAGE_CONFIRM]: MessageConfirm;
-            [Types.CLOSE_REQUEST]: CloseRequest;
+            [Types.CLOSE]: Close;
             [Types.CLOSE_CONFIRM]: CloseConfirm;
         };
-        type Any = OpenRequest | OpenAccept | OpenConfirm | MessageRequest | MessageConfirm | CloseRequest | CloseConfirm;
+        type Any = OpenRequest | OpenAccept | OpenConfirm | Message | MessageConfirm | Close | CloseConfirm;
     }
     namespace Message {
-        type Payload = string | Record<string, any>;
-        type Result = {
-            payload: Payload;
-            receipt: Receipt.Cipher;
-        };
+        type Data = string | Record<string, any>;
+        type Cipher = string;
+        type Handler = ({ event, data }: {
+            event: SparksChannel.Event.Message;
+            data: Data;
+        }) => void;
     }
     namespace Error {
         type Message = string;
         enum Types {
             SEND_REQUEST_ERROR = "SEND_REQUEST_ERROR",
             EVENT_PROMISE_ERROR = "EVENT_PROMISE_ERROR",
-            RECEIPT_CREATION_ERROR = "RECEIPT_CREATION_ERROR",
-            RECEIPT_VERIFICATION_ERROR = "RECEIPT_VERIFICATION_ERROR",
             SHARED_KEY_CREATION_ERROR = "SHARED_KEY_CREATION_ERROR",
             OPEN_REQUEST_REJECTED = "OPEN_REQUEST_REJECTED",
             COMPUTE_SHARED_KEY_ERROR = "COMPUTE_SHARED_KEY_ERROR",
             UNEXPECTED_ERROR = "UNEXPECTED_ERROR",
             INVALID_PUBLIC_KEYS = "INVALID_PUBLIC_KEYS",
-            INVALID_IDENTIFIER = "INVALID_IDENTIFIER"
+            INVALID_IDENTIFIER = "INVALID_IDENTIFIER",
+            OPEN_CIPHERTEXT_ERROR = "OPEN_CIPHERTEXT_ERROR",
+            CREATE_CIPHERTEXT_ERROR = "CREATE_CIPHERTEXT_ERROR"
         }
         type Meta = {
             cid: Cid;
@@ -147,12 +148,6 @@ export declare namespace SparksChannel {
         };
         type EventPromise = Meta & {
             type: Types.EVENT_PROMISE_ERROR;
-        };
-        type ReceiptCreation = Meta & {
-            type: Types.RECEIPT_CREATION_ERROR;
-        };
-        type ReceiptVerification = Meta & {
-            type: Types.RECEIPT_VERIFICATION_ERROR;
         };
         type SharedKeyCreation = Meta & {
             type: Types.SHARED_KEY_CREATION_ERROR;
@@ -169,28 +164,35 @@ export declare namespace SparksChannel {
         type InvalidIdentifier = Meta & {
             type: Types.INVALID_IDENTIFIER;
         };
+        type OpenCiphertext = Meta & {
+            type: Types.OPEN_CIPHERTEXT_ERROR;
+        };
+        type CreateCiphertext = Meta & {
+            type: Types.CREATE_CIPHERTEXT_ERROR;
+        };
         type Unexpected = Meta & {
             type: Types.UNEXPECTED_ERROR;
         };
         type All = {
             [Types.SEND_REQUEST_ERROR]: SendRequest;
             [Types.EVENT_PROMISE_ERROR]: EventPromise;
-            [Types.RECEIPT_CREATION_ERROR]: ReceiptCreation;
-            [Types.RECEIPT_VERIFICATION_ERROR]: ReceiptVerification;
             [Types.SHARED_KEY_CREATION_ERROR]: SharedKeyCreation;
             [Types.OPEN_REQUEST_REJECTED]: OpenRequestRejected;
             [Types.COMPUTE_SHARED_KEY_ERROR]: ComputeSharedKey;
             [Types.INVALID_PUBLIC_KEYS]: InvalidPublicKeys;
             [Types.INVALID_IDENTIFIER]: InvalidIdentifier;
+            [Types.OPEN_CIPHERTEXT_ERROR]: OpenCiphertext;
+            [Types.CREATE_CIPHERTEXT_ERROR]: CreateCiphertext;
             [Types.UNEXPECTED_ERROR]: Unexpected;
         };
-        type Any = SendRequest | EventPromise | ReceiptCreation | ReceiptVerification | SharedKeyCreation | OpenRequestRejected | Unexpected | ComputeSharedKey | InvalidPublicKeys | InvalidIdentifier;
+        type Any = SendRequest | EventPromise | SharedKeyCreation | OpenRequestRejected | Unexpected | ComputeSharedKey | InvalidPublicKeys | InvalidIdentifier | OpenCiphertext | CreateCiphertext;
     }
     type RequestHandler = (event: Event.Any | Error.Any) => Promise<void> | never;
 }
 export declare abstract class AChannel {
     protected spark: ISpark<any, any, any, any, any>;
     protected channel: Channel;
+    onmessage: SparksChannel.Message.Handler;
     constructor({ spark, channel }: {
         spark: ISpark<any, any, any, any, any>;
         channel?: Channel;
@@ -204,6 +206,6 @@ export declare abstract class AChannel {
     protected send(message: any): Promise<unknown>;
     protected acceptOpen(request: any): Promise<unknown>;
     protected rejectOpen(request: any): Promise<void>;
-    protected abstract sendRequest(request: SparksChannel.Event.Any): Promise<void | never>;
     protected abstract handleResponse(response?: any): any | never;
+    protected abstract sendRequest(request: SparksChannel.Event.Any): Promise<void | never>;
 }

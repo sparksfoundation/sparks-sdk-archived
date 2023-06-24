@@ -10,20 +10,22 @@ export class RestAPI extends AChannel {
     super({ spark, channel });
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setSendRequest(this.sendRequest);
+    this.channel.setRequestHandler(this.sendRequest);
     RestAPI.receives.set(this.cid, this.handleResponse);
   }
 
-  protected handleResponse(response) {
+  protected async handleResponse(response) {
+    await this.channel.handleResponse(response);
     const promise = RestAPI.promises.get(response.eid);
-    if (promise) promise.resolve();
-    return this.channel.handleResponse(response);
+    if (!promise) return;
+    promise.resolve();
+    RestAPI.promises.delete(response.eid);
   }
 
   protected async sendRequest(request) {
-    if (!request.eid) return;
     const promise = RestAPI.promises.get(request.eid);
-    if (promise) promise.resolve(request);
+    promise.resolve(request);
+    RestAPI.promises.delete(request.eid);
   }
 
   static receive(callback, { spark }: { spark: ISpark<any, any, any, any, any> }) {

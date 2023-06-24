@@ -4,21 +4,21 @@ const _RestAPI = class extends AChannel {
     super({ spark, channel });
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setSendRequest(this.sendRequest);
+    this.channel.setRequestHandler(this.sendRequest);
     _RestAPI.receives.set(this.cid, this.handleResponse);
   }
-  handleResponse(response) {
+  async handleResponse(response) {
+    await this.channel.handleResponse(response);
     const promise = _RestAPI.promises.get(response.eid);
-    if (promise)
-      promise.resolve();
-    return this.channel.handleResponse(response);
+    if (!promise)
+      return;
+    promise.resolve();
+    _RestAPI.promises.delete(response.eid);
   }
   async sendRequest(request) {
-    if (!request.eid)
-      return;
     const promise = _RestAPI.promises.get(request.eid);
-    if (promise)
-      promise.resolve(request);
+    promise.resolve(request);
+    _RestAPI.promises.delete(request.eid);
   }
   static receive(callback, { spark }) {
     if (!spark || !callback) {
