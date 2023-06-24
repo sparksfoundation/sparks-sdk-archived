@@ -133,17 +133,17 @@ export class Channel implements IChannel {
   }
 
   private getPromise(
-    eid: SparksChannel.Eid
+    event: SparksChannel.Event.Any | SparksChannel.Error.Any
   ): {
     promise: SparksChannel.Event.Promise,
     error: SparksChannel.Error.EventPromise | null
   } {
-    const promise = this.promises.get(eid);
+    const promise = this.promises.get(event.eid);
     if (!promise) {
       const error: SparksChannel.Error.EventPromise = {
-        eid,
+        eid: event.eid,
         type: SparksChannel.Error.Types.EVENT_PROMISE_ERROR,
-        message: 'missing event promise',
+        message: 'missing event promise for event ' + event.type,
         cid: this.cid,
         timestamp: getTimestamp(),
       };
@@ -162,7 +162,9 @@ export class Channel implements IChannel {
       // check if it's an error event 
       const type = event.type as SparksChannel.Error.Types;
       const isError = Object.values(SparksChannel.Error.Types).includes(type);
-      if (isError && this.errorHandler) this.errorHandler({ error: event as SparksChannel.Error.Any });
+      if (isError && this.errorHandler) {
+        this.errorHandler({ error: event as SparksChannel.Error.Any });
+      }
       await this.requestHandler(event);
       this.eventLog.push({ response: true, ...event });
     } catch (err) {
@@ -174,7 +176,9 @@ export class Channel implements IChannel {
         timestamp: getTimestamp(),
       };
       this.eventLog.push({ response: true, ...error });
-      if (this.errorHandler) this.errorHandler({ error });
+      if (this.errorHandler) {
+        this.errorHandler({ error });
+      }
     }
     return { error };
   }
@@ -213,11 +217,14 @@ export class Channel implements IChannel {
   }
 
   private handleResponseError(error: SparksChannel.Error.Any) {
-    const { promise } = this.getPromise(error.eid);
-    if (!promise) throw new Error(error.message);
-    promise.reject(error);
-    this.promises.delete(error.eid);
-    if (this.errorHandler) this.errorHandler({ error });
+    const { promise } = this.getPromise(error);
+    if (promise) {
+      promise.reject(error);
+      this.promises.delete(error.eid);
+    }
+    if (this.errorHandler) {
+      this.errorHandler({ error });
+    }
   }
 
   // open flow
@@ -305,7 +312,7 @@ export class Channel implements IChannel {
   }
 
   private async onOpenAccepted(acceptEvent: SparksChannel.Event.OpenAccept) {
-    const { promise, error: promiseError } = this.getPromise(acceptEvent.eid);
+    const { promise, error: promiseError } = this.getPromise(acceptEvent);
     if (promiseError) {
       this.request(promiseError);
       return;
@@ -372,7 +379,7 @@ export class Channel implements IChannel {
     const { error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
     if (validReceiptError) {
       this.request(validReceiptError);
-      const { promise } = this.getPromise(confirmEvent.eid);
+      const { promise } = this.getPromise(confirmEvent);
       promise.reject(validReceiptError);
       this.promises.delete(confirmEvent.eid);
       return;
@@ -381,7 +388,7 @@ export class Channel implements IChannel {
   }
 
   private async completeOpen(confirmOrAcceptEvent: SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenConfirm) {
-    const { promise } = this.getPromise(confirmOrAcceptEvent.eid);
+    const { promise } = this.getPromise(confirmOrAcceptEvent);
     if (!promise) return;
     promise.resolve(confirmOrAcceptEvent);
     this.promises.delete(confirmOrAcceptEvent.eid);
@@ -390,7 +397,9 @@ export class Channel implements IChannel {
       this.onMessage(pendingMessage);
     });
     this.pendingMessages = [];
-    if (this.openHandler) this.openHandler({ event: confirmOrAcceptEvent });
+    if (this.openHandler) {
+      this.openHandler({ event: confirmOrAcceptEvent });
+    }
   }
 
   // message flow
@@ -425,6 +434,7 @@ export class Channel implements IChannel {
       this.request({ ...error, message: 'error decrypting message' });
       return;
     }
+    console.log('message completing 0')
 
     const receiptData: SparksChannel.Receipt.MessageConfirmed = {
       type: SparksChannel.Receipt.Types.MESSAGE_CONFIRMED,
@@ -439,6 +449,8 @@ export class Channel implements IChannel {
       this.request({ ...receiptError, message: 'error creating message receipt' });
       return;
     }
+    console.log('message completing 1')
+
 
     const event: SparksChannel.Event.MessageConfirm = {
       eid: messageEvent.eid,
@@ -455,11 +467,12 @@ export class Channel implements IChannel {
       return;
     }
 
+    console.log('message completing 2')
     this.completeMessage(messageEvent, data);
   }
 
   private async onMessageConfirmed(confirmEvent: SparksChannel.Event.MessageConfirm) {
-    const { promise } = this.getPromise(confirmEvent.eid);
+    const { promise } = this.getPromise(confirmEvent);
     if (!promise) return;
 
     const { data: payload, error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
@@ -475,11 +488,14 @@ export class Channel implements IChannel {
   }
 
   private async completeMessage(messageRequestOrConfirm: SparksChannel.Event.Message | SparksChannel.Event.MessageConfirm, data: SparksChannel.Message.Data) {
-    const { promise } = this.getPromise(messageRequestOrConfirm.eid);
-    if (!promise) return;
-    promise.resolve(messageRequestOrConfirm);
-    this.promises.delete(messageRequestOrConfirm.eid);
-    if (this.messageHandler) this.messageHandler({ event: messageRequestOrConfirm, data });
+    const { promise } = this.getPromise(messageRequestOrConfirm);
+    if (promise) {
+      promise.resolve(messageRequestOrConfirm);
+      this.promises.delete(messageRequestOrConfirm.eid);
+    }
+    if (this.messageHandler) {
+      this.messageHandler({ event: messageRequestOrConfirm, data });
+    }
   }
 
   // close flow
@@ -536,7 +552,7 @@ export class Channel implements IChannel {
   }
 
   private async onCloseConfirmed(confirmEvent: SparksChannel.Event.CloseConfirm) {
-    const { promise } = this.getPromise(confirmEvent.eid);
+    const { promise } = this.getPromise(confirmEvent);
     if (!promise) return;
 
     const { error: validReceiptError } = await this.openCipher(confirmEvent.receipt, confirmEvent);
@@ -558,7 +574,9 @@ export class Channel implements IChannel {
     this.promises.clear();
     this.peer = null;
     this.sharedKey = null;
-    if (this.closeHandler) this.closeHandler({ event: requestOrConfirmEvent });
+    if (this.closeHandler) {
+      this.closeHandler({ event: requestOrConfirmEvent });
+    }
   }
 
   public setRequestHandler(callback: SparksChannel.RequestHandler) {

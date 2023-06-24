@@ -6,6 +6,8 @@ import { Channel } from "./Channel";
 /**
  * TODO - allow decoration of request/response payloads from request/response handlers
  * TODO - allow decoration of peer definition from constructor
+ * TODO - flatten types to reduce nesting
+ * TODO - allow for returning errors
  */
 
 export namespace SparksChannel {
@@ -280,7 +282,7 @@ export abstract class AChannel {
     });
 
     this.channel.setErrorHandler((payload) => {
-      if (this.onerror) this.onerror(payload);
+      if (this.onerror) this.onerror(payload as any);
     });
 
     this.channel.setCloseHandler((payload) => {

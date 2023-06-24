@@ -19,12 +19,10 @@ export class PostMessage extends AChannel {
     this._window.addEventListener("message", this.handleResponse);
   }
   handleResponse(event) {
-    console.log("handleResponse", event.data.type);
     const payload = event.data;
     return this.channel.handleResponse(payload);
   }
   async handleRequest(event) {
-    console.log("handleRequest", event.type);
     this.source.postMessage(event, this.origin);
   }
   static receive(callback, { spark, _window }) {

@@ -34,13 +34,11 @@ export class PostMessage extends AChannel {
   }
 
   protected handleResponse(event) {
-    console.log('handleResponse', event.data.type);
     const payload = event.data;
     return this.channel.handleResponse(payload);
   }
 
   protected async handleRequest(event) {
-    console.log('handleRequest', event.type);
     this.source.postMessage(event, this.origin);
   }
 

@@ -5,6 +5,8 @@ import { Channel } from "./Channel";
 /**
  * TODO - allow decoration of request/response payloads from request/response handlers
  * TODO - allow decoration of peer definition from constructor
+ * TODO - flatten types to reduce nesting
+ * TODO - allow for returning errors
  */
 export declare namespace SparksChannel {
     type Cid = string;
