@@ -14,15 +14,15 @@ export class FetchAPI extends AChannel {
     super({ spark });
     this.url = url;
     this.handleResponse = this.handleResponse.bind(this);
-    this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setRequestHandler(this.sendRequest);
+    this.handleRequest = this.handleRequest.bind(this);
+    this.channel.setRequestHandler(this.handleRequest);
   }
 
   protected handleResponse(response: any) {
     return this.channel.handleResponse(response);
   }
 
-  protected async sendRequest(request) {
+  protected async handleRequest(request) {
     const response = await fetch(this.url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

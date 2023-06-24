@@ -1,14 +1,14 @@
-import { Controller, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index';
-import { Agent } from './agents/index';
-import { Signer } from './signers/index';
-import { Cipher } from './ciphers/index';
-import { Hasher } from './hashers/index';
+import { AController, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index';
+import { ASigner } from './signers/index';
+import { ACipher } from './ciphers/index';
+import { AHasher } from './hashers/index';
+import { AAgent } from './agents/Agent/types';
 
 interface Constructable<T> {
   new (...args: any[]): T;
 }
 
-type SparkOptions<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> = {
+type SparkOptions<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> = {
   controller: Constructable<C>;
   signer: Constructable<S>;
   cipher: Constructable<Cp>;
@@ -16,7 +16,7 @@ type SparkOptions<C extends Controller, S extends Signer, Cp extends Cipher, H e
   agents: Constructable<A[number]>[];
 };
 
-export interface ISpark<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> {
+export interface ISpark<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> {
   identifier: Identifier;
   keyEventLog: KeyEventLog;
   publicKeys: PublicKeys;
@@ -35,7 +35,7 @@ export interface ISpark<C extends Controller, S extends Signer, Cp extends Ciphe
   delete: C['delete'];
 }
 
-export class Spark<C extends Controller, S extends Signer, Cp extends Cipher, H extends Hasher, A extends Agent[]> implements ISpark<C, S, Cp, H, A> {
+export class Spark<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> implements ISpark<C, S, Cp, H, A> {
   public cipher: Cp;
   public controller: C;
   public hasher: H;
@@ -114,5 +114,13 @@ export class Spark<C extends Controller, S extends Signer, Cp extends Cipher, H 
 
   get delete (): C['delete'] {
     return this.controller.delete;
+  }
+
+  get import (): C['import'] {
+    return this.controller.import;
+  }
+
+  get export (): C['export'] {
+    return this.controller.export;
   }
 }

@@ -9,8 +9,8 @@ export class RestAPI extends AChannel {
   constructor({ spark, channel }: { spark: ISpark<any, any, any, any, any>, channel: Channel }) {
     super({ spark, channel });
     this.handleResponse = this.handleResponse.bind(this);
-    this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setRequestHandler(this.sendRequest);
+    this.handleRequest = this.handleRequest.bind(this);
+    this.channel.setRequestHandler(this.handleRequest);
     RestAPI.receives.set(this.cid, this.handleResponse);
   }
 
@@ -22,7 +22,7 @@ export class RestAPI extends AChannel {
     RestAPI.promises.delete(response.eid);
   }
 
-  protected async sendRequest(request) {
+  protected async handleRequest(request) {
     const promise = RestAPI.promises.get(request.eid);
     promise.resolve(request);
     RestAPI.promises.delete(request.eid);

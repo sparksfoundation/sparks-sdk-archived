@@ -26,8 +26,8 @@ export class PostMessage extends AChannel {
     this.origin = origin;
     this.source = source;
 
-    this.sendRequest = this.sendRequest.bind(this);
-    this.channel.setRequestHandler(this.sendRequest);
+    this.handleRequest = this.handleRequest.bind(this);
+    this.channel.setRequestHandler(this.handleRequest);
 
     this.handleResponse = this.handleResponse.bind(this);
     this._window.addEventListener('message', this.handleResponse);
@@ -39,8 +39,8 @@ export class PostMessage extends AChannel {
     return this.channel.handleResponse(payload);
   }
 
-  protected async sendRequest(event) {
-    console.log('sendRequest', event.type);
+  protected async handleRequest(event) {
+    console.log('handleRequest', event.type);
     this.source.postMessage(event, this.origin);
   }
 
@@ -72,7 +72,7 @@ export class PostMessage extends AChannel {
           await channel.rejectOpen(event.data);
           return null;
         }
-      })
+      });
     });
   }
 }

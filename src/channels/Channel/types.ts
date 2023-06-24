@@ -3,6 +3,11 @@ import { SharedEncryptionKey } from "../../ciphers";
 import { Identifier, PublicKeys } from "../../controllers";
 import { Channel } from "./Channel";
 
+/**
+ * TODO - allow decoration of request/response payloads from request/response handlers
+ * TODO - allow decoration of peer definition from constructor
+ */
+
 export namespace SparksChannel {
   export type Cid = string;
   export type Eid = string;
@@ -146,13 +151,19 @@ export namespace SparksChannel {
       event,
       data
     }: {
-      event: SparksChannel.Event.Message,
+      event: SparksChannel.Event.Message | SparksChannel.Event.MessageConfirm,
       data: Data
     }) => void
   }
 
   export namespace Error {
     export type Message = string;
+
+    export type Handler = ({
+      error,
+    }: {
+      error: SparksChannel.Error.Any,
+    }) => void
 
     export enum Types {
       SEND_REQUEST_ERROR = 'SEND_REQUEST_ERROR', // failed to send a request
@@ -230,6 +241,22 @@ export namespace SparksChannel {
     export type Any = SendRequest | EventPromise | SharedKeyCreation | OpenRequestRejected | Unexpected | ComputeSharedKey | InvalidPublicKeys | InvalidIdentifier | OpenCiphertext | CreateCiphertext;
   }
 
+  export namespace Close {
+    export type Handler = ({
+      event,
+    }: {
+      event: SparksChannel.Event.Close | SparksChannel.Event.CloseConfirm,
+    }) => void
+  }
+
+  export namespace Open {
+    export type Handler = ({
+      event,
+    }: {
+      event: SparksChannel.Event.OpenRequest | SparksChannel.Event.OpenAccept | SparksChannel.Event.OpenConfirm,
+    }) => void
+  }
+
   export type RequestHandler = (event: Event.Any | Error.Any) => Promise<void> | never
 }
 
@@ -237,6 +264,9 @@ export abstract class AChannel {
   protected spark: ISpark<any, any, any, any, any>;
   protected channel: Channel;
   public onmessage: SparksChannel.Message.Handler;
+  public onerror: SparksChannel.Error.Handler;
+  public onclose: SparksChannel.Close.Handler;
+  public onopen: SparksChannel.Open.Handler;
   constructor({ spark, channel }: { spark: ISpark<any, any, any, any, any>, channel?: Channel }) {
     this.spark = spark;
     this.channel = channel || new Channel({ spark });
@@ -245,36 +275,52 @@ export abstract class AChannel {
       channel: { enumerable: false },
     });
 
-    this.channel.setMessageHandler((message) => {
-      if (this.onmessage) this.onmessage(message);
+    this.channel.setMessageHandler((payload) => {
+      if (this.onmessage) this.onmessage(payload);
+    });
+
+    this.channel.setErrorHandler((payload) => {
+      if (this.onerror) this.onerror(payload);
+    });
+
+    this.channel.setCloseHandler((payload) => {
+      if (this.onclose) this.onclose(payload);
+    });
+
+    this.channel.setOpenHandler((payload) => {
+      if (this.onopen) this.onopen(payload);
     });
   }
 
-  protected get cid(): SparksChannel.Cid {
+  public get cid(): SparksChannel.Cid {
     return this.channel.cid;
   }
 
-  protected get peer(): SparksChannel.Peer {
+  public get peer(): SparksChannel.Peer {
     return this.channel.peer;
   }
 
-  protected get eventLog(): SparksChannel.EventLog {
+  public get eventLog(): SparksChannel.EventLog {
     return this.channel.eventLog;
   }
 
-  protected get opened(): boolean {
+  public get opened(): boolean {
     return this.channel.opened;
   }
 
-  protected open() {
+  public get sharedKey(): SparksChannel.SharedKey {
+    return this.channel.sharedKey;
+  }
+
+  public open() {
     return this.channel.open();
   }
 
-  protected close() {
+  public close() {
     return this.channel.close();
   }
 
-  protected send(message) {
+  public send(message) {
     return this.channel.send(message);
   }
 
@@ -287,5 +333,5 @@ export abstract class AChannel {
   }
 
   protected abstract handleResponse(response?: any): any | never;
-  protected abstract sendRequest(request: SparksChannel.Event.Any): Promise<void | never>;
+  protected abstract handleRequest(request: SparksChannel.Event.Any): Promise<void | never>;
 }

@@ -26,6 +26,12 @@ export class Controller implements IController {
   constructor(spark: ISpark<any, any, any, any, any>) {
     this.spark = spark;
     this.keyEventLog = [];
+    this.incept = this.incept.bind(this);
+    this.rotate = this.rotate.bind(this);
+    this.delete = this.delete.bind(this);
+    this.import = this.import.bind(this);
+    this.export = this.export.bind(this);
+    Object.defineProperties(this, { spark: { enumerable: false, writable: false } });
   }
 
   get encryptionKeys(): EncryptionKeyPair { 
@@ -174,6 +180,7 @@ export class Controller implements IController {
   }
 
   async export(): ReturnType<IController['export']> {
+    console.log('exporting', this);
     const { keyPairs, ...data } = this;
     const encrypted = await this.spark.encrypt({ data: JSON.stringify(data) });
     return encrypted;
