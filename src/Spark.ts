@@ -1,126 +1,143 @@
-import { AController, EncryptionKeyPair, Identifier, KeyEventLog, KeyPairs, PublicKeys, SigningKeyPair } from './controllers/index';
-import { ASigner } from './signers/index';
-import { ACipher } from './ciphers/index';
-import { AHasher } from './hashers/index';
-import { AAgent } from './agents/Agent/types';
+import { AgentTypes, CipherTypes, ControllerTypes, ErrorTypes, HasherTypes, SignerTypes, SparkTypes } from "./types";
+import { SparkError } from "./errors";
+import { Constructable } from "./types/utilities";
+import { Controller } from "./controller";
 
-interface Constructable<T> {
-  new (...args: any[]): T;
-}
+export class Spark<
+  A extends AgentTypes.AgentAbstract[],
+  C extends CipherTypes.CipherAbstract,
+  H extends HasherTypes.HasherAbstract,
+  S extends SignerTypes.SignerAbstract
+> implements SparkTypes.SparkInterface<A, C, H, S> {
 
-type SparkOptions<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> = {
-  controller: Constructable<C>;
-  signer: Constructable<S>;
-  cipher: Constructable<Cp>;
-  hasher: Constructable<H>;
-  agents: Constructable<A[number]>[];
-};
+  private cipher: C;
+  private hasher: H;
+  private signer: S;
+  public agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
+  private controller: ControllerTypes.ControllerInterface;
 
-export interface ISpark<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> {
-  identifier: Identifier;
-  keyEventLog: KeyEventLog;
-  publicKeys: PublicKeys;
-  encryptionKeys: EncryptionKeyPair;
-  signingKeys: SigningKeyPair;
-  keyPairs: KeyPairs;
-  agents: { [name: string]: InstanceType<Constructable<A[number]>> };
-  sign: S['sign'];
-  verify: S['verify'];
-  hash: H['hash'];
-  encrypt: Cp['encrypt'];
-  decrypt: Cp['decrypt'];
-  computeSharedKey: Cp['computeSharedKey'];
-  incept: C['incept'];
-  rotate: C['rotate'];
-  delete: C['delete'];
-}
+  constructor({
+    agents = [],
+    cipher,
+    hasher,
+    signer
+  }: SparkTypes.SparkParams<A, C, H, S>) {
 
-export class Spark<C extends AController, S extends ASigner, Cp extends ACipher, H extends AHasher, A extends AAgent[]> implements ISpark<C, S, Cp, H, A> {
-  public cipher: Cp;
-  public controller: C;
-  public hasher: H;
-  public signer: InstanceType<Constructable<S>>;
-  public agents: { [name: string]: InstanceType<Constructable<A[number]>> } = {};
+    this.cipher = new cipher();
+    this.controller = new Controller();
+    this.hasher = new hasher();
+    this.signer = new signer();
 
-  constructor(options: SparkOptions<C, S, Cp, H, A>) {
-    this.cipher = new options.cipher(this);
-    this.controller = new options.controller(this);
-    this.hasher = new options.hasher(this);
-    this.signer = new options.signer(this);
-
-    const agents = options.agents || [];
     agents.forEach((agent: Constructable<A[number]>) => {
-      const mixin = new agent(this);
+      const mixin = new agent();
       const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
       this.agents[name] = mixin;
     });
   }
 
-  get identifier(): Identifier {
+  get identifier(): ControllerTypes.Identifier | ErrorTypes.ErrorInterface {
     return this.controller.identifier;
   }
 
-  get keyEventLog(): KeyEventLog {
+  get keyEventLog(): ControllerTypes.KeyEventLog | ErrorTypes.ErrorInterface {
     return this.controller.keyEventLog;
   }
 
-  get encryptionKeys(): EncryptionKeyPair {
-    return this.controller.encryptionKeys;
+  get keyPairs(): SparkTypes.KeyPairs | ErrorTypes.ErrorInterface {
+    const encryption = this.encryptionKeys() as CipherTypes.KeyPair;
+    const signing = this.signingKeys() as SignerTypes.KeyPair;
+    if (encryption instanceof SparkError) return encryption as ErrorTypes.ErrorInterface;
+    if (signing instanceof SparkError) return signing as ErrorTypes.ErrorInterface;
+    return { encryption, signing } as SparkTypes.KeyPairs;
   }
 
-  get signingKeys(): SigningKeyPair {
-    return this.controller.signingKeys;
+  get publicKeys(): SparkTypes.PublicKeys | ErrorTypes.ErrorInterface {
+    const encryption = this.encryptionKeys() as CipherTypes.KeyPair;
+    const signing = this.signingKeys() as SignerTypes.KeyPair;
+    if (encryption instanceof SparkError) return encryption as ErrorTypes.ErrorInterface;
+    if (signing instanceof SparkError) return signing as ErrorTypes.ErrorInterface;
+    return {
+      encryption: encryption.publicKey,
+      signing: signing.publicKey
+    } as SparkTypes.PublicKeys;
   }
 
-  get publicKeys(): PublicKeys {
-    return this.controller.publicKeys;
+  get secretKeys(): SparkTypes.SecretKeys | ErrorTypes.ErrorInterface {
+    const encryption = this.encryptionKeys() as CipherTypes.KeyPair;
+    const signing = this.signingKeys() as SignerTypes.KeyPair;
+    if (encryption instanceof SparkError) return encryption as ErrorTypes.ErrorInterface;
+    if (signing instanceof SparkError) return signing as ErrorTypes.ErrorInterface;
+    return {
+      encryption: encryption.secretKey,
+      signing: signing.secretKey
+    }
   }
 
-  get keyPairs(): KeyPairs {
-    return this.controller.keyPairs;
+  get encryptionKeys(): C['getKeyPair'] {
+    return this.cipher.getKeyPair;
   }
 
-  get sign (): S['sign'] {
-    return this.signer.sign;
+  get signingKeys(): S['getKeyPair'] {
+    return this.signer.getKeyPair;
   }
 
-  get verify (): S['verify'] {
-    return this.signer.verify;
+  get initEncryptionKeys(): C['initKeyPair'] {
+    return this.cipher.initKeyPair;
   }
 
-  get hash (): H['hash'] {
-    return this.hasher.hash;
+  get computSharedEncryptionKey(): C['computeSharedKey'] {
+    return this.cipher.computeSharedKey;
   }
 
-  get encrypt (): Cp['encrypt'] {
+  get encrypt(): C['encrypt'] {
     return this.cipher.encrypt;
   }
 
-  get decrypt (): Cp['decrypt'] {
+  get decrypt(): C['decrypt'] {
     return this.cipher.decrypt;
   }
 
-  get computeSharedKey (): Cp['computeSharedKey'] {
-    return this.cipher.computeSharedKey.bind(this.cipher);
+  get hash(): H['hash'] {
+    return this.hasher.hash;
   }
 
-  get incept (): C['incept'] {
+  get initSingingKeys(): S['initKeyPair'] {
+    return this.signer.initKeyPair;
+  }
+
+  get sign(): S['sign'] {
+    return this.signer.sign;
+  }
+
+  get seal(): S['seal'] {
+    return this.signer.seal;
+  }
+
+  get verify(): S['verify'] {
+    return this.signer.verify;
+  }
+
+  get open(): S['open'] {
+    return this.signer.open;
+  }
+
+  get incept(): ControllerTypes.ControllerInterface['incept'] {
     return this.controller.incept;
   }
 
-  get rotate (): C['rotate'] {
+  get rotate(): ControllerTypes.ControllerInterface['rotate'] {
     return this.controller.rotate;
   }
 
-  get delete (): C['delete'] {
-    return this.controller.delete;
+  get destroy(): ControllerTypes.ControllerInterface['destroy'] {
+    return this.controller.destroy;
   }
 
-  get import (): C['import'] {
-    return this.controller.import;
+  import(data: CipherTypes.CipherText): Promise<void | ErrorTypes.ErrorInterface> {
+    return Promise.resolve();
   }
 
-  get export (): C['export'] {
-    return this.controller.export;
+  export(): Promise<HasherTypes.Hash> {
+    return Promise.resolve('');
   }
 }

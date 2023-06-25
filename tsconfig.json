@@ -3,9 +3,16 @@
     "outDir": "./dist",
     "target": "ESNext",
     "moduleResolution": "node",
-    "declaration": true,
+    "declaration": false,
     "skipLibCheck": true,
     "esModuleInterop": true
   },
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src",
+    "tests/*",
+    "src/types"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
