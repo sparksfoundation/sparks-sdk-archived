@@ -1,3 +1,3 @@
-import { AAgent, IAgent } from './types';
-export declare class Agent extends AAgent implements IAgent {
+import { AgentInterface } from "../../types";
+export declare class Agent implements AgentInterface {
 }

@@ -1,13 +1,19 @@
+import { SparkError } from "./errors/index.mjs";
+import { Controller } from "./controller/index.mjs";
 export class Spark {
-  constructor(options) {
+  constructor({
+    agents = [],
+    cipher,
+    hasher,
+    signer
+  }) {
     this.agents = {};
-    this.cipher = new options.cipher(this);
-    this.controller = new options.controller(this);
-    this.hasher = new options.hasher(this);
-    this.signer = new options.signer(this);
-    const agents = options.agents || [];
+    this.cipher = new cipher();
+    this.controller = new Controller();
+    this.hasher = new hasher();
+    this.signer = new signer();
     agents.forEach((agent) => {
-      const mixin = new agent(this);
+      const mixin = new agent();
       const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
       this.agents[name] = mixin;
     });
@@ -18,26 +24,50 @@ export class Spark {
   get keyEventLog() {
     return this.controller.keyEventLog;
   }
-  get encryptionKeys() {
-    return this.controller.encryptionKeys;
-  }
-  get signingKeys() {
-    return this.controller.signingKeys;
+  get keyPairs() {
+    const encryption = this.encryptionKeys();
+    const signing = this.signingKeys();
+    if (encryption instanceof SparkError)
+      return encryption;
+    if (signing instanceof SparkError)
+      return signing;
+    return { encryption, signing };
   }
   get publicKeys() {
-    return this.controller.publicKeys;
+    const encryption = this.encryptionKeys();
+    const signing = this.signingKeys();
+    if (encryption instanceof SparkError)
+      return encryption;
+    if (signing instanceof SparkError)
+      return signing;
+    return {
+      encryption: encryption.publicKey,
+      signing: signing.publicKey
+    };
   }
-  get keyPairs() {
-    return this.controller.keyPairs;
+  get secretKeys() {
+    const encryption = this.encryptionKeys();
+    const signing = this.signingKeys();
+    if (encryption instanceof SparkError)
+      return encryption;
+    if (signing instanceof SparkError)
+      return signing;
+    return {
+      encryption: encryption.secretKey,
+      signing: signing.secretKey
+    };
   }
-  get sign() {
-    return this.signer.sign;
+  get encryptionKeys() {
+    return this.cipher.getKeyPair;
   }
-  get verify() {
-    return this.signer.verify;
+  get signingKeys() {
+    return this.signer.getKeyPair;
   }
-  get hash() {
-    return this.hasher.hash;
+  get initEncryptionKeys() {
+    return this.cipher.initKeyPair;
+  }
+  get computSharedEncryptionKey() {
+    return this.cipher.computeSharedKey;
   }
   get encrypt() {
     return this.cipher.encrypt;
@@ -45,8 +75,23 @@ export class Spark {
   get decrypt() {
     return this.cipher.decrypt;
   }
-  get computeSharedKey() {
-    return this.cipher.computeSharedKey.bind(this.cipher);
+  get hash() {
+    return this.hasher.hash;
+  }
+  get initSingingKeys() {
+    return this.signer.initKeyPair;
+  }
+  get sign() {
+    return this.signer.sign;
+  }
+  get seal() {
+    return this.signer.seal;
+  }
+  get verify() {
+    return this.signer.verify;
+  }
+  get open() {
+    return this.signer.open;
   }
   get incept() {
     return this.controller.incept;
@@ -54,13 +99,13 @@ export class Spark {
   get rotate() {
     return this.controller.rotate;
   }
-  get delete() {
-    return this.controller.delete;
+  get destroy() {
+    return this.controller.destroy;
   }
-  get import() {
-    return this.controller.import;
+  import(data) {
+    return Promise.resolve();
   }
-  get export() {
-    return this.controller.export;
+  export() {
+    return Promise.resolve("");
   }
 }
