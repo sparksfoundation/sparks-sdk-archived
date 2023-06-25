@@ -1,11 +1,16 @@
-import { AgentAbstract } from "./Agent";
-import { CipherAbstract, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./Cipher";
-import { ControllerInterface, Identifier, KeyEventLog } from "./Controller";
-import { ErrorInterface } from "./Error";
-import { HashDigest, HasherAbstract } from "./Hasher";
-import { SignerAbstract, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./Signer";
-import { Constructable } from "./utilities";
+import { AgentAbstract } from "./agents/types";
+import { CipherAbstract, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./ciphers/types";
+import { ErrorInterface } from "./common/errors";
+import { ControllerInterface, Identifier, KeyEventLog } from "./controller/types";
+import { HashDigest, HasherAbstract } from "./hashers/types";
+import { SignerAbstract, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signers/types";
 
+// utils
+export interface Constructable<T> {
+  new(...args: any[]): T;
+}
+
+// spark
 export interface KeyPairs {
   encryption: EncryptionKeyPair;
   signing: SigningKeyPair;
@@ -42,12 +47,12 @@ export interface SparkInterface<
 
   agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
 
-  identifier: Identifier | ErrorInterface;
-  keyEventLog: KeyEventLog | ErrorInterface;
-
   keyPairs: KeyPairs | ErrorInterface;
   publicKeys: PublicKeys | ErrorInterface;
   secretKeys: SecretKeys | ErrorInterface;
+
+  getIdentifier: ControllerInterface['getIdentifier'];
+  getKeyEventLog: ControllerInterface['getKeyEventLog'];
 
   encryptionKeys: C['getKeyPair'];
   signingKeys: S['getKeyPair'];

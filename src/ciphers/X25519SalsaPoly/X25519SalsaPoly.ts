@@ -1,8 +1,10 @@
-import { CipherErrorFactory } from "../../errors/cipher";
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
-import { CipherAbstract, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey, ErrorInterface } from "../../types";
+import { CipherAbstract, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
+import { CipherErrorFactory } from "../errorFactory";
+import { ErrorInterface } from "../../common/errors";
+
 const errors = new CipherErrorFactory('X25519SalsaPoly');
 
 export class X25519SalsaPoly extends CipherAbstract {
@@ -20,7 +22,6 @@ export class X25519SalsaPoly extends CipherAbstract {
   }
 
   public getKeyPair(): ReturnType<CipherAbstract['getKeyPair']> {
-    console.log(this._publicKey)
     if (!this._publicKey || !this._secretKey) return errors.InvalidKeyPair() as ErrorInterface;
     return { publicKey: this._publicKey, secretKey: this._secretKey } as EncryptionKeyPair;
   }

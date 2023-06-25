@@ -1,27 +1,32 @@
-import { AgentTypes, CipherTypes, ControllerTypes, ErrorTypes, HasherTypes, SignerTypes, SparkTypes } from "./types";
-import { SparkError } from "./errors";
-import { Constructable } from "./types/utilities";
 import { Controller } from "./controller";
+import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
+import { AgentAbstract } from "./agents/types";
+import { CipherAbstract, EncryptionKeyPair } from "./ciphers/types";
+import { HashDigest, HasherAbstract } from "./hashers/types";
+import { SignerAbstract, SigningKeyPair } from "./signers/types";
+import { SparkInterface } from "./types";
+import { ControllerInterface, Identifier, KeyEventLog } from "./controller/types";
+import { SparkError, ErrorInterface } from "./common/errors";
 
 export class Spark<
-  A extends AgentTypes.AgentAbstract[],
-  C extends CipherTypes.CipherAbstract,
-  H extends HasherTypes.HasherAbstract,
-  S extends SignerTypes.SignerAbstract
-> implements SparkTypes.SparkInterface<A, C, H, S> {
+  A extends AgentAbstract[],
+  C extends CipherAbstract,
+  H extends HasherAbstract,
+  S extends SignerAbstract
+> implements SparkInterface<A, C, H, S> {
 
   private cipher: C;
   private hasher: H;
   private signer: S;
   public agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
-  private controller: ControllerTypes.ControllerInterface;
+  private controller: ControllerInterface;
 
   constructor({
     agents = [],
     cipher,
     hasher,
     signer
-  }: SparkTypes.SparkParams<A, C, H, S>) {
+  }: SparkParams<A, C, H, S>) {
 
     this.cipher = new cipher();
     this.controller = new Controller();
@@ -35,42 +40,42 @@ export class Spark<
     });
   }
 
-  get identifier(): ControllerTypes.Identifier | ErrorTypes.ErrorInterface {
-    return this.controller.identifier;
+  get keyPairs(): KeyPairs | ErrorInterface {
+    const encryption = this.encryptionKeys() as EncryptionKeyPair;
+    const signing = this.signingKeys() as SigningKeyPair;
+    if (encryption instanceof SparkError) return encryption as ErrorInterface;
+    if (signing instanceof SparkError) return signing as ErrorInterface;
+    return { encryption, signing } as KeyPairs;
   }
 
-  get keyEventLog(): ControllerTypes.KeyEventLog | ErrorTypes.ErrorInterface {
-    return this.controller.keyEventLog;
-  }
-
-  get keyPairs(): SparkTypes.KeyPairs | ErrorTypes.ErrorInterface {
-    const encryption = this.encryptionKeys() as CipherTypes.KeyPair;
-    const signing = this.signingKeys() as SignerTypes.KeyPair;
-    if (encryption instanceof SparkError) return encryption as ErrorTypes.ErrorInterface;
-    if (signing instanceof SparkError) return signing as ErrorTypes.ErrorInterface;
-    return { encryption, signing } as SparkTypes.KeyPairs;
-  }
-
-  get publicKeys(): SparkTypes.PublicKeys | ErrorTypes.ErrorInterface {
-    const encryption = this.encryptionKeys() as CipherTypes.KeyPair;
-    const signing = this.signingKeys() as SignerTypes.KeyPair;
-    if (encryption instanceof SparkError) return encryption as ErrorTypes.ErrorInterface;
-    if (signing instanceof SparkError) return signing as ErrorTypes.ErrorInterface;
+  get publicKeys(): PublicKeys | ErrorInterface {
+    const encryption = this.encryptionKeys() as EncryptionKeyPair;
+    const signing = this.signingKeys() as SigningKeyPair;
+    if (encryption instanceof SparkError) return encryption as ErrorInterface;
+    if (signing instanceof SparkError) return signing as ErrorInterface;
     return {
       encryption: encryption.publicKey,
       signing: signing.publicKey
-    } as SparkTypes.PublicKeys;
+    } as PublicKeys;
   }
 
-  get secretKeys(): SparkTypes.SecretKeys | ErrorTypes.ErrorInterface {
-    const encryption = this.encryptionKeys() as CipherTypes.KeyPair;
-    const signing = this.signingKeys() as SignerTypes.KeyPair;
-    if (encryption instanceof SparkError) return encryption as ErrorTypes.ErrorInterface;
-    if (signing instanceof SparkError) return signing as ErrorTypes.ErrorInterface;
+  get secretKeys(): SecretKeys | ErrorInterface {
+    const encryption = this.encryptionKeys() as EncryptionKeyPair;
+    const signing = this.signingKeys() as SigningKeyPair;
+    if (encryption instanceof SparkError) return encryption as ErrorInterface;
+    if (signing instanceof SparkError) return signing as ErrorInterface;
     return {
       encryption: encryption.secretKey,
       signing: signing.secretKey
     }
+  }
+
+  get getIdentifier(): ControllerInterface['getIdentifier'] {
+    return this.controller.getIdentifier;
+  }
+
+  get getKeyEventLog(): ControllerInterface['getKeyEventLog'] {
+    return this.controller.getKeyEventLog;
   }
 
   get encryptionKeys(): C['getKeyPair'] {
@@ -121,23 +126,24 @@ export class Spark<
     return this.signer.open;
   }
 
-  get incept(): ControllerTypes.ControllerInterface['incept'] {
+  get incept(): ControllerInterface['incept'] {
+    const keyPairs = this.keyPairs as KeyPairs;
     return this.controller.incept;
   }
 
-  get rotate(): ControllerTypes.ControllerInterface['rotate'] {
+  get rotate(): ControllerInterface['rotate'] {
     return this.controller.rotate;
   }
 
-  get destroy(): ControllerTypes.ControllerInterface['destroy'] {
+  get destroy(): ControllerInterface['destroy'] {
     return this.controller.destroy;
   }
 
-  import(data: CipherTypes.CipherText): Promise<void | ErrorTypes.ErrorInterface> {
+  import(data: HashDigest): Promise<void | ErrorInterface> {
     return Promise.resolve();
   }
 
-  export(): Promise<HasherTypes.Hash> {
+  export(): Promise<HashDigest> {
     return Promise.resolve('');
   }
 }

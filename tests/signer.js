@@ -1,14 +1,14 @@
-import { SparkError } from '../dist/errors/index.mjs';
 import { Spark } from '../dist/index.mjs';
 import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
+import { SparkError } from '../dist/common/errors.mjs';
 
-const spark = new Spark({
-  cipher: Ed25519,
-  hasher: Ed25519,
-  signer: Ed25519,
-});
+export default async function() {
+  const spark = new Spark({
+    cipher: Ed25519,
+    hasher: Ed25519,
+    signer: Ed25519,
+  });
 
-async function test() {
   await spark.initSingingKeys();
   const keys = spark.signingKeys();
   const data = { test: 'test' };
@@ -24,5 +24,3 @@ async function test() {
   console.log('data sealed:', !(sealed instanceof SparkError));
   console.log('data opened:', !(opened instanceof SparkError));
 }
-
-test();

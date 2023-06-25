@@ -48,6 +48,21 @@
       "import": "./dist/agents/Agent/index.mjs",
       "require": "./dist/agents/Agent/index.cjs"
     },
+    "./channels": {
+      "types": "./dist/channels/index.d.ts",
+      "import": "./dist/channels/index.mjs",
+      "require": "./dist/channels/index.cjs"
+    },
+    "./ciphers": {
+      "types": "./dist/ciphers/index.d.ts",
+      "import": "./dist/ciphers/index.mjs",
+      "require": "./dist/ciphers/index.cjs"
+    },
+    "./ciphers/X25519SalsaPoly": {
+      "types": "./dist/ciphers/X25519SalsaPoly/index.d.ts",
+      "import": "./dist/ciphers/X25519SalsaPoly/index.mjs",
+      "require": "./dist/ciphers/X25519SalsaPoly/index.cjs"
+    },
     "./common": {
       "types": "./dist/common/index.d.ts",
       "import": "./dist/common/index.mjs",
@@ -63,6 +78,16 @@
       "import": "./dist/errors/index.mjs",
       "require": "./dist/errors/index.cjs"
     },
+    "./events": {
+      "types": "./dist/events/index.d.ts",
+      "import": "./dist/events/index.mjs",
+      "require": "./dist/events/index.cjs"
+    },
+    "./hashers": {
+      "types": "./dist/hashers/index.d.ts",
+      "import": "./dist/hashers/index.mjs",
+      "require": "./dist/hashers/index.cjs"
+    },
     "./signers": {
       "types": "./dist/signers/index.d.ts",
       "import": "./dist/signers/index.mjs",
@@ -72,11 +97,6 @@
       "types": "./dist/signers/Ed25519/index.d.ts",
       "import": "./dist/signers/Ed25519/index.mjs",
       "require": "./dist/signers/Ed25519/index.cjs"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.mjs",
-      "require": "./dist/types/index.cjs"
     }
   },
   "main": "./dist/index.cjs",

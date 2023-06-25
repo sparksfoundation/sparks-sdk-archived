@@ -1,4 +1,4 @@
-import { ErrorInterface, ErrorMessage, ErrorMetadata, ErrorTimestamp, ErrorType } from "../types";
+import { ErrorInterface, ErrorMessage, ErrorMetadata, ErrorTimestamp, ErrorType } from "../errors/types";
 
 export const parseJSON = (data): Record<string,any> | void => {
     try {

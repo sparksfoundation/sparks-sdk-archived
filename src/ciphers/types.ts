@@ -1,4 +1,4 @@
-import { ErrorInterface } from "./Error";
+import { ErrorInterface } from '../common/errors';
 
 export type EncryptionSharedKey = string;
 export type EncryptionPublicKey = string;
@@ -7,6 +7,17 @@ export type EncryptionKeyPair = { publicKey: EncryptionPublicKey, secretKey: Enc
 export type DecryptedData = string | Record<string, any>;
 export type EncryptedData = string;
 export type EncryptionSecret = string;
+
+export enum CipherErrorType {
+  // cipher errors
+  INVALID_PUBLIC_ENCRYPTION_KEY = 'INVALID_PUBLIC_ENCRYPTION_KEY',
+  INVALID_SECRET_ENCRYPTION_KEY = 'INVALID_SECRET_ENCRYPTION_KEY',
+  INVALID_ENCRYPTION_KEYPAIR = 'INVALID_ENCRYPTION_KEYPAIR',
+  GENERATE_ENCRYPTION_KEYPAIR_ERROR = 'GENERATE_ENCRYPTION_KEYPAIR_ERROR',
+  GENERATE_SHARED_ENCRYPTION_KEY_ERROR = 'GENERATE_SHARED_ENCRYPTION_KEY_ERROR',
+  ENCRYPTION_FAILURE = 'ENCRYPTION_FAILURE',
+  DECRYPTION_FAILURE = 'DECRYPTION_FAILURE',
+}
 
 export abstract class CipherAbstract {
   public abstract getPublicKey(): EncryptionPublicKey | ErrorInterface;

@@ -1,4 +1,4 @@
-import { ErrorInterface } from './Error';
+import { ErrorInterface } from '../errors/types';
 
 // primitives
 export type HashDigest = string;

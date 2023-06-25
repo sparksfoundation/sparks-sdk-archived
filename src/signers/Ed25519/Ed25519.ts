@@ -1,9 +1,11 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
-import { SignerErrorFactory } from "../../errors/signer";
-import { ErrorInterface, Signature, SignatureData, SignatureVerified, SignerAbstract, SigningKeyPair, SigningPublicKey, SigningSecretKey, SingingSeed } from "../../types";
-const errors = new SignerErrorFactory('Ed25519');
+import { SignerErrorFactory } from "../errorFactory";
+import { Signature, SignatureData, SignatureVerified, SignerAbstract, SignerTypes, SigningKeyPair, SigningPublicKey, SigningSecretKey, SingingSeed } from "../types";
+import { ErrorInterface } from "../../common/errors";
+
+const errors = new SignerErrorFactory(SignerTypes.Ed25519);
 
 export class Ed25519 extends SignerAbstract {
   private _publicKey: SigningPublicKey;
