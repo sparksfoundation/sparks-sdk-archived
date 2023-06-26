@@ -24,13 +24,14 @@ export enum CipherErrorType {
 }
 
 export abstract class CipherAbstract {
-  public abstract getPublicKey(): EncryptionPublicKey | ErrorInterface;
-  public abstract getSecretKey(): EncryptionSecretKey | ErrorInterface;
-  public abstract getKeyPair(): EncryptionKeyPair | ErrorInterface;
+  public abstract getPublicKey(...args: any): EncryptionPublicKey | ErrorInterface;
+  public abstract getSecretKey(...args: any): EncryptionSecretKey | ErrorInterface;
+  public abstract getKeyPair(...args: any): EncryptionKeyPair | ErrorInterface;
 
-  public abstract initKeyPair(...args: any): Promise<EncryptionKeyPair | ErrorInterface>;
-  public abstract getNextKeyPair(...args: any): Promise<EncryptionKeyPair | ErrorInterface>;
-  public abstract computeSharedKey(...args: any): Promise<EncryptionSharedKey | ErrorInterface>;
+  public abstract generateKeyPair(...args: any): Promise<EncryptionKeyPair | ErrorInterface>;
+  public abstract setKeyPair(...args: any): Promise<void | ErrorInterface>;
+  
+  public abstract generateSharedKey(...args: any): Promise<EncryptionSharedKey | ErrorInterface>;
 
   public abstract encrypt(...args: any): Promise<EncryptedData | ErrorInterface>;
   public abstract decrypt(...args: any): Promise<DecryptedData | ErrorInterface>;

@@ -16,9 +16,9 @@ export class X25519SalsaPoly extends CipherAbstract {
     this.getPublicKey = this.getPublicKey.bind(this);
     this.getSecretKey = this.getSecretKey.bind(this);
     this.getKeyPair = this.getKeyPair.bind(this);
-    this.initKeyPair = this.initKeyPair.bind(this);
-    this.getNextKeyPair = this.getNextKeyPair.bind(this);
-    this.computeSharedKey = this.computeSharedKey.bind(this);
+    this.setKeyPair = this.setKeyPair.bind(this);
+    this.generateKeyPair = this.generateKeyPair.bind(this);
+    this.generateSharedKey = this.generateSharedKey.bind(this);
     this.encrypt = this.encrypt.bind(this);
     this.decrypt = this.decrypt.bind(this);
   }
@@ -38,32 +38,25 @@ export class X25519SalsaPoly extends CipherAbstract {
     return { publicKey: this._publicKey, secretKey: this._secretKey } as EncryptionKeyPair;
   }
 
-  public async initKeyPair(secret?: EncryptionSecret): ReturnType<CipherAbstract['initKeyPair']> {
+  public async generateKeyPair(secret?: EncryptionSecret): ReturnType<CipherAbstract['generateKeyPair']> {
     try {
       const keyPair = secret ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.box.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
-      if (!publicKey || !secretKey) throw new Error('missing public or secret key');
-      this._publicKey = publicKey as EncryptionPublicKey;
-      this._secretKey = secretKey as EncryptionSecretKey;
-    } catch (error) {
-      return errors.KeyPairFailure(error.message) as ErrorInterface;
-    }
-  }
-
-  public async getNextKeyPair(secret?: EncryptionSecret): ReturnType<CipherAbstract['getNextKeyPair']> {
-    try {
-      const keyPair = secret ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.box.keyPair();
-      const publicKey = util.encodeBase64(keyPair.publicKey);
-      const secretKey = util.encodeBase64(keyPair.secretKey);
-      if (!publicKey || !secretKey) throw new Error('missing public or secret key');
+      if (!publicKey || !secretKey) throw new Error('keyPair');
       return { publicKey, secretKey } as EncryptionKeyPair;
     } catch (error) {
       return errors.KeyPairFailure(error.message) as ErrorInterface;
     }
   }
 
-  public async computeSharedKey(publicKey: EncryptionPublicKey): ReturnType<CipherAbstract['computeSharedKey']> {
+  public async setKeyPair(keyPair: EncryptionKeyPair): ReturnType<CipherAbstract['setKeyPair']> {
+    if (!keyPair?.publicKey || !keyPair?.secretKey) return errors.InvalidKeyPair() as ErrorInterface;
+    this._publicKey = keyPair.publicKey;
+    this._secretKey = keyPair.secretKey;
+  }
+
+  public async generateSharedKey(publicKey: EncryptionPublicKey): ReturnType<CipherAbstract['generateSharedKey']> {
     try {
       const baseEncryptionPublicKey = util.decodeBase64(publicKey);
       const baseEncryptionSecretKey = util.decodeBase64(this._secretKey);

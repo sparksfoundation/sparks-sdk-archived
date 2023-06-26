@@ -25,6 +25,42 @@ const CipherErrorFactory = {
       type: ControllerErrorType.KEY_EVENT_ERROR,
       message: `key event error${reason? `: ${reason}` : ''}`
     });
+  },
+  InvalidKeyEventType: () => {
+    return new SparkError({
+      type: ControllerErrorType.INVALID_KEY_EVENT_TYPE,
+      message: 'invalid key event type',
+    });
+  },
+  IdentityDestroyed: () => {
+    return new SparkError({
+      type: ControllerErrorType.IDENTITY_DESTROYED_ERROR,
+      message: 'identity destroyed',
+    });
+  },
+  IdentityAlreadyIncepted: () => {
+    return new SparkError({
+      type: ControllerErrorType.IDENTITY_INCEPTED_ERROR,
+      message: 'identity incepted',
+    });
+  }, 
+  InvalidKeyCommitment: () => {
+    return new SparkError({
+      type: ControllerErrorType.INVALID_KEY_COMMITMENT,
+      message: 'invalid key commitment',
+    });
+  },
+  IdentityNotIncepted: () => {
+    return new SparkError({
+      type: ControllerErrorType.IDENTITY_NOT_INCEPTED,
+      message: 'identity not incepted',
+    });
+  },
+  InvalidKeyPairs: () => {
+    return new SparkError({
+      type: ControllerErrorType.INVALID_KEY_PAIRS,
+      message: 'invalid key pairs',
+    });
   }
 }
 

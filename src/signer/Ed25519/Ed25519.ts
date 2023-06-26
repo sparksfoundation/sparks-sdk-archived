@@ -10,12 +10,14 @@ const errors = new SignerErrorFactory(SignerType.Ed25519);
 export class Ed25519 extends SignerAbstract {
   private _publicKey: SigningPublicKey;
   private _secretKey: SigningSecretKey;
+
   constructor() {
     super();
     this.getPublicKey = this.getPublicKey.bind(this);
     this.getSecretKey = this.getSecretKey.bind(this);
     this.getKeyPair = this.getKeyPair.bind(this);
-    this.initKeyPair = this.initKeyPair.bind(this);
+    this.setKeyPair = this.setKeyPair.bind(this);
+    this.generateKeyPair = this.generateKeyPair.bind(this);
     this.sign = this.sign.bind(this);
     this.verify = this.verify.bind(this);
     this.seal = this.seal.bind(this);
@@ -37,29 +39,22 @@ export class Ed25519 extends SignerAbstract {
     return { publicKey: this._publicKey, secretKey: this._secretKey } as SigningKeyPair;
   }
 
-  public async initKeyPair(seed?: SingingSeed): ReturnType<SignerAbstract['initKeyPair']> {
+  public async generateKeyPair(secret?: SingingSeed): ReturnType<SignerAbstract['generateKeyPair']> {
     try {
-      const keyPair = seed ? nacl.sign.keyPair.fromSeed(util.decodeBase64(seed)) : nacl.sign.keyPair();
+      const keyPair = secret ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.sign.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
-      if (!publicKey || !secretKey) throw new Error();
-      this._publicKey = publicKey as SigningPublicKey;
-      this._secretKey = secretKey as SigningSecretKey;
+      if (!publicKey || !secretKey) throw new Error('keyPair');
+      return { publicKey, secretKey } as SigningKeyPair;
     } catch (error) {
       return errors.KeyPairFailure(error.message) as ErrorInterface;
     }
   }
 
-  public async getNextKeyPair(seed?: SingingSeed): ReturnType<SignerAbstract['getNextKeyPair']> {
-    try {
-      const keyPair = seed ? nacl.sign.keyPair.fromSeed(util.decodeBase64(seed)) : nacl.sign.keyPair();
-      const publicKey = util.encodeBase64(keyPair.publicKey);
-      const secretKey = util.encodeBase64(keyPair.secretKey);
-      if (!publicKey || !secretKey) throw new Error();
-      return { publicKey, secretKey } as SigningKeyPair;
-    } catch (error) {
-      return errors.KeyPairFailure(error.message) as ErrorInterface;
-    }
+  public async setKeyPair(keyPair: SigningKeyPair): ReturnType<SignerAbstract['setKeyPair']> {
+    if (!keyPair?.publicKey || !keyPair?.secretKey) return errors.InvalidKeyPair() as ErrorInterface;
+    this._publicKey = keyPair.publicKey;
+    this._secretKey = keyPair.secretKey;
   }
 
   public async seal(data: SignatureData): ReturnType<SignerAbstract['seal']> {

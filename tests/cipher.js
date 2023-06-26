@@ -19,15 +19,15 @@ export default async function() {
   });
 
   const data = 'Test Data';
-  await peer.initEncryptionKeys();
-  await spark.initEncryptionKeys();
-  const keys = spark.encryptionKeys;
-  const next = spark.nextEncryptionKeys;
+  peer.setEncryptionKeyPair(await peer.generateEncryptionKeyPair());
+  spark.setEncryptionKeyPair(await spark.generateEncryptionKeyPair());
+  const keys = spark.encryptionKeyPair;
+  const next = spark.nextEncryptionKeyPair;
   const encrypted = await spark.encrypt({ data });
   const decrypted = await spark.decrypt({ data: encrypted });
-  const sharedKey = await spark.computSharedEncryptionKey(peer.encryptionKeys.publicKey);
-  const asymmetricEncrypted = await spark.encrypt({ data, publicKey: peer.encryptionKeys.publicKey });
-  const asymmetricDecrypted = await spark.decrypt({ data: asymmetricEncrypted, publicKey: peer.encryptionKeys.publicKey });
+  const sharedKey = await spark.generateSharedEncryptionKey(peer.encryptionKeyPair.publicKey);
+  const asymmetricEncrypted = await spark.encrypt({ data, publicKey: peer.encryptionKeyPair.publicKey });
+  const asymmetricDecrypted = await spark.decrypt({ data: asymmetricEncrypted, publicKey: peer.encryptionKeyPair.publicKey });
   const sharedEcnrypted = await spark.encrypt({ data, sharedKey });
   const sharedDecrypted = await spark.decrypt({ data: sharedEcnrypted, sharedKey });
 

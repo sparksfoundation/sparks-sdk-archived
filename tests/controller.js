@@ -12,12 +12,30 @@ export default async function test() {
     signer: Ed25519,
   });
 
-  await spark.initEncryptionKeys();
-  await spark.initSingingKeys();
-  await spark.incept();
-  const eventLog = spark.keyEventLog;
+  spark.setEncryptionKeyPair(await spark.generateEncryptionKeyPair());
+  spark.setSigningKeyPair(await spark.generateSigningKeyPair());
 
-  assert(!(eventLog instanceof SparkError) && eventLog.length === 1 && eventLog[0].type === 'INCEPT', 'controller - incepted');
+  // TODO - we may need a base class for signer, hasher, etc.. that set consistent interface for setting and getting core primitives.
+  // this so that we can expand types of signers, hashers, etc.. without breaking the interface making it extensible while maintaining compatibility for core events (controller)
+
+  let keys = spark.keyPairs;
+  let next = await spark.generateKeyPairs();
+
+  await spark.incept(keys);
+  assert(!(spark.keyEventLog instanceof SparkError) && spark.keyEventLog.length === 1 && spark.keyEventLog[0].type === 'INCEPT', 'controller - incepted');
+  
+  await spark.rotate(next);
+  assert(!(spark.keyEventLog instanceof SparkError) && spark.keyEventLog.length === 2 && spark.keyEventLog[1].type === 'ROTATE', 'controller - rotated');
+
+  spark.setEncryptionKeyPair(next.encryption);
+  spark.setSigningKeyPair(next.signing);
+  keys = { ...next }
+  next = await spark.generateKeyPairs();
+  await spark.rotate(next);
+  assert(!(spark.keyEventLog instanceof SparkError) && spark.keyEventLog.length === 3 && spark.keyEventLog[2].type === 'ROTATE', 'controller - rotated');
+
+  spark.setEncryptionKeyPair(next.encryption);
+  spark.setSigningKeyPair(next.signing);
+  await spark.destroy();
+  assert(!(spark.keyEventLog instanceof SparkError) && spark.keyEventLog.length === 4 && spark.keyEventLog[3].type === 'DESTROY', 'controller - destroyed');
 }
-
-test();

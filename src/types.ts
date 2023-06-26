@@ -49,6 +49,7 @@ export interface SparkInterface<
   keyPairs: KeyPairs | ErrorInterface;
   publicKeys: PublicKeys | ErrorInterface;
   secretKeys: SecretKeys | ErrorInterface;
+  generateKeyPairs: (args: any) => Promise<KeyPairs | ErrorInterface>;
   import: (data: EncryptedData) => Promise<void | ErrorInterface>;
   export: () => Promise<HashDigest | ErrorInterface>;
 
@@ -56,31 +57,31 @@ export interface SparkInterface<
   agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
 
   // cipher
-  encryptionKeys: ReturnType<C['getKeyPair']>;
-  publicEncryptionKey: ReturnType<C['getPublicKey']>;
-  secretEncryptionKey: ReturnType<C['getSecretKey']>;
-  initEncryptionKeys: C['initKeyPair'];
-  nextEncryptionKeys: C['getNextKeyPair'];
-  computSharedEncryptionKey: C['computeSharedKey'];
+  encryptionKeyPair: ReturnType<C['getKeyPair']>;
+  encryptionPublicKey: ReturnType<C['getPublicKey']>;
+  encryptionSecretKey: ReturnType<C['getSecretKey']>;
+  generateEncryptionKeyPair: C['generateKeyPair'];
+  setEncryptionKeyPair: C['setKeyPair'];
+  generateSharedEncryptionKey: C['generateSharedKey'];
   encrypt: C['encrypt'];
   decrypt: C['decrypt'];
 
   // controller
   identifier: ReturnType<ControllerInterface['getIdentifier']>;
   keyEventLog: ReturnType<ControllerInterface['getKeyEventLog']>;
-  incept(...args: any): ReturnType<ControllerInterface['incept']>;
-  rotate(...args: any): ReturnType<ControllerInterface['rotate']>;
-  destroy(...args: any): ReturnType<ControllerInterface['destroy']>;
+  incept: ControllerInterface['incept'];
+  rotate: ControllerInterface['rotate'];
+  destroy: ControllerInterface['destroy'];
 
   // hasher
   hash: H['hash'];
 
   // signer
-  signingKeys: ReturnType<S['getKeyPair']>;
-  publicSigningKey: ReturnType<S['getPublicKey']>;
-  secretSigningKey: ReturnType<S['getSecretKey']>;
-  initSingingKeys: S['initKeyPair'];
-  nextSigningKeys: S['getNextKeyPair'];
+  signingKeyPair: ReturnType<S['getKeyPair']>;
+  signingPublicKey: ReturnType<S['getPublicKey']>;
+  signingSecretKey: ReturnType<S['getSecretKey']>;
+  generateSigningKeyPair: S['generateKeyPair'];
+  setSigningKeyPair: S['setKeyPair'];
   sign: S['sign'];
   seal: S['seal'];
   verify: S['verify'];

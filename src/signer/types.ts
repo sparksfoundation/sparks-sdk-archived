@@ -27,16 +27,16 @@ export enum SignerErrorType {
 
 // abstract class used by classes that use Hasher
 export abstract class SignerAbstract {
-  public abstract getPublicKey(): SigningPublicKey | ErrorInterface;    // private _publicKey: PublicKey;
-  public abstract getSecretKey(): SigningSecretKey | ErrorInterface;    // private _secretKey: SecretKey;
-  public abstract getKeyPair(): SigningKeyPair | ErrorInterface;        // private _keyPair: KeyPair;
+  public abstract getPublicKey(...args: any): SigningPublicKey | ErrorInterface;      // private _publicKey: PublicKey;
+  public abstract getSecretKey(...args: any): SigningSecretKey | ErrorInterface;      // private _secretKey: SecretKey;
+  public abstract getKeyPair(...args: any): SigningKeyPair | ErrorInterface;          // private _keyPair: KeyPair;
 
-  public abstract initKeyPair(...any: any): Promise<void | ErrorInterface>;
-  public abstract getNextKeyPair(...any: any): Promise<SigningKeyPair | ErrorInterface>;
+  public abstract generateKeyPair(...args: any): Promise<SigningKeyPair | ErrorInterface>;
+  public abstract setKeyPair(...args: any): Promise<void | ErrorInterface>;
 
-  public abstract sign(...any: any): Promise<Signature | ErrorInterface>;
-  public abstract verify(...any: any): Promise<SignatureVerified | ErrorInterface>;
+  public abstract sign(...args: any): Promise<Signature | ErrorInterface>;
+  public abstract verify(...args: any): Promise<SignatureVerified | ErrorInterface>;
 
-  public abstract seal(data: SignatureData): Promise<Signature | ErrorInterface>;
-  public abstract open(...any: any): Promise<SignatureData | ErrorInterface>;
+  public abstract seal(...args: any): Promise<Signature | ErrorInterface>;
+  public abstract open(...args: any): Promise<SignatureData | ErrorInterface>;
 }

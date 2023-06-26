@@ -9,6 +9,12 @@ export enum ControllerErrorType {
   INVALID_KEY_EVENT_LOG = 'INVALID_KEY_EVENT_LOG',
   INCEPT_FAILED = 'INCEPT_FAILED',
   KEY_EVENT_ERROR = 'KEY_EVENT_ERROR',
+  INVALID_KEY_EVENT_TYPE = 'INVALID_KEY_EVENT_TYPE',
+  IDENTITY_DESTROYED_ERROR = 'IDENTITY_DESTROYED_ERROR',
+  IDENTITY_INCEPTED_ERROR = 'IDENTITY_INCEPTED_ERROR',
+  INVALID_KEY_COMMITMENT = 'INVALID_KEY_COMMITMENT',
+  IDENTITY_NOT_INCEPTED = 'IDENTITY_NOT_INCEPTED',
+  INVALID_KEY_PAIRS = 'INVALID_KEY_PAIRS',
 }
 
 export type Identifier = string;
@@ -77,7 +83,10 @@ export interface KeyDestructionEvent {
 export type KeyEvent = KeyInceptionEvent | KeyRotationEvent | KeyDestructionEvent;
 
 // intersect
-export type KeyEventBaseParams = CombinedInterface<[KeyInceptionEvent, KeyRotationEvent, KeyDestructionEvent]>
+export type CommonKeyEventProps = CombinedInterface<[KeyInceptionEvent, KeyRotationEvent, KeyDestructionEvent]>
+
+// base is anything common that doesn't need to be computed
+export type BaseKeyEventProps = Omit<CommonKeyEventProps, 'type' | 'identifier' | 'version' | 'selfAddressingIdentifier'>;
 
 export type KeyEventMap = {
   [KeyEventType.INCEPT]: KeyInceptionEvent;
@@ -92,7 +101,9 @@ export type KeyEventLog = KeyEvent[]
 export interface ControllerInterface {
   getIdentifier(): Identifier | ErrorInterface;
   getKeyEventLog(): KeyEventLog | ErrorInterface;
-  incept({ keyPairs, nextKeyPairs, backers }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers: Backer[] }): Promise<void | ErrorInterface>;
-  rotate({ keyPairs, nextKeyPairs, backers }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers: Backer[] }): Promise<void | ErrorInterface>;
-  destroy({ keyPairs, nextKeyPairs, backers }: { keyPairs: KeyPairs, nextKeyPairs: KeyPairs, backers: Backer[] }): Promise<void | ErrorInterface>;
+  incept(nextKeyPairs: KeyPairs): Promise<void | ErrorInterface>;
+  rotate(nextKeyPairs: KeyPairs): Promise<void | ErrorInterface>;
+  destroy(): Promise<void | ErrorInterface>;
 }
+
+// TODO - add backers

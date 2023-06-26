@@ -13,12 +13,11 @@ export default async function() {
   });
 
   const data = { test: 'test' };
-  await spark.initSingingKeys();
-  const keys = spark.signingKeys;
-  const next = await spark.nextSigningKeys();
+  spark.setSigningKeyPair(await spark.generateSigningKeyPair());
+  const keys = spark.signingKeyPair;
+  const next = await spark.generateSigningKeyPair();
   const signed = await spark.sign(data);
   const verified = await spark.verify({ data, signature: signed, publicKey: keys.publicKey });
-
   const sealed = await spark.seal(data);
   const opened = await spark.open({ publicKey: keys.publicKey, signature: sealed });
 
