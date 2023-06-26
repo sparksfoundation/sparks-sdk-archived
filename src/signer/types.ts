@@ -9,7 +9,7 @@ export type Signature = string;
 export type SignatureData = string | Record<string, any>;
 export type SignatureVerified = boolean;
 
-export enum SignerTypes {
+export enum SignerType {
   Ed25519 = 'Ed25519',
 }
 

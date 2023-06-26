@@ -1,11 +1,14 @@
-import { HashDigest } from "../hashers/types";
-import { SigningPublicKey } from "../signers/types";
+import { HashDigest, HasherAbstract } from "../hasher/types";
+import { SignerAbstract, SigningPublicKey } from "../signer/types";
 import { ErrorInterface } from "../common/errors";
 import { KeyPairs } from "../types";
+import { CombinedInterface } from "../common/types";
 
 export enum ControllerErrorType {
   INVALID_IDENTIFIER = 'INVALID_IDENTIFIER',
   INVALID_KEY_EVENT_LOG = 'INVALID_KEY_EVENT_LOG',
+  INCEPT_FAILED = 'INCEPT_FAILED',
+  KEY_EVENT_ERROR = 'KEY_EVENT_ERROR',
 }
 
 export type Identifier = string;
@@ -73,8 +76,17 @@ export interface KeyDestructionEvent {
 // unions
 export type KeyEvent = KeyInceptionEvent | KeyRotationEvent | KeyDestructionEvent;
 
+// intersect
+export type KeyEventBaseParams = CombinedInterface<[KeyInceptionEvent, KeyRotationEvent, KeyDestructionEvent]>
+
+export type KeyEventMap = {
+  [KeyEventType.INCEPT]: KeyInceptionEvent;
+  [KeyEventType.ROTATE]: KeyRotationEvent;
+  [KeyEventType.DESTROY]: KeyDestructionEvent;
+}
+
 // collections
-export interface KeyEventLog extends Array<KeyEvent> { }
+export type KeyEventLog = KeyEvent[]
 
 // main controller interface
 export interface ControllerInterface {

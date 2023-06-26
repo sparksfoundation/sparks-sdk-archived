@@ -1,9 +1,9 @@
-import { AgentAbstract } from "./agents/types";
-import { CipherAbstract, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./ciphers/types";
+import { AgentAbstract } from "./agent/types";
+import { CipherAbstract, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./cipher/types";
 import { ErrorInterface } from "./common/errors";
 import { ControllerInterface, Identifier, KeyEventLog } from "./controller/types";
-import { HashDigest, HasherAbstract } from "./hashers/types";
-import { SignerAbstract, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signers/types";
+import { HashDigest, HasherAbstract } from "./hasher/types";
+import { SignerAbstract, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signer/types";
 
 // utils
 export interface Constructable<T> {
@@ -66,11 +66,11 @@ export interface SparkInterface<
   decrypt: C['decrypt'];
 
   // controller
-  identifier: ControllerInterface['identifier'];
-  keyEventLog: ControllerInterface['keyEventLog'];
-  incept: ControllerInterface['incept'];
-  rotate: ControllerInterface['rotate'];
-  destroy: ControllerInterface['destroy'];
+  identifier: ReturnType<ControllerInterface['getIdentifier']>;
+  keyEventLog: ReturnType<ControllerInterface['getKeyEventLog']>;
+  incept(...args: any): ReturnType<ControllerInterface['incept']>;
+  rotate(...args: any): ReturnType<ControllerInterface['rotate']>;
+  destroy(...args: any): ReturnType<ControllerInterface['destroy']>;
 
   // hasher
   hash: H['hash'];

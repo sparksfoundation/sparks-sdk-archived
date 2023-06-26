@@ -1,11 +1,11 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
-import { CipherAbstract, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
+import { CipherAbstract, CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
 import { CipherErrorFactory } from "../errorFactory";
 import { ErrorInterface } from "../../common/errors";
 
-const errors = new CipherErrorFactory('X25519SalsaPoly');
+const errors = new CipherErrorFactory(CipherType.X25519_SALSA_POLY);
 
 export class X25519SalsaPoly extends CipherAbstract {
   private _publicKey: EncryptionPublicKey;

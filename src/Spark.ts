@@ -1,12 +1,13 @@
 import { Controller } from "./controller";
 import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
-import { AgentAbstract } from "./agents/types";
-import { CipherAbstract, EncryptionKeyPair } from "./ciphers/types";
-import { HashDigest, HasherAbstract } from "./hashers/types";
-import { SignerAbstract, SigningKeyPair } from "./signers/types";
+import { AgentAbstract } from "./agent/types";
+import { CipherAbstract, EncryptionKeyPair } from "./cipher/types";
+import { HashDigest, HasherAbstract } from "./hasher/types";
+import { SignerAbstract, SigningKeyPair } from "./signer/types";
 import { SparkInterface } from "./types";
-import { ControllerInterface, Identifier, KeyEventLog } from "./controller/types";
-import { SparkError, ErrorInterface } from "./common/errors";
+import { ControllerErrorType, ControllerInterface, Identifier, KeyEventLog } from "./controller/types";
+import { SparkError, ErrorInterface, ErrorMessage } from "./common/errors";
+import { KeyEventType } from "./controller/types";
 
 export class Spark<
   A extends AgentAbstract[],
@@ -29,14 +30,25 @@ export class Spark<
   }: SparkParams<A, C, H, S>) {
 
     this.cipher = new cipher();
-    this.controller = new Controller();
     this.hasher = new hasher();
     this.signer = new signer();
+    this.controller = new Controller<H, S>({ 
+      hasher: this.hasher, 
+      signer: this.signer,
+    });
 
     agents.forEach((agent: Constructable<A[number]>) => {
       const mixin = new agent();
       const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
       this.agents[name] = mixin;
+    });
+
+    Object.defineProperties(this, {
+      agents: { enumerable: false, writable: false },
+      cipher: { enumerable: false, writable: false },
+      hasher: { enumerable: false, writable: false },
+      signer: { enumerable: false, writable: false },
+      controller: { enumerable: false, writable: false },
     });
   }
 
@@ -118,20 +130,47 @@ export class Spark<
   }
 
   get keyEventLog(): ReturnType<ControllerInterface['getKeyEventLog']> {
+    console.log('hey', this.controller.getKeyEventLog())
     return this.controller.getKeyEventLog();
   }
 
-  get incept(): ControllerInterface['incept'] {
-    const keyPairs = this.keyPairs as KeyPairs;
-    return this.controller.incept;
+  async incept(args: any): ReturnType<ControllerInterface['incept']> {
+    try {
+      const keyPairs = this.keyPairs as KeyPairs;
+      if (keyPairs instanceof SparkError) throw keyPairs;
+
+      const nextEncryptionKeys = await this.nextEncryptionKeys(args);
+      if (nextEncryptionKeys instanceof SparkError) throw nextEncryptionKeys;
+
+      const nextSigningKeys = await this.nextSigningKeys(args);
+      if (nextSigningKeys instanceof SparkError) throw nextSigningKeys;
+
+      const backers = args?.backers || [];
+      const nextKeyPairs = {
+        encryption: nextEncryptionKeys,
+        signing: nextSigningKeys
+      } as KeyPairs;
+
+      const result = await this.controller.incept({
+        keyPairs,
+        nextKeyPairs,
+        backers
+      });
+
+      if (result instanceof SparkError) throw result;
+    } catch (error) {
+      if (error instanceof SparkError) return error;
+      return new SparkError({
+        type: ControllerErrorType.INCEPT_FAILED,
+        message: error.message as ErrorMessage,
+      });
+    }
   }
 
-  get rotate(): ControllerInterface['rotate'] {
-    return this.controller.rotate;
+  async rotate(): ReturnType<ControllerInterface['rotate']> {
   }
 
-  get destroy(): ControllerInterface['destroy'] {
-    return this.controller.destroy;
+  async destroy(): ReturnType<ControllerInterface['destroy']> {
   }
 
   // hasher

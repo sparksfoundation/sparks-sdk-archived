@@ -8,6 +8,10 @@ export type DecryptedData = string | Record<string, any>;
 export type EncryptedData = string;
 export type EncryptionSecret = string;
 
+export enum CipherType {
+  X25519_SALSA_POLY = 'X25519_SALSA_POLY',
+}
+
 export enum CipherErrorType {
   // cipher errors
   INVALID_PUBLIC_ENCRYPTION_KEY = 'INVALID_PUBLIC_ENCRYPTION_KEY',

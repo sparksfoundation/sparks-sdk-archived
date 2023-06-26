@@ -1,6 +1,7 @@
-import { CipherErrorType } from "../ciphers/types";
+import { CipherErrorType } from "../cipher/types";
 import { ControllerErrorType } from "../controller/types";
-import { SignerErrorType } from "../signers/types";
+import { SignerErrorType } from "../signer/types";
+import { HasherErrorType } from "../hasher/types";
 
 // errors
 export type ErrorMessage = string;               // error message describing the error
@@ -8,7 +9,7 @@ export type ErrorTimestamp = number;             // utc epoch time in ms
 export type ErrorId = string;                    // unique id for the error
 export type ErrorMetadata = Record<string, any>; // additional metadata about the error
 
-export type ErrorType = SignerErrorType | CipherErrorType | ControllerErrorType;
+export type ErrorType = SignerErrorType | CipherErrorType | ControllerErrorType | HasherErrorType;
 
 export interface ErrorInterface {
   type: ErrorType;

@@ -1,19 +1,20 @@
 import { Spark } from '../dist/index.mjs';
-import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
-import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
+import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
 import { SparkError } from '../dist/common/errors.mjs';
 import { assert } from 'console';
+import { Blake3 } from '../dist/hasher/Blake3/Blake3.mjs';
 
 export default async function() {
   const spark = new Spark({
     cipher: X25519SalsaPoly,
-    hasher: Ed25519,
+    hasher: Blake3,
     signer: Ed25519,
   });
 
   const peer = new Spark({
     cipher: X25519SalsaPoly,
-    hasher: Ed25519,
+    hasher: Blake3,
     signer: Ed25519,
   });
 
