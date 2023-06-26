@@ -1,33 +1,15 @@
-import { Backer, BaseKeyEventProps, CommonKeyEventProps, ControllerErrorType, ControllerInterface, Identifier, KeyDestructionEvent, KeyEvent, KeyEventLog, KeyInceptionEvent, KeyRotationEvent } from "./types";
-import { ErrorInterface, ErrorMessage, SparkError } from "../common/errors";
-import errors from "./errorFactory";
-import { KeyEventType } from "./types";
-import { KeyPairs, SparkInterface } from "../types";
+import { BaseKeyEventProps, CommonKeyEventProps, ControllerErrorType, ControllerType, KeyDestructionEvent, KeyEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
+import { ErrorInterface, ErrorMessage, SparkError } from "../../common/errors";
+import { KeyEventType } from "../types";
+import { ControllerAbstract } from "../ControllerAbstract";
+import { KeyPairs } from "../../types";
+import { ControllerErrorFactory } from "../errorFactory";
+import { EncryptionKeyPair } from "../../cipher/types";
+import { SigningKeyPair } from "../../signer/types";
+const errors = new ControllerErrorFactory(ControllerType.BASIC_CONTROLLER);
 
-export class Controller implements ControllerInterface {
-  private _identifier: Identifier;
-  private _keyEventLog: KeyEventLog;
-  private _spark: SparkInterface<any, any, any, any>;
-
-  constructor(spark: SparkInterface<any, any, any, any>) {
-    this._spark = spark;
-    this._keyEventLog = [];
-    this.getIdentifier = this.getIdentifier.bind(this);
-    this.getKeyEventLog = this.getKeyEventLog.bind(this);
-    this.incept = this.incept.bind(this);
-    this.rotate = this.rotate.bind(this);
-    this.destroy = this.destroy.bind(this);
-  }
-
-  public getIdentifier(): ReturnType<ControllerInterface['getIdentifier']> {
-    return this._identifier ? this._identifier : errors.InvalidIdentifier();
-  }
-
-  public getKeyEventLog(): ReturnType<ControllerInterface['getKeyEventLog']> {
-    return this._keyEventLog ? this._keyEventLog : errors.InvalidKeyEventLog();
-  }
-
-  private async keyEvent({ nextKeyPairs, type, backers = [] }: { nextKeyPairs?: KeyPairs, type: KeyEventType, backers: Backer[] }): Promise<KeyEvent | ErrorInterface> {
+export class Basic extends ControllerAbstract {
+  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent | ErrorInterface> {
     try {
       switch (true) {
         case this._keyEventLog.length > 0 && this._keyEventLog[this._keyEventLog.length - 1].type === KeyEventType.DESTROY:
@@ -48,28 +30,31 @@ export class Controller implements ControllerInterface {
         return errors.IdentityAlreadyIncepted();
       }
 
-      const keyPairs = this._spark.keyPairs as KeyPairs;
-      if (keyPairs instanceof SparkError) throw keyPairs;
+      const encryption = this._spark.cipher.getKeyPair() as EncryptionKeyPair;
+      const signing = this._spark.signer.getKeyPair() as SigningKeyPair;
+      const keyPairs = { encryption, signing } as KeyPairs;
+      const keyPairErrors = SparkError.get(encryption, signing);
+      if (keyPairErrors) return keyPairErrors as ErrorInterface;
 
       // if it's not inception, check that this key matches the previous commitment
-      if (type !== KeyEventType.INCEPT) {
+      if (type === KeyEventType.ROTATE) {
         const previousKeyCommitment = this._keyEventLog[this._keyEventLog.length - 1].nextKeyCommitments;
-        const keyCommitment = await this._spark.hash(keyPairs?.signing?.publicKey);
-        if (keyCommitment instanceof SparkError) throw keyCommitment;
+        const keyCommitment = await this._spark.hash(keyPairs.signing.publicKey);
+        if (SparkError.is(keyCommitment)) throw keyCommitment;
         if (previousKeyCommitment !== keyCommitment) {
           return errors.InvalidKeyCommitment();
         }
       }
 
-      const nextKeyCommitments = type === KeyEventType.DESTROY ? undefined  : await this._spark.hash(nextKeyPairs?.signing?.publicKey);
-      if (nextKeyCommitments instanceof SparkError) throw nextKeyCommitments;
+      const nextKeyCommitments = type === KeyEventType.DESTROY ? undefined  : await this._spark.hash(nextKeyPairs.signing.publicKey);
+      if (SparkError.is(nextKeyCommitments)) throw nextKeyCommitments;
 
       const baseEventProps: BaseKeyEventProps = {
         index: this._keyEventLog.length,
         signingThreshold: 1,
         signingKeys: [keyPairs.signing.publicKey],
-        backerThreshold: 1,
-        backers: [...backers],
+        backerThreshold: 0,
+        backers: [],
         nextKeyCommitments,
       }
 
@@ -77,10 +62,10 @@ export class Controller implements ControllerInterface {
       const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
 
       const hashedEvent = await this._spark.hash(eventJSON);
-      if (hashedEvent instanceof SparkError) throw hashedEvent;
+      if (SparkError.is(hashedEvent)) throw hashedEvent;
 
       const selfAddressingIdentifier = await this._spark.seal({ data: hashedEvent });
-      if (selfAddressingIdentifier instanceof SparkError) throw selfAddressingIdentifier;
+      if (SparkError.is(selfAddressingIdentifier)) throw selfAddressingIdentifier;
 
       const identifier = this._identifier || `B${selfAddressingIdentifier}`;
       const previousEventDigest: string = this._keyEventLog.length > 0 ? this._keyEventLog[this._keyEventLog.length - 1].selfAddressingIdentifier : undefined;
@@ -121,7 +106,7 @@ export class Controller implements ControllerInterface {
       }
 
     } catch (error) {
-      if (error instanceof SparkError) return error;
+      if (SparkError.is(error)) return error;
       return new SparkError({
         type: ControllerErrorType.KEY_EVENT_ERROR,
         message: `key event failed: ${error.message}` as ErrorMessage,
@@ -130,22 +115,22 @@ export class Controller implements ControllerInterface {
     }
   }
 
-  public async incept(nextKeyPairs: KeyPairs): ReturnType<ControllerInterface['incept']> {
-    const inceptionEvent = await this.keyEvent({ nextKeyPairs, type: KeyEventType.INCEPT, backers: [] }) as KeyInceptionEvent;
-    if (inceptionEvent instanceof SparkError) return inceptionEvent as ErrorInterface;
+  public async incept(nextKeyPairs: KeyPairs): Promise<void | ErrorInterface> {
+    const inceptionEvent = await this.keyEvent({ nextKeyPairs, type: KeyEventType.INCEPT }) as KeyInceptionEvent;
+    if (SparkError.is(inceptionEvent)) return inceptionEvent as ErrorInterface;
     this._keyEventLog.push(inceptionEvent);
     this._identifier = inceptionEvent.identifier;
   }
 
-  public async rotate(nextKeyPairs: KeyPairs): ReturnType<ControllerInterface['rotate']> {
-    const rotationEvent = await this.keyEvent({ nextKeyPairs, type: KeyEventType.ROTATE, backers: [] }) as KeyRotationEvent;
-    if (rotationEvent instanceof SparkError) return rotationEvent as ErrorInterface;
+  public async rotate(nextKeyPairs: KeyPairs): Promise<void | ErrorInterface> {
+    const rotationEvent = await this.keyEvent({ nextKeyPairs, type: KeyEventType.ROTATE }) as KeyRotationEvent;
+    if (SparkError.is(rotationEvent)) return rotationEvent as ErrorInterface;
     this._keyEventLog.push(rotationEvent);
   }
 
-  public async destroy(): ReturnType<ControllerInterface['destroy']> {
-    const destructionEvent = await this.keyEvent({ type: KeyEventType.DESTROY, backers: [] }) as KeyDestructionEvent;
-    if (destructionEvent instanceof SparkError) return destructionEvent as ErrorInterface;
+  public async destroy(): Promise<void | ErrorInterface> {
+    const destructionEvent = await this.keyEvent({ type: KeyEventType.DESTROY }) as KeyDestructionEvent;
+    if (SparkError.is(destructionEvent)) return destructionEvent as ErrorInterface;
     this._keyEventLog.push(destructionEvent);
   }
 }

@@ -19,16 +19,35 @@ export interface ErrorInterface {
 }
 
 export class SparkError implements ErrorInterface {
-    public type: ErrorType;
-    public message: ErrorMessage;
-    public timestamp: ErrorTimestamp;
-    public metadata: ErrorMetadata;
+  public type: ErrorType;
+  public message: ErrorMessage;
+  public timestamp: ErrorTimestamp;
+  public metadata: ErrorMetadata;
+  public previous?: SparkError;
 
-    constructor(params: { type: ErrorType, message: ErrorMessage, metadata?: ErrorMetadata }) {
-        const { type, message, metadata = {}} = params;
-        this.type = type;
-        this.message = message;
-        this.timestamp = Date.now();
-        this.metadata = metadata;
-    }
+  constructor(params: { type: ErrorType, message: ErrorMessage, metadata?: ErrorMetadata }) {
+    const { type, message, metadata = {} } = params;
+    this.type = type;
+    this.message = message;
+    this.timestamp = Date.now();
+    this.metadata = metadata;
+  }
+
+  public static is(obj: any): obj is SparkError {
+    return obj instanceof SparkError;
+  }
+
+  public static has(...objs: any[]): boolean {
+    return objs.some(obj => SparkError.is(obj));
+  }
+
+  public static get(...objs): ErrorInterface | null {
+    return objs.reduce((acc, obj) => {
+      if (SparkError.is(obj)) {
+        if (acc) acc.previous = obj;
+        else acc = obj;
+      }
+      return acc;
+    }, null);
+  }
 }

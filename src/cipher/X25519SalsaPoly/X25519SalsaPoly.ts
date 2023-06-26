@@ -1,43 +1,14 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
-import { CipherAbstract, CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
+import { CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
+import { CipherAbstract } from "../CipherAbstract";
 import { CipherErrorFactory } from "../errorFactory";
 import { ErrorInterface } from "../../common/errors";
 
-const errors = new CipherErrorFactory(CipherType.X25519_SALSA_POLY);
+const errors = new CipherErrorFactory(CipherType.X25519_SALSA_POLY_CIPHER);
 
 export class X25519SalsaPoly extends CipherAbstract {
-  private _publicKey: EncryptionPublicKey;
-  private _secretKey: EncryptionSecretKey;
-
-  constructor() {
-    super();
-    this.getPublicKey = this.getPublicKey.bind(this);
-    this.getSecretKey = this.getSecretKey.bind(this);
-    this.getKeyPair = this.getKeyPair.bind(this);
-    this.setKeyPair = this.setKeyPair.bind(this);
-    this.generateKeyPair = this.generateKeyPair.bind(this);
-    this.generateSharedKey = this.generateSharedKey.bind(this);
-    this.encrypt = this.encrypt.bind(this);
-    this.decrypt = this.decrypt.bind(this);
-  }
-
-  public getPublicKey(): ReturnType<CipherAbstract['getPublicKey']> {
-    if (!this._publicKey) return errors.InvalidPublicKey() as ErrorInterface;
-    return this._publicKey as EncryptionPublicKey;
-  }
-
-  public getSecretKey(): ReturnType<CipherAbstract['getSecretKey']> {
-    if (!this._secretKey) return errors.InvalidSecretKey() as ErrorInterface;
-    return this._secretKey as EncryptionSecretKey;
-  }
-
-  public getKeyPair(): ReturnType<CipherAbstract['getKeyPair']> {
-    if (!this._publicKey || !this._secretKey) return errors.InvalidKeyPair() as ErrorInterface;
-    return { publicKey: this._publicKey, secretKey: this._secretKey } as EncryptionKeyPair;
-  }
-
   public async generateKeyPair(secret?: EncryptionSecret): ReturnType<CipherAbstract['generateKeyPair']> {
     try {
       const keyPair = secret ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.box.keyPair();
@@ -48,12 +19,6 @@ export class X25519SalsaPoly extends CipherAbstract {
     } catch (error) {
       return errors.KeyPairFailure(error.message) as ErrorInterface;
     }
-  }
-
-  public async setKeyPair(keyPair: EncryptionKeyPair): ReturnType<CipherAbstract['setKeyPair']> {
-    if (!keyPair?.publicKey || !keyPair?.secretKey) return errors.InvalidKeyPair() as ErrorInterface;
-    this._publicKey = keyPair.publicKey;
-    this._secretKey = keyPair.secretKey;
   }
 
   public async generateSharedKey(publicKey: EncryptionPublicKey): ReturnType<CipherAbstract['generateSharedKey']> {

@@ -1,10 +1,11 @@
 import util from "tweetnacl-util";
 import { ErrorInterface } from "../../common/errors";
 import HasherErrorFactory from "../errorFactory";
-import { HashData, HashDigest, HasherAbstract, HasherType } from "../types";
+import { HashData, HashDigest, HasherType } from "../types";
+import { HasherAbstract } from "../HasherAbstract";
 import { blake3 } from "@noble/hashes/blake3";
 
-const errors = new HasherErrorFactory(HasherType.BLAKE_3);
+const errors = new HasherErrorFactory(HasherType.BLAKE_3_HASHER);
 
 export class Blake3 extends HasherAbstract {
   public async hash(data: HashData): ReturnType<HasherAbstract['hash']> {

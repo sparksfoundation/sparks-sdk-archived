@@ -1,8 +1,8 @@
 import { SparkError, ErrorMessage } from '../common/errors';
-import { SignerErrorType } from './types';
+import { SignerErrorType, SignerType } from './types';
 
 export class SignerErrorFactory {
-    private signer: string;
+    private signer: SignerType;
     constructor(signer) {
         this.signer = signer;
     }

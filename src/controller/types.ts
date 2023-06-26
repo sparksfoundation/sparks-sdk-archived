@@ -1,7 +1,5 @@
-import { HashDigest, HasherAbstract } from "../hasher/types";
-import { SignerAbstract, SigningPublicKey } from "../signer/types";
-import { ErrorInterface } from "../common/errors";
-import { KeyPairs } from "../types";
+import { HashDigest } from "../hasher/types";
+import { SigningPublicKey } from "../signer/types";
 import { CombinedInterface } from "../common/types";
 
 export enum ControllerErrorType {
@@ -15,6 +13,12 @@ export enum ControllerErrorType {
   INVALID_KEY_COMMITMENT = 'INVALID_KEY_COMMITMENT',
   IDENTITY_NOT_INCEPTED = 'IDENTITY_NOT_INCEPTED',
   INVALID_KEY_PAIRS = 'INVALID_KEY_PAIRS',
+  INVALID_SPARK_INSTANCE = 'INVALID_SPARK_INSTANCE',
+}
+
+export enum ControllerType {
+  CORE_CONTROLLER = 'CORE_CONTROLLER',
+  BASIC_CONTROLLER = 'BASIC_CONTROLLER',
 }
 
 export type Identifier = string;
@@ -96,14 +100,3 @@ export type KeyEventMap = {
 
 // collections
 export type KeyEventLog = KeyEvent[]
-
-// main controller interface
-export interface ControllerInterface {
-  getIdentifier(): Identifier | ErrorInterface;
-  getKeyEventLog(): KeyEventLog | ErrorInterface;
-  incept(nextKeyPairs: KeyPairs): Promise<void | ErrorInterface>;
-  rotate(nextKeyPairs: KeyPairs): Promise<void | ErrorInterface>;
-  destroy(): Promise<void | ErrorInterface>;
-}
-
-// TODO - add backers

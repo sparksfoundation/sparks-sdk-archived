@@ -1,8 +1,8 @@
 import { ErrorMessage, SparkError } from "../common/errors";
-import { HasherErrorType } from "./types";
+import { HasherErrorType, HasherType } from "./types";
 
 export default class HasherErrorFactory {
-  private hasher: string;
+  private hasher: HasherType;
   constructor(hasher) {
     this.hasher = hasher;
   }

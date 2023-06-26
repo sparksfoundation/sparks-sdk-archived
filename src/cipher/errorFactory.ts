@@ -1,8 +1,8 @@
 import { ErrorMessage, SparkError } from "../common/errors";
-import { CipherErrorType } from "./types";
+import { CipherErrorType, CipherType } from "./types";
 
 export class CipherErrorFactory {
-  private cipher: string;
+  private cipher: CipherType;
   constructor(cipher) {
       this.cipher = cipher;
   }

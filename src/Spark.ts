@@ -1,37 +1,41 @@
-import { Controller } from "./controller";
 import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
 import { AgentAbstract } from "./agent/types";
-import { CipherAbstract, EncryptionKeyPair } from "./cipher/types";
-import { HashDigest, HasherAbstract } from "./hasher/types";
-import { SignerAbstract, SigningKeyPair } from "./signer/types";
+import { EncryptionKeyPair, EncryptionPublicKey } from "./cipher/types";
+import { HashDigest } from "./hasher/types";
+import { SigningKeyPair, SigningPublicKey } from "./signer/types";
 import { SparkInterface } from "./types";
-import { ControllerInterface } from "./controller/types";
 import { SparkError, ErrorInterface } from "./common/errors";
+import { CipherAbstract } from "./cipher/CipherAbstract";
+import { HasherAbstract } from "./hasher/HasherAbstract";
+import { SignerAbstract } from "./signer/SignerAbstract";
+import { ControllerAbstract } from "./controller";
 
 export class Spark<
   A extends AgentAbstract[],
-  C extends CipherAbstract,
+  X extends CipherAbstract,
+  C extends ControllerAbstract,
   H extends HasherAbstract,
   S extends SignerAbstract
-> implements SparkInterface<A, C, H, S> {
+> implements SparkInterface<A, X, C, H, S> {
 
-  private cipher: C;
-  private hasher: H;
-  private signer: S;
-  public agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
-  private controller: ControllerInterface;
+  public readonly cipher: X;
+  public readonly controller: C;
+  public readonly hasher: H;
+  public readonly signer: S;
+  public readonly agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
 
   constructor({
     agents = [],
     cipher,
+    controller,
     hasher,
     signer
-  }: SparkParams<A, C, H, S>) {
+  }: SparkParams<A, X, C, H, S>) {
 
     this.cipher = new cipher();
     this.hasher = new hasher();
     this.signer = new signer();
-    this.controller = new Controller(this);
+    this.controller = new controller(this);
 
     agents.forEach((agent: Constructable<A[number]>) => {
       const mixin = new agent();
@@ -49,42 +53,45 @@ export class Spark<
   }
 
   // spark
-  get keyPairs(): KeyPairs | ErrorInterface {
-    const encryption = this.encryptionKeyPair as EncryptionKeyPair;
-    const signing = this.signingKeyPair as SigningKeyPair;
-    if (encryption instanceof SparkError) return encryption as ErrorInterface;
-    if (signing instanceof SparkError) return signing as ErrorInterface;
-    return { encryption, signing } as KeyPairs;
-  }
-
-  get publicKeys(): PublicKeys | ErrorInterface {
-    const encryption = this.encryptionKeyPair as EncryptionKeyPair;
-    const signing = this.signingKeyPair as SigningKeyPair;
-    if (encryption instanceof SparkError) return encryption as ErrorInterface;
-    if (signing instanceof SparkError) return signing as ErrorInterface;
+  public get publicKeys(): PublicKeys | ErrorInterface {
+    const keyPairs = this.keyPairs as KeyPairs;
+    if (SparkError.is(keyPairs)) return keyPairs as ErrorInterface;
     return {
-      encryption: encryption.publicKey,
-      signing: signing.publicKey
+      encryption: keyPairs.encryption.publicKey,
+      signing: keyPairs.signing.publicKey,
     } as PublicKeys;
   }
 
-  get secretKeys(): SecretKeys | ErrorInterface {
-    const encryption = this.encryptionKeyPair as EncryptionKeyPair;
-    const signing = this.signingKeyPair as SigningKeyPair;
-    if (encryption instanceof SparkError) return encryption as ErrorInterface;
-    if (signing instanceof SparkError) return signing as ErrorInterface;
+  public get secretKeys(): SecretKeys | ErrorInterface {
+    const keyPairs = this.keyPairs as KeyPairs;
+    if (SparkError.is(keyPairs)) return keyPairs as ErrorInterface;
     return {
-      encryption: encryption.secretKey,
-      signing: signing.secretKey
-    }
+      encryption: keyPairs.encryption.secretKey,
+      signing: keyPairs.signing.secretKey,
+    } as SecretKeys;
   }
 
-  async generateKeyPairs(args: any): Promise<KeyPairs | ErrorInterface> {
-    const signingKeyPair = await this.signer.generateKeyPair(args);
-    const encryptionKeyPair = await this.cipher.generateKeyPair(args);
-    if (signingKeyPair instanceof SparkError) return signingKeyPair as ErrorInterface;
-    if (encryptionKeyPair instanceof SparkError) return encryptionKeyPair as ErrorInterface;
-    return { encryption: encryptionKeyPair, signing: signingKeyPair } as KeyPairs;
+  public get keyPairs(): KeyPairs | ErrorInterface {
+    const encryption = this.cipher.getKeyPair();
+    const signing = this.signer.getKeyPair();
+    const errors = SparkError.get(encryption, signing);
+    if (errors) return errors as ErrorInterface;
+    return { encryption, signing } as KeyPairs;
+  }
+
+  public async generateKeyPairs(args: any): Promise<KeyPairs | ErrorInterface> {
+    const encryption = await this.cipher.generateKeyPair(args) as EncryptionKeyPair;
+    const signing = await this.signer.generateKeyPair(args) as SigningKeyPair;
+    const errors = SparkError.get(encryption, signing);
+    if (errors) return errors as ErrorInterface;
+    return { encryption, signing } as KeyPairs;
+  }
+
+  public async setKeyPairs(keyPairs: KeyPairs): Promise<void | ErrorInterface> {
+    const signerSet = await this.signer.setKeyPair(keyPairs.signing);
+    const cipherSet = await this.cipher.setKeyPair(keyPairs.encryption);
+    const errors = SparkError.get(signerSet, cipherSet);
+    if (errors) return errors as ErrorInterface;
   }
 
   import(data: HashDigest): Promise<void | ErrorInterface> {
@@ -96,56 +103,36 @@ export class Spark<
   }
 
   // cipher
-  get encryptionKeyPair(): ReturnType<C['getKeyPair']> {
-    return this.cipher.getKeyPair() as ReturnType<C['getKeyPair']>;
-  }
-
-  get encryptionPublicKey(): ReturnType<C['getPublicKey']> {
-    return this.cipher.getPublicKey() as ReturnType<C['getPublicKey']>;
-  }
-
-  get encryptionSecretKey(): ReturnType<C['getSecretKey']> {
-    return this.cipher.getSecretKey() as ReturnType<C['getSecretKey']>;
-  }
-
-  get generateEncryptionKeyPair(): C['generateKeyPair'] {
-    return this.cipher.generateKeyPair;
-  }
-
-  get setEncryptionKeyPair(): C['setKeyPair'] {
-    return this.cipher.setKeyPair;
-  }
-
-  get generateSharedEncryptionKey(): C['generateSharedKey'] {
+  get generateSharedEncryptionKey():  X['generateSharedKey'] {
     return this.cipher.generateSharedKey;
   }
 
-  get encrypt(): C['encrypt'] {
+  get encrypt(): X['encrypt'] {
     return this.cipher.encrypt;
   }
 
-  get decrypt(): C['decrypt'] {
+  get decrypt(): X['decrypt'] {
     return this.cipher.decrypt;
   }
 
   // controller
-  get identifier(): ReturnType<ControllerInterface['getIdentifier']> {
-    return this.controller.getIdentifier();
+  get identifier(): ReturnType<C['getIdentifier']> {
+    return this.controller.getIdentifier() as ReturnType<C['getIdentifier']>;
   }
 
-  get keyEventLog(): ReturnType<ControllerInterface['getKeyEventLog']> {
-    return this.controller.getKeyEventLog();
+  get keyEventLog(): ReturnType<C['getKeyEventLog']> {
+    return this.controller.getKeyEventLog() as ReturnType<C['getKeyEventLog']>;
   }
 
-  get incept(): ControllerInterface['incept'] {
+  get incept(): C['incept'] {
     return this.controller.incept;
   }
 
-  get rotate(): ControllerInterface['rotate'] {
+  get rotate(): C['rotate'] {
     return this.controller.rotate;
   }
 
-  get destroy(): ControllerInterface['destroy'] {
+  get destroy(): C['destroy'] {
     return this.controller.destroy;
   }
 
@@ -155,18 +142,6 @@ export class Spark<
   }
 
   // signer
-  get signingKeyPair(): ReturnType<S['getKeyPair']> {
-    return this.signer.getKeyPair() as ReturnType<S['getKeyPair']>;
-  }
-
-  get signingPublicKey(): ReturnType<S['getPublicKey']> {
-    return this.signer.getPublicKey() as ReturnType<S['getPublicKey']>;
-  }
-
-  get signingSecretKey(): ReturnType<S['getSecretKey']> {
-    return this.signer.getSecretKey() as ReturnType<S['getSecretKey']>;
-  }
-
   get generateSigningKeyPair(): S['generateKeyPair'] {
     return this.signer.generateKeyPair;
   }

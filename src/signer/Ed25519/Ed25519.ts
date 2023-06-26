@@ -2,43 +2,12 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
 import { SignerErrorFactory } from "../errorFactory";
-import { Signature, SignatureData, SignatureVerified, SignerAbstract, SignerType, SigningKeyPair, SigningPublicKey, SigningSecretKey, SingingSeed } from "../types";
+import { Signature, SignatureData, SignatureVerified, SignerType, SigningKeyPair, SigningPublicKey, SingingSeed } from "../types";
+import { SignerAbstract } from "../SignerAbstract";
 import { ErrorInterface } from "../../common/errors";
-
-const errors = new SignerErrorFactory(SignerType.Ed25519);
+const errors = new SignerErrorFactory(SignerType.ED25519_SIGNER);
 
 export class Ed25519 extends SignerAbstract {
-  private _publicKey: SigningPublicKey;
-  private _secretKey: SigningSecretKey;
-
-  constructor() {
-    super();
-    this.getPublicKey = this.getPublicKey.bind(this);
-    this.getSecretKey = this.getSecretKey.bind(this);
-    this.getKeyPair = this.getKeyPair.bind(this);
-    this.setKeyPair = this.setKeyPair.bind(this);
-    this.generateKeyPair = this.generateKeyPair.bind(this);
-    this.sign = this.sign.bind(this);
-    this.verify = this.verify.bind(this);
-    this.seal = this.seal.bind(this);
-    this.open = this.open.bind(this);
-  }
-
-  public getPublicKey(): ReturnType<SignerAbstract['getPublicKey']> {
-    if (!this._publicKey) return errors.InvalidPublicKey() as ErrorInterface;
-    return this._publicKey as SigningPublicKey;
-  }
-
-  public getSecretKey(): ReturnType<SignerAbstract['getSecretKey']> {
-    if (!this._secretKey) return errors.InvalidSecretKey() as ErrorInterface;
-    return this._secretKey as SigningSecretKey;
-  }
-
-  public getKeyPair(): ReturnType<SignerAbstract['getKeyPair']> {
-    if (!this._publicKey || !this._secretKey) return errors.InvalidKeyPair() as ErrorInterface;
-    return { publicKey: this._publicKey, secretKey: this._secretKey } as SigningKeyPair;
-  }
-
   public async generateKeyPair(secret?: SingingSeed): ReturnType<SignerAbstract['generateKeyPair']> {
     try {
       const keyPair = secret ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.sign.keyPair();
@@ -49,12 +18,6 @@ export class Ed25519 extends SignerAbstract {
     } catch (error) {
       return errors.KeyPairFailure(error.message) as ErrorInterface;
     }
-  }
-
-  public async setKeyPair(keyPair: SigningKeyPair): ReturnType<SignerAbstract['setKeyPair']> {
-    if (!keyPair?.publicKey || !keyPair?.secretKey) return errors.InvalidKeyPair() as ErrorInterface;
-    this._publicKey = keyPair.publicKey;
-    this._secretKey = keyPair.secretKey;
   }
 
   public async seal(data: SignatureData): ReturnType<SignerAbstract['seal']> {

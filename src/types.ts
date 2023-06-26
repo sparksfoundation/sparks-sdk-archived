@@ -1,9 +1,12 @@
 import { AgentAbstract } from "./agent/types";
-import { CipherAbstract, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./cipher/types";
+import { CipherAbstract } from "./cipher/CipherAbstract";
+import { EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./cipher/types";
 import { ErrorInterface } from "./common/errors";
-import { ControllerInterface, Identifier, KeyEventLog } from "./controller/types";
-import { HashDigest, HasherAbstract } from "./hasher/types";
-import { SignerAbstract, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signer/types";
+import { ControllerAbstract } from "./controller";
+import { HasherAbstract } from "./hasher/HasherAbstract";
+import { HashDigest } from "./hasher/types";
+import { SignerAbstract } from "./signer/SignerAbstract";
+import { SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signer/types";
 
 // utils
 export interface Constructable<T> {
@@ -28,28 +31,32 @@ export interface SecretKeys {
 
 export type SparkParams<
   A extends AgentAbstract[],
-  C extends CipherAbstract,
+  X extends CipherAbstract,
+  C extends ControllerAbstract,
   H extends HasherAbstract,
-  S extends SignerAbstract
+  S extends SignerAbstract,
 > = {
   agents?: Constructable<A[number]>[];
-  cipher: Constructable<C>;
+  cipher: Constructable<X>;
+  controller: Constructable<C>;
   hasher: Constructable<H>;
   signer: Constructable<S>;
 };
 
 export interface SparkInterface<
   A extends AgentAbstract[],
-  C extends CipherAbstract,
+  X extends CipherAbstract,
+  C extends ControllerAbstract,
   H extends HasherAbstract,
   S extends SignerAbstract,
 > {
 
   // spark
-  keyPairs: KeyPairs | ErrorInterface;
   publicKeys: PublicKeys | ErrorInterface;
   secretKeys: SecretKeys | ErrorInterface;
+  keyPairs: KeyPairs | ErrorInterface;
   generateKeyPairs: (args: any) => Promise<KeyPairs | ErrorInterface>;
+  setKeyPairs: (keyPairs: KeyPairs) => Promise<void | ErrorInterface>;
   import: (data: EncryptedData) => Promise<void | ErrorInterface>;
   export: () => Promise<HashDigest | ErrorInterface>;
 
@@ -57,31 +64,21 @@ export interface SparkInterface<
   agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
 
   // cipher
-  encryptionKeyPair: ReturnType<C['getKeyPair']>;
-  encryptionPublicKey: ReturnType<C['getPublicKey']>;
-  encryptionSecretKey: ReturnType<C['getSecretKey']>;
-  generateEncryptionKeyPair: C['generateKeyPair'];
-  setEncryptionKeyPair: C['setKeyPair'];
-  generateSharedEncryptionKey: C['generateSharedKey'];
-  encrypt: C['encrypt'];
-  decrypt: C['decrypt'];
+  generateSharedEncryptionKey: X['generateSharedKey'];
+  encrypt: X['encrypt'];
+  decrypt: X['decrypt'];
 
   // controller
-  identifier: ReturnType<ControllerInterface['getIdentifier']>;
-  keyEventLog: ReturnType<ControllerInterface['getKeyEventLog']>;
-  incept: ControllerInterface['incept'];
-  rotate: ControllerInterface['rotate'];
-  destroy: ControllerInterface['destroy'];
+  identifier: ReturnType<C['getIdentifier']>;
+  keyEventLog: ReturnType<C['getKeyEventLog']>;
+  incept: C['incept'];
+  rotate: C['rotate'];
+  destroy: C['destroy'];
 
   // hasher
   hash: H['hash'];
 
   // signer
-  signingKeyPair: ReturnType<S['getKeyPair']>;
-  signingPublicKey: ReturnType<S['getPublicKey']>;
-  signingSecretKey: ReturnType<S['getSecretKey']>;
-  generateSigningKeyPair: S['generateKeyPair'];
-  setSigningKeyPair: S['setKeyPair'];
   sign: S['sign'];
   seal: S['seal'];
   verify: S['verify'];
