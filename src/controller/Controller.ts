@@ -6,11 +6,19 @@ export class Controller implements ControllerInterface {
   private _identifier: Identifier;
   private _keyEventLog: KeyEventLog;
 
-  public getIdentifier(): Identifier | ErrorInterface {
+  constructor() {
+    this.getIdentifier = this.getIdentifier.bind(this);
+    this.getKeyEventLog = this.getKeyEventLog.bind(this);
+    this.incept = this.incept.bind(this);
+    this.rotate = this.rotate.bind(this);
+    this.destroy = this.destroy.bind(this);
+  }
+
+  public getIdentifier(): ReturnType<ControllerInterface['getIdentifier']> {
     return this._identifier ? this._identifier : errors.InvalidIdentifier();
   }
 
-  public getKeyEventLog(): KeyEventLog | ErrorInterface {
+  public getKeyEventLog(): ReturnType<ControllerInterface['getKeyEventLog']> {
     return this._keyEventLog ? this._keyEventLog : errors.InvalidKeyEventLog();
   }
 
@@ -23,7 +31,6 @@ export class Controller implements ControllerInterface {
   }
 
   public rotate({ keyPairs, nextKeyPairs, backers }: Parameters<ControllerInterface['rotate']>[0]): ReturnType<ControllerInterface['rotate']> {
-    console.log(keyPairs, nextKeyPairs, backers)
     return Promise.reject(new SparkError({
       message: 'Not implemented',
       type: ControllerErrorType.INVALID_IDENTIFIER,
@@ -31,7 +38,6 @@ export class Controller implements ControllerInterface {
   }
 
   public destroy({ keyPairs, nextKeyPairs, backers }: Parameters<ControllerInterface['destroy']>[0]): ReturnType<ControllerInterface['destroy']> {
-    console.log(keyPairs, nextKeyPairs, backers)
     return Promise.reject(new SparkError({
       message: 'Not implemented',
       type: ControllerErrorType.INVALID_IDENTIFIER,

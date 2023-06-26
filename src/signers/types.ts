@@ -32,6 +32,7 @@ export abstract class SignerAbstract {
   public abstract getKeyPair(): SigningKeyPair | ErrorInterface;        // private _keyPair: KeyPair;
 
   public abstract initKeyPair(...any: any): Promise<void | ErrorInterface>;
+  public abstract getNextKeyPair(...any: any): Promise<SigningKeyPair | ErrorInterface>;
 
   public abstract sign(...any: any): Promise<Signature | ErrorInterface>;
   public abstract verify(...any: any): Promise<SignatureVerified | ErrorInterface>;

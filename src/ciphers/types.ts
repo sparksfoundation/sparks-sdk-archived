@@ -25,6 +25,7 @@ export abstract class CipherAbstract {
   public abstract getKeyPair(): EncryptionKeyPair | ErrorInterface;
 
   public abstract initKeyPair(...args: any): Promise<EncryptionKeyPair | ErrorInterface>;
+  public abstract getNextKeyPair(...args: any): Promise<EncryptionKeyPair | ErrorInterface>;
   public abstract computeSharedKey(...args: any): Promise<EncryptionSharedKey | ErrorInterface>;
 
   public abstract encrypt(...args: any): Promise<EncryptedData | ErrorInterface>;

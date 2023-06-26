@@ -40,17 +40,18 @@ export class Spark<
     });
   }
 
+  // spark
   get keyPairs(): KeyPairs | ErrorInterface {
-    const encryption = this.encryptionKeys() as EncryptionKeyPair;
-    const signing = this.signingKeys() as SigningKeyPair;
+    const encryption = this.encryptionKeys as EncryptionKeyPair;
+    const signing = this.signingKeys as SigningKeyPair;
     if (encryption instanceof SparkError) return encryption as ErrorInterface;
     if (signing instanceof SparkError) return signing as ErrorInterface;
     return { encryption, signing } as KeyPairs;
   }
 
   get publicKeys(): PublicKeys | ErrorInterface {
-    const encryption = this.encryptionKeys() as EncryptionKeyPair;
-    const signing = this.signingKeys() as SigningKeyPair;
+    const encryption = this.encryptionKeys as EncryptionKeyPair;
+    const signing = this.signingKeys as SigningKeyPair;
     if (encryption instanceof SparkError) return encryption as ErrorInterface;
     if (signing instanceof SparkError) return signing as ErrorInterface;
     return {
@@ -60,8 +61,8 @@ export class Spark<
   }
 
   get secretKeys(): SecretKeys | ErrorInterface {
-    const encryption = this.encryptionKeys() as EncryptionKeyPair;
-    const signing = this.signingKeys() as SigningKeyPair;
+    const encryption = this.encryptionKeys as EncryptionKeyPair;
+    const signing = this.signingKeys as SigningKeyPair;
     if (encryption instanceof SparkError) return encryption as ErrorInterface;
     if (signing instanceof SparkError) return signing as ErrorInterface;
     return {
@@ -70,28 +71,37 @@ export class Spark<
     }
   }
 
-  get getIdentifier(): ControllerInterface['getIdentifier'] {
-    return this.controller.getIdentifier;
+  import(data: HashDigest): Promise<void | ErrorInterface> {
+    return Promise.resolve();
   }
 
-  get getKeyEventLog(): ControllerInterface['getKeyEventLog'] {
-    return this.controller.getKeyEventLog;
+  export(): Promise<HashDigest> {
+    return Promise.resolve('');
   }
 
-  get encryptionKeys(): C['getKeyPair'] {
-    return this.cipher.getKeyPair;
+  // cipher
+  get encryptionKeys(): ReturnType<C['getKeyPair']> {
+    return this.cipher.getKeyPair() as ReturnType<C['getKeyPair']>;
   }
 
-  get signingKeys(): S['getKeyPair'] {
-    return this.signer.getKeyPair;
+  get publicEncryptionKey(): ReturnType<C['getPublicKey']> {
+    return this.cipher.getPublicKey() as ReturnType<C['getPublicKey']>;
   }
 
+  get secretEncryptionKey(): ReturnType<C['getSecretKey']> {
+    return this.cipher.getSecretKey() as ReturnType<C['getSecretKey']>;
+  }
+  
   get initEncryptionKeys(): C['initKeyPair'] {
     return this.cipher.initKeyPair;
   }
 
   get computSharedEncryptionKey(): C['computeSharedKey'] {
     return this.cipher.computeSharedKey;
+  }
+
+  get nextEncryptionKeys(): C['getNextKeyPair'] {
+    return this.cipher.getNextKeyPair;
   }
 
   get encrypt(): C['encrypt'] {
@@ -102,12 +112,52 @@ export class Spark<
     return this.cipher.decrypt;
   }
 
+  // controller
+  get identifier(): ReturnType<ControllerInterface['getIdentifier']> {
+    return this.controller.getIdentifier();
+  }
+
+  get keyEventLog(): ReturnType<ControllerInterface['getKeyEventLog']> {
+    return this.controller.getKeyEventLog();
+  }
+
+  get incept(): ControllerInterface['incept'] {
+    const keyPairs = this.keyPairs as KeyPairs;
+    return this.controller.incept;
+  }
+
+  get rotate(): ControllerInterface['rotate'] {
+    return this.controller.rotate;
+  }
+
+  get destroy(): ControllerInterface['destroy'] {
+    return this.controller.destroy;
+  }
+
+  // hasher
   get hash(): H['hash'] {
     return this.hasher.hash;
   }
 
+  // signer
+  get signingKeys(): ReturnType<S['getKeyPair']> {
+    return this.signer.getKeyPair() as ReturnType<S['getKeyPair']>;
+  }
+
+  get publicSigningKey(): ReturnType<S['getPublicKey']> {
+    return this.signer.getPublicKey() as ReturnType<S['getPublicKey']>;
+  }
+
+  get secretSigningKey(): ReturnType<S['getSecretKey']> {
+    return this.signer.getSecretKey() as ReturnType<S['getSecretKey']>;
+  }
+
   get initSingingKeys(): S['initKeyPair'] {
     return this.signer.initKeyPair;
+  }
+
+  get nextSigningKeys(): S['getNextKeyPair'] {
+    return this.signer.getNextKeyPair;
   }
 
   get sign(): S['sign'] {
@@ -124,26 +174,5 @@ export class Spark<
 
   get open(): S['open'] {
     return this.signer.open;
-  }
-
-  get incept(): ControllerInterface['incept'] {
-    const keyPairs = this.keyPairs as KeyPairs;
-    return this.controller.incept;
-  }
-
-  get rotate(): ControllerInterface['rotate'] {
-    return this.controller.rotate;
-  }
-
-  get destroy(): ControllerInterface['destroy'] {
-    return this.controller.destroy;
-  }
-
-  import(data: HashDigest): Promise<void | ErrorInterface> {
-    return Promise.resolve();
-  }
-
-  export(): Promise<HashDigest> {
-    return Promise.resolve('');
   }
 }

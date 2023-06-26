@@ -11,6 +11,18 @@ export class X25519SalsaPoly extends CipherAbstract {
   private _publicKey: EncryptionPublicKey;
   private _secretKey: EncryptionSecretKey;
 
+  constructor() {
+    super();
+    this.getPublicKey = this.getPublicKey.bind(this);
+    this.getSecretKey = this.getSecretKey.bind(this);
+    this.getKeyPair = this.getKeyPair.bind(this);
+    this.initKeyPair = this.initKeyPair.bind(this);
+    this.getNextKeyPair = this.getNextKeyPair.bind(this);
+    this.computeSharedKey = this.computeSharedKey.bind(this);
+    this.encrypt = this.encrypt.bind(this);
+    this.decrypt = this.decrypt.bind(this);
+  }
+
   public getPublicKey(): ReturnType<CipherAbstract['getPublicKey']> {
     if (!this._publicKey) return errors.InvalidPublicKey() as ErrorInterface;
     return this._publicKey as EncryptionPublicKey;
@@ -34,6 +46,18 @@ export class X25519SalsaPoly extends CipherAbstract {
       if (!publicKey || !secretKey) throw new Error('missing public or secret key');
       this._publicKey = publicKey as EncryptionPublicKey;
       this._secretKey = secretKey as EncryptionSecretKey;
+    } catch (error) {
+      return errors.KeyPairFailure(error.message) as ErrorInterface;
+    }
+  }
+
+  public async getNextKeyPair(secret?: EncryptionSecret): ReturnType<CipherAbstract['getNextKeyPair']> {
+    try {
+      const keyPair = secret ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.box.keyPair();
+      const publicKey = util.encodeBase64(keyPair.publicKey);
+      const secretKey = util.encodeBase64(keyPair.secretKey);
+      if (!publicKey || !secretKey) throw new Error('missing public or secret key');
+      return { publicKey, secretKey } as EncryptionKeyPair;
     } catch (error) {
       return errors.KeyPairFailure(error.message) as ErrorInterface;
     }

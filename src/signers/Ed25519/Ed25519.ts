@@ -10,6 +10,17 @@ const errors = new SignerErrorFactory(SignerTypes.Ed25519);
 export class Ed25519 extends SignerAbstract {
   private _publicKey: SigningPublicKey;
   private _secretKey: SigningSecretKey;
+  constructor() {
+    super();
+    this.getPublicKey = this.getPublicKey.bind(this);
+    this.getSecretKey = this.getSecretKey.bind(this);
+    this.getKeyPair = this.getKeyPair.bind(this);
+    this.initKeyPair = this.initKeyPair.bind(this);
+    this.sign = this.sign.bind(this);
+    this.verify = this.verify.bind(this);
+    this.seal = this.seal.bind(this);
+    this.open = this.open.bind(this);
+  }
 
   public getPublicKey(): ReturnType<SignerAbstract['getPublicKey']> {
     if (!this._publicKey) return errors.InvalidPublicKey() as ErrorInterface;
@@ -34,6 +45,18 @@ export class Ed25519 extends SignerAbstract {
       if (!publicKey || !secretKey) throw new Error();
       this._publicKey = publicKey as SigningPublicKey;
       this._secretKey = secretKey as SigningSecretKey;
+    } catch (error) {
+      return errors.KeyPairFailure(error.message) as ErrorInterface;
+    }
+  }
+
+  public async getNextKeyPair(seed?: SingingSeed): ReturnType<SignerAbstract['getNextKeyPair']> {
+    try {
+      const keyPair = seed ? nacl.sign.keyPair.fromSeed(util.decodeBase64(seed)) : nacl.sign.keyPair();
+      const publicKey = util.encodeBase64(keyPair.publicKey);
+      const secretKey = util.encodeBase64(keyPair.secretKey);
+      if (!publicKey || !secretKey) throw new Error();
+      return { publicKey, secretKey } as SigningKeyPair;
     } catch (error) {
       return errors.KeyPairFailure(error.message) as ErrorInterface;
     }

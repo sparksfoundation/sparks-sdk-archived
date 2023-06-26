@@ -45,35 +45,44 @@ export interface SparkInterface<
   S extends SignerAbstract,
 > {
 
-  agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
-
+  // spark
   keyPairs: KeyPairs | ErrorInterface;
   publicKeys: PublicKeys | ErrorInterface;
   secretKeys: SecretKeys | ErrorInterface;
+  import: (data: EncryptedData) => Promise<void | ErrorInterface>;
+  export: () => Promise<HashDigest | ErrorInterface>;
 
-  getIdentifier: ControllerInterface['getIdentifier'];
-  getKeyEventLog: ControllerInterface['getKeyEventLog'];
+  // agent
+  agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
 
-  encryptionKeys: C['getKeyPair'];
-  signingKeys: S['getKeyPair'];
-
+  // cipher
+  encryptionKeys: ReturnType<C['getKeyPair']>;
+  publicEncryptionKey: ReturnType<C['getPublicKey']>;
+  secretEncryptionKey: ReturnType<C['getSecretKey']>;
   initEncryptionKeys: C['initKeyPair'];
+  nextEncryptionKeys: C['getNextKeyPair'];
   computSharedEncryptionKey: C['computeSharedKey'];
   encrypt: C['encrypt'];
   decrypt: C['decrypt'];
 
-  hash: H['hash'];
-
-  initSingingKeys: S['initKeyPair'];
-  sign: S['sign'];
-  seal: S['seal'];
-  verify: S['verify'];
-  open: S['open'];
-
+  // controller
+  identifier: ControllerInterface['identifier'];
+  keyEventLog: ControllerInterface['keyEventLog'];
   incept: ControllerInterface['incept'];
   rotate: ControllerInterface['rotate'];
   destroy: ControllerInterface['destroy'];
 
-  import: (data: EncryptedData) => Promise<void | ErrorInterface>;
-  export: () => Promise<HashDigest | ErrorInterface>;
+  // hasher
+  hash: H['hash'];
+
+  // signer
+  signingKeys: ReturnType<S['getKeyPair']>;
+  publicSigningKey: ReturnType<S['getPublicKey']>;
+  secretSigningKey: ReturnType<S['getSecretKey']>;
+  initSingingKeys: S['initKeyPair'];
+  nextSigningKeys: S['getNextKeyPair'];
+  sign: S['sign'];
+  seal: S['seal'];
+  verify: S['verify'];
+  open: S['open'];
 }
