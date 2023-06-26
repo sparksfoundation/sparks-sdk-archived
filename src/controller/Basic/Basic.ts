@@ -1,12 +1,12 @@
 import { BaseKeyEventProps, CommonKeyEventProps, ControllerErrorType, ControllerType, KeyDestructionEvent, KeyEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
 import { ErrorInterface, ErrorMessage, SparkError } from "../../common/errors";
 import { KeyEventType } from "../types";
-import { ControllerAbstract } from "../ControllerCore";
+import { ControllerCore } from "../ControllerCore";
 import { KeyPairs } from "../../types";
 import { ControllerErrorFactory } from "../errorFactory";
 const errors = new ControllerErrorFactory(ControllerType.BASIC_CONTROLLER);
 
-export class Basic extends ControllerAbstract {
+export class Basic extends ControllerCore {
   private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent | ErrorInterface> {
     try {
       switch (true) {

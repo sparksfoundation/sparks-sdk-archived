@@ -3,11 +3,11 @@ import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
 import { SignerErrorFactory } from "../errorFactory";
 import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerType, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "../types";
-import { SignerAbstract } from "../SignerCore";
+import { SignerCore } from "../SignerCore";
 import { ErrorInterface } from "../../common/errors";
 const errors = new SignerErrorFactory(SignerType.ED25519_SIGNER);
 
-export class Ed25519 extends SignerAbstract {
+export class Ed25519 extends SignerCore {
   public async generateKeyPair(params?: { secretKey: SigningSecretKey }): Promise<SigningKeyPair | ErrorInterface> {
     try {
       const keyPair = params?.secretKey ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.sign.keyPair();

@@ -1,12 +1,12 @@
 import util from "tweetnacl-util";
 import { ErrorInterface } from "../../common/errors";
-import { CipherAbstract } from "../CipherCore";
+import { CipherCore } from "../CipherCore";
 import { DecryptedData, EncryptedData, EncryptionKeyPair } from "../types";
 import { X25519SalsaPoly } from "./X25519SalsaPoly";
 import nacl from "tweetnacl";
 import * as scrypt from "scrypt-pbkdf";
 
-export class X25519SalsaPolyPassword extends CipherAbstract {
+export class X25519SalsaPolyPassword extends CipherCore {
     private X25519SalsaPoly: X25519SalsaPoly;
     constructor() {
         super();

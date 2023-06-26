@@ -2,14 +2,14 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
 import { CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
-import { CipherAbstract } from "../CipherCore";
+import { CipherCore } from "../CipherCore";
 import { CipherErrorFactory } from "../errorFactory";
 import { ErrorInterface } from "../../common/errors";
 
 const errors = new CipherErrorFactory(CipherType.X25519_SALSA_POLY_CIPHER);
 
-export class X25519SalsaPoly extends CipherAbstract {
-  public async generateKeyPair(params?: { secretKey?: EncryptionSecret }): ReturnType<CipherAbstract['generateKeyPair']> {
+export class X25519SalsaPoly extends CipherCore {
+  public async generateKeyPair(params?: { secretKey?: EncryptionSecret }): ReturnType<CipherCore['generateKeyPair']> {
     try {
       const keyPair = params?.secretKey ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.box.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
@@ -21,7 +21,7 @@ export class X25519SalsaPoly extends CipherAbstract {
     }
   }
 
-  public async generateSharedKey({ publicKey }: { publicKey: EncryptionPublicKey }): ReturnType<CipherAbstract['generateSharedKey']> {
+  public async generateSharedKey({ publicKey }: { publicKey: EncryptionPublicKey }): ReturnType<CipherCore['generateSharedKey']> {
     try {
       const baseEncryptionPublicKey = util.decodeBase64(publicKey);
       const baseEncryptionSecretKey = util.decodeBase64(this._secretKey);
@@ -34,7 +34,7 @@ export class X25519SalsaPoly extends CipherAbstract {
     }
   }
 
-  public async encrypt({ data, publicKey, sharedKey }: { data: DecryptedData, publicKey?: EncryptionPublicKey, sharedKey?: EncryptionSharedKey }): ReturnType<CipherAbstract['encrypt']> {
+  public async encrypt({ data, publicKey, sharedKey }: { data: DecryptedData, publicKey?: EncryptionPublicKey, sharedKey?: EncryptionSharedKey }): ReturnType<CipherCore['encrypt']> {
     try {
       let box;
       const utfData = typeof data === 'string' ? data : JSON.stringify(data);
@@ -67,7 +67,7 @@ export class X25519SalsaPoly extends CipherAbstract {
     }
   }
 
-  public async decrypt({ data, publicKey, sharedKey }: { data: EncryptedData, publicKey?: EncryptionPublicKey, sharedKey?: EncryptionSharedKey }): ReturnType<CipherAbstract['decrypt']> {
+  public async decrypt({ data, publicKey, sharedKey }: { data: EncryptedData, publicKey?: EncryptionPublicKey, sharedKey?: EncryptionSharedKey }): ReturnType<CipherCore['decrypt']> {
     try {
       const uintDataAndNonce = util.decodeBase64(data);
       const nonce = uintDataAndNonce.slice(0, nacl.secretbox.nonceLength);
