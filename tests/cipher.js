@@ -22,11 +22,11 @@ import { Basic } from '../dist/controller/Basic/index.mjs';
   });
 
   const data = 'Test Data';
-  await spark.setKeyPairs((await spark.generateKeyPairs()));
-  await peer.setKeyPairs((await peer.generateKeyPairs()));
+  const keyPairs = await spark.generateKeyPairs();
+  const peerKeyPairs = await spark.generateKeyPairs();
 
-  const keys = spark.keyPairs;
-  const next = spark.keyPairs;
+  spark.setKeyPairs({ keyPairs });
+  peer.setKeyPairs({ keyPairs: peerKeyPairs });
 
   const encrypted = await spark.encrypt({ data });
   const decrypted = await spark.decrypt({ data: encrypted });
@@ -34,12 +34,12 @@ import { Basic } from '../dist/controller/Basic/index.mjs';
   const asymmetricEncrypted = await spark.encrypt({ data, publicKey: peer.publicKeys.encryption });
   const asymmetricDecrypted = await spark.decrypt({ data: asymmetricEncrypted, publicKey: peer.publicKeys.encryption });
 
-  const sharedKey = await spark.generateSharedEncryptionKey(peer.publicKeys.encryption);
+  const sharedKey = await spark.generateSharedEncryptionKey({ publicKey: peer.publicKeys.encryption });
   const sharedEcnrypted = await spark.encrypt({ data, sharedKey });
   const sharedDecrypted = await spark.decrypt({ data: sharedEcnrypted, sharedKey });
 
-  assert(!(keys instanceof SparkError), 'cipher - keys generated');
-  assert(!(next instanceof SparkError), 'cipher - next keys generated');
+  assert(!(keyPairs instanceof SparkError), 'cipher - keys generated');
+  assert(!(peerKeyPairs instanceof SparkError), 'cipher - next keys generated');
   
   assert(!(encrypted instanceof SparkError), 'cipher - data encrypted');
   assert(!(decrypted instanceof SparkError) && decrypted === data, 'cipher - data decrypted');

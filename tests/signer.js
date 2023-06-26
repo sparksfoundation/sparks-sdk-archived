@@ -15,15 +15,16 @@ import { assert } from 'console';
   });
 
   const data = { test: 'test' };
-  await spark.setKeyPairs((await spark.generateKeyPairs()));
-  
+  const keyPairs = await spark.generateKeyPairs(); 
+  spark.setKeyPairs({ keyPairs});
   const keys = spark.keyPairs;
+  
   const other = await spark.generateKeyPairs();
 
-  const signed = await spark.sign(data);
+  const signed = await spark.sign({data});
   const verified = await spark.verify({ data, signature: signed, publicKey: keys.signing.publicKey });
 
-  const sealed = await spark.seal(data);
+  const sealed = await spark.seal({data});
   const opened = await spark.open({ publicKey: keys.signing.publicKey, signature: sealed });
 
   assert(!(keys instanceof SparkError), 'signer - keys generated');

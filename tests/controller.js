@@ -14,25 +14,23 @@ import { assert } from 'console';
     signer: Ed25519,
   });
 
-  let nextKeypairs;
   let keyPairs = await spark.generateKeyPairs();
-  spark.setKeyPairs(keyPairs);
+  let nextKeyPairs = await spark.generateKeyPairs();
+  spark.setKeyPairs({ keyPairs });
 
-  nextKeypairs = await spark.generateKeyPairs();
-  const incept = await spark.incept(nextKeypairs);
+  const incept = await spark.incept({ keyPairs });
   assert(!(incept instanceof SparkError) && spark.keyEventLog.length === 1 && spark.keyEventLog[0].type === 'INCEPT', 'controller - incepted');
   
-  spark.setKeyPairs({ ...nextKeypairs });
-  keyPairs = { ...nextKeypairs };
-  nextKeypairs = await spark.generateKeyPairs();
-  const rotate1 = await spark.rotate(nextKeypairs);
-  assert(!(rotate1 instanceof SparkError) && spark.keyEventLog.length === 2 && spark.keyEventLog[1].type === 'ROTATE', 'controller - rotated');
+  spark.setKeyPairs({ keyPairs });
+  nextKeyPairs = await spark.generateKeyPairs();
+  const rotate1 = await spark.rotate({ nextKeyPairs });
+  assert(!(rotate1 instanceof SparkError) && spark.keyEventLog.length === 2 && spark.keyEventLog[1].type === 'ROTATE', 'controller - rotated 1');
 
-  spark.setKeyPairs({ ...nextKeypairs });
-  keyPairs = { ...nextKeypairs };
-  nextKeypairs = await spark.generateKeyPairs();
-  const rotate2 = await spark.rotate(nextKeypairs);
-  assert(!(rotate2 instanceof SparkError) && spark.keyEventLog.length === 3 && spark.keyEventLog[2].type === 'ROTATE', 'controller - rotated');
+  spark.setKeyPairs({ keyPairs: nextKeyPairs });
+  keyPairs = { ...nextKeyPairs };
+  nextKeyPairs = await spark.generateKeyPairs();
+  const rotate2 = await spark.rotate({ nextKeyPairs });
+  assert(!(rotate2 instanceof SparkError) && spark.keyEventLog.length === 3 && spark.keyEventLog[2].type === 'ROTATE', 'controller - rotated 2');
 
   const destroy = await spark.destroy();
   assert(!(destroy instanceof SparkError) && spark.keyEventLog.length === 4 && spark.keyEventLog[3].type === 'DESTROY', 'controller - destroyed');

@@ -1,8 +1,8 @@
 import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
 import { AgentAbstract } from "./agent/types";
-import { EncryptionKeyPair, EncryptionPublicKey } from "./cipher/types";
+import { EncryptionKeyPair } from "./cipher/types";
 import { HashDigest } from "./hasher/types";
-import { SigningKeyPair, SigningPublicKey } from "./signer/types";
+import { SigningKeyPair } from "./signer/types";
 import { SparkInterface } from "./types";
 import { SparkError, ErrorInterface } from "./common/errors";
 import { CipherAbstract } from "./cipher/CipherAbstract";
@@ -87,10 +87,10 @@ export class Spark<
     return { encryption, signing } as KeyPairs;
   }
 
-  public async setKeyPairs(keyPairs: KeyPairs): Promise<void | ErrorInterface> {
-    const signerSet = await this.signer.setKeyPair(keyPairs.signing);
-    const cipherSet = await this.cipher.setKeyPair(keyPairs.encryption);
-    const errors = SparkError.get(signerSet, cipherSet);
+  public setKeyPairs({ keyPairs }: { keyPairs: KeyPairs }): void | ErrorInterface {
+    const singing = this.signer.setKeyPair({ keyPair: keyPairs?.signing });
+    const encryption = this.cipher.setKeyPair({ keyPair: keyPairs?.encryption });
+    const errors = SparkError.get(singing, encryption);
     if (errors) return errors as ErrorInterface;
   }
 
@@ -105,6 +105,10 @@ export class Spark<
   // cipher
   get generateSharedEncryptionKey():  X['generateSharedKey'] {
     return this.cipher.generateSharedKey;
+  }
+
+  get setEncryptionKeyPair(): X['setKeyPair'] {
+    return this.cipher.setKeyPair;
   }
 
   get encrypt(): X['encrypt'] {
@@ -142,7 +146,7 @@ export class Spark<
   }
 
   // signer
-  get generateSigningKeyPair(): S['generateKeyPair'] {
+  get generateSingingKeyPair(): S['generateKeyPair'] {
     return this.signer.generateKeyPair;
   }
 

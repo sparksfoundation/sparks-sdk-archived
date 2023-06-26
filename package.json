@@ -43,11 +43,6 @@
       "import": "./dist/agent/index.mjs",
       "require": "./dist/agent/index.cjs"
     },
-    "./agent/Agent": {
-      "types": "./dist/agent/Agent/index.d.ts",
-      "import": "./dist/agent/Agent/index.mjs",
-      "require": "./dist/agent/Agent/index.cjs"
-    },
     "./channel": {
       "types": "./dist/channel/index.d.ts",
       "import": "./dist/channel/index.mjs",
@@ -73,6 +68,11 @@
       "import": "./dist/controller/index.mjs",
       "require": "./dist/controller/index.cjs"
     },
+    "./controller/Basic": {
+      "types": "./dist/controller/Basic/index.d.ts",
+      "import": "./dist/controller/Basic/index.mjs",
+      "require": "./dist/controller/Basic/index.cjs"
+    },
     "./event": {
       "types": "./dist/event/index.d.ts",
       "import": "./dist/event/index.mjs",
@@ -82,6 +82,11 @@
       "types": "./dist/hasher/index.d.ts",
       "import": "./dist/hasher/index.mjs",
       "require": "./dist/hasher/index.cjs"
+    },
+    "./hasher/Blake3": {
+      "types": "./dist/hasher/Blake3/index.d.ts",
+      "import": "./dist/hasher/Blake3/index.mjs",
+      "require": "./dist/hasher/Blake3/index.cjs"
     },
     "./signer": {
       "types": "./dist/signer/index.d.ts",

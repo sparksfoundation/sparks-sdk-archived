@@ -1,6 +1,5 @@
 import { ControllerType, Identifier, KeyEventLog } from "./types";
 import { ErrorInterface } from "../common/errors";
-import { SparkInterface } from "../types";
 import { ControllerErrorFactory } from "./errorFactory";
 import { Spark } from "../Spark";
 const errors = new ControllerErrorFactory(ControllerType.CORE_CONTROLLER);
@@ -28,7 +27,7 @@ export abstract class ControllerAbstract {
     return this._keyEventLog ? this._keyEventLog : errors.InvalidKeyEventLog();
   }
 
-  public abstract incept(args: any): Promise<void | ErrorInterface>;
-  public abstract rotate(args: any): Promise<void | ErrorInterface>;
-  public abstract destroy(args: any): Promise<void | ErrorInterface>;
+  public abstract incept(params?: Record<string, any>): Promise<void | ErrorInterface>;
+  public abstract rotate(params?: Record<string, any>): Promise<void | ErrorInterface>;
+  public abstract destroy(params?: Record<string, any>): Promise<void | ErrorInterface>;
 }

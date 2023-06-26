@@ -6,5 +6,5 @@ export abstract class HasherAbstract {
   constructor() {
     this.hash = this.hash.bind(this);
   }
-  public abstract hash(...args: any): Promise<HashDigest | ErrorInterface>;
+  public abstract hash(params?: Record<string, any>): Promise<HashDigest | ErrorInterface>;
 }

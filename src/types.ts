@@ -55,8 +55,8 @@ export interface SparkInterface<
   publicKeys: PublicKeys | ErrorInterface;
   secretKeys: SecretKeys | ErrorInterface;
   keyPairs: KeyPairs | ErrorInterface;
-  generateKeyPairs: (args: any) => Promise<KeyPairs | ErrorInterface>;
-  setKeyPairs: (keyPairs: KeyPairs) => Promise<void | ErrorInterface>;
+  generateKeyPairs: (params?: Record<string, any>) => Promise<KeyPairs | ErrorInterface>;
+  setKeyPairs: ({ keyPairs }: { keyPairs: KeyPairs }) => void | ErrorInterface;
   import: (data: EncryptedData) => Promise<void | ErrorInterface>;
   export: () => Promise<HashDigest | ErrorInterface>;
 
@@ -65,6 +65,7 @@ export interface SparkInterface<
 
   // cipher
   generateSharedEncryptionKey: X['generateSharedKey'];
+  setEncryptionKeyPair: X['setKeyPair'];
   encrypt: X['encrypt'];
   decrypt: X['decrypt'];
 
@@ -79,6 +80,8 @@ export interface SparkInterface<
   hash: H['hash'];
 
   // signer
+  generateSingingKeyPair: S['generateKeyPair'];
+  setSigningKeyPair: S['setKeyPair'];
   sign: S['sign'];
   seal: S['seal'];
   verify: S['verify'];

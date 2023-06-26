@@ -36,7 +36,7 @@ export abstract class CipherAbstract {
     return { publicKey, secretKey } as EncryptionKeyPair;
   }
 
-  public setKeyPair(keyPair: EncryptionKeyPair): void | ErrorInterface {
+  public setKeyPair({ keyPair }: { keyPair: EncryptionKeyPair }): void | ErrorInterface {
     if (!keyPair) return errors.InvalidKeyPair() as ErrorInterface;
     if (!keyPair.publicKey) return errors.InvalidPublicKey() as ErrorInterface;
     if (!keyPair.secretKey) return errors.InvalidSecretKey() as ErrorInterface;
@@ -44,8 +44,8 @@ export abstract class CipherAbstract {
     this._secretKey = keyPair.secretKey as EncryptionSecret;
   }
 
-  public abstract generateKeyPair(args: any): Promise<EncryptionKeyPair | ErrorInterface>;
-  public abstract generateSharedKey(args: any): Promise<EncryptionSharedKey | ErrorInterface>;
-  public abstract encrypt(args: any): Promise<EncryptedData | ErrorInterface>;
-  public abstract decrypt(args: any): Promise<DecryptedData | ErrorInterface>;
+  public abstract generateKeyPair(params?: Record<string, any>): Promise<EncryptionKeyPair | ErrorInterface>;
+  public abstract generateSharedKey(params?: Record<string, any>): Promise<EncryptionSharedKey | ErrorInterface>;
+  public abstract encrypt(params?: Record<string, any>): Promise<EncryptedData | ErrorInterface>;
+  public abstract decrypt(params?: Record<string, any>): Promise<DecryptedData | ErrorInterface>;
 }

@@ -9,9 +9,9 @@ import { ErrorInterface } from "../../common/errors";
 const errors = new CipherErrorFactory(CipherType.X25519_SALSA_POLY_CIPHER);
 
 export class X25519SalsaPoly extends CipherAbstract {
-  public async generateKeyPair(secret?: EncryptionSecret): ReturnType<CipherAbstract['generateKeyPair']> {
+  public async generateKeyPair(params?: { secretKey?: EncryptionSecret }): ReturnType<CipherAbstract['generateKeyPair']> {
     try {
-      const keyPair = secret ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.box.keyPair();
+      const keyPair = params?.secretKey ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.box.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
       if (!publicKey || !secretKey) throw new Error('keyPair');
@@ -21,7 +21,7 @@ export class X25519SalsaPoly extends CipherAbstract {
     }
   }
 
-  public async generateSharedKey(publicKey: EncryptionPublicKey): ReturnType<CipherAbstract['generateSharedKey']> {
+  public async generateSharedKey({ publicKey }: { publicKey: EncryptionPublicKey }): ReturnType<CipherAbstract['generateSharedKey']> {
     try {
       const baseEncryptionPublicKey = util.decodeBase64(publicKey);
       const baseEncryptionSecretKey = util.decodeBase64(this._secretKey);

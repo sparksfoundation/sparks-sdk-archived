@@ -2,15 +2,15 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
 import { SignerErrorFactory } from "../errorFactory";
-import { Signature, SignatureData, SignatureVerified, SignerType, SigningKeyPair, SigningPublicKey, SingingSeed } from "../types";
+import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerType, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "../types";
 import { SignerAbstract } from "../SignerAbstract";
 import { ErrorInterface } from "../../common/errors";
 const errors = new SignerErrorFactory(SignerType.ED25519_SIGNER);
 
 export class Ed25519 extends SignerAbstract {
-  public async generateKeyPair(secret?: SingingSeed): ReturnType<SignerAbstract['generateKeyPair']> {
+  public async generateKeyPair(params?: { secretKey: SigningSecretKey }): Promise<SigningKeyPair | ErrorInterface> {
     try {
-      const keyPair = secret ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(secret)) : nacl.sign.keyPair();
+      const keyPair = params?.secretKey ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.sign.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
       if (!publicKey || !secretKey) throw new Error('keyPair');
@@ -20,7 +20,7 @@ export class Ed25519 extends SignerAbstract {
     }
   }
 
-  public async seal(data: SignatureData): ReturnType<SignerAbstract['seal']> {
+  public async seal(data: SignatureData): Promise<Signature | ErrorInterface> {
     try {
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);
@@ -33,7 +33,7 @@ export class Ed25519 extends SignerAbstract {
     }
   }
 
-  public async open({ publicKey, signature }: { publicKey: SigningPublicKey, signature: Signature }): ReturnType<SignerAbstract['open']> {
+  public async open({ publicKey, signature }: { publicKey: SigningPublicKey, signature: Signature }): Promise<SignatureData | ErrorInterface> {
     try {
       const uintSignature = util.decodeBase64(signature);
       const uintPublicKey = util.decodeBase64(publicKey);
@@ -47,7 +47,7 @@ export class Ed25519 extends SignerAbstract {
     }
   }
 
-  public async sign(data: SignatureData): ReturnType<SignerAbstract['sign']> {
+  public async sign(data: SignatureData): Promise<SigatureDetached | ErrorInterface> {
     try {
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);
@@ -60,7 +60,7 @@ export class Ed25519 extends SignerAbstract {
     }
   }
 
-  public async verify({ publicKey, signature, data }: { publicKey: SigningPublicKey, signature: Signature, data: SignatureData }): ReturnType<SignerAbstract['verify']> {
+  public async verify({ publicKey, signature, data }: { publicKey: SigningPublicKey, signature: Signature, data: SignatureData }): Promise<SignatureVerified | ErrorInterface> {
     try {
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);

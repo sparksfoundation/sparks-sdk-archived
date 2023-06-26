@@ -4,10 +4,10 @@ import { ErrorInterface } from '../common/errors';
 export type SigningPublicKey = string;
 export type SigningSecretKey = string;
 export type SigningKeyPair = { publicKey: SigningPublicKey, secretKey: SigningSecretKey };
-export type SingingSeed = string;
 export type Signature = string;
 export type SignatureData = string | Record<string, any>;
 export type SignatureVerified = boolean;
+export type SigatureDetached = string;
 
 export enum SignerType {
   CORE_SIGNER = 'CORE_SIGNER',

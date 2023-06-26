@@ -41,7 +41,7 @@ export abstract class SignerAbstract {
     return { publicKey, secretKey } as SigningKeyPair;
   }
 
-  public setKeyPair(keyPair: SigningKeyPair): void | ErrorInterface {
+  public setKeyPair({ keyPair }: { keyPair: SigningKeyPair }): void | ErrorInterface {
     if (!keyPair) return errors.InvalidKeyPair() as ErrorInterface;
     if (!keyPair.publicKey) return errors.InvalidPublicKey() as ErrorInterface;
     if (!keyPair.secretKey) return errors.InvalidSecretKey() as ErrorInterface;
@@ -49,10 +49,10 @@ export abstract class SignerAbstract {
     this._secretKey = keyPair.secretKey as SigningSecretKey;
   }
 
-  public abstract generateKeyPair(...args: any): Promise<SigningKeyPair | ErrorInterface>;
-  public abstract sign(...args: any): Promise<Signature | ErrorInterface>;
-  public abstract verify(...args: any): Promise<SignatureVerified | ErrorInterface>;
+  public abstract generateKeyPair(params?: Record<string, any>): Promise<SigningKeyPair | ErrorInterface>;
+  public abstract sign(params?: Record<string, any>): Promise<Signature | ErrorInterface>;
+  public abstract verify(params?: Record<string, any>): Promise<SignatureVerified | ErrorInterface>;
 
-  public abstract seal(...args: any): Promise<Signature | ErrorInterface>;
-  public abstract open(...args: any): Promise<SignatureData | ErrorInterface>;
+  public abstract seal(params?: Record<string, any>): Promise<Signature | ErrorInterface>;
+  public abstract open(params?: Record<string, any>): Promise<SignatureData | ErrorInterface>;
 }
