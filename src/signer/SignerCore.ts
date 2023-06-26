@@ -2,10 +2,10 @@ import { ErrorInterface } from "../common/errors";
 import { Signature, SignatureData, SignatureVerified, SignerType, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./types";
 import { SignerErrorFactory } from "./errorFactory";
 
-const errors = new SignerErrorFactory(SignerType.CORE_SIGNER);
+const errors = new SignerErrorFactory(SignerType.SIGNER_CORE);
 
 // abstract class used by classes that use Hasher
-export abstract class SignerAbstract {
+export abstract class SignerCore {
   protected _publicKey: SigningPublicKey;
   protected _secretKey: SigningSecretKey;
 

@@ -1,7 +1,10 @@
+import { AgentErrorType } from "../agent/types";
 import { CipherErrorType } from "../cipher/types";
+import { ChannelErrorType } from "../channel/types/errors";
 import { ControllerErrorType } from "../controller/types";
 import { SignerErrorType } from "../signer/types";
 import { HasherErrorType } from "../hasher/types";
+import { utcEpochTimestamp } from ".";
 
 // errors
 export type ErrorMessage = string;               // error message describing the error
@@ -9,13 +12,14 @@ export type ErrorTimestamp = number;             // utc epoch time in ms
 export type ErrorId = string;                    // unique id for the error
 export type ErrorMetadata = Record<string, any>; // additional metadata about the error
 
-export type ErrorType = SignerErrorType | CipherErrorType | ControllerErrorType | HasherErrorType;
+export type ErrorType = AgentErrorType | SignerErrorType | CipherErrorType | ControllerErrorType | HasherErrorType | ChannelErrorType;
 
 export interface ErrorInterface {
   type: ErrorType;
   message: ErrorMessage;
   timestamp: ErrorTimestamp;
   metadata: ErrorMetadata;
+  previous?: ErrorInterface;
 }
 
 export class SparkError implements ErrorInterface {
@@ -29,16 +33,12 @@ export class SparkError implements ErrorInterface {
     const { type, message, metadata = {} } = params;
     this.type = type;
     this.message = message;
-    this.timestamp = Date.now();
-    this.metadata = metadata;
+    this.timestamp = utcEpochTimestamp();
+    this.metadata = { ...metadata };
   }
 
   public static is(obj: any): obj is SparkError {
     return obj instanceof SparkError;
-  }
-
-  public static has(...objs: any[]): boolean {
-    return objs.some(obj => SparkError.is(obj));
   }
 
   public static get(...objs): ErrorInterface | null {

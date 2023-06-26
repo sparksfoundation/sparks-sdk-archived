@@ -1,7 +1,7 @@
 import { BaseKeyEventProps, CommonKeyEventProps, ControllerErrorType, ControllerType, KeyDestructionEvent, KeyEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
 import { ErrorInterface, ErrorMessage, SparkError } from "../../common/errors";
 import { KeyEventType } from "../types";
-import { ControllerAbstract } from "../ControllerAbstract";
+import { ControllerAbstract } from "../ControllerCore";
 import { KeyPairs } from "../../types";
 import { ControllerErrorFactory } from "../errorFactory";
 const errors = new ControllerErrorFactory(ControllerType.BASIC_CONTROLLER);

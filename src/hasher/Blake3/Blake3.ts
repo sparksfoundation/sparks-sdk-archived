@@ -2,7 +2,7 @@ import util from "tweetnacl-util";
 import { ErrorInterface } from "../../common/errors";
 import HasherErrorFactory from "../errorFactory";
 import { HashData, HashDigest, HasherType } from "../types";
-import { HasherAbstract } from "../HasherAbstract";
+import { HasherAbstract } from "../HasherCore";
 import { blake3 } from "@noble/hashes/blake3";
 
 const errors = new HasherErrorFactory(HasherType.BLAKE_3_HASHER);

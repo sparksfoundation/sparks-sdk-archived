@@ -17,7 +17,7 @@ export enum ControllerErrorType {
 }
 
 export enum ControllerType {
-  CORE_CONTROLLER = 'CORE_CONTROLLER',
+  CONTROLLER_CORE = 'CONTROLLER_CORE',
   BASIC_CONTROLLER = 'BASIC_CONTROLLER',
 }
 

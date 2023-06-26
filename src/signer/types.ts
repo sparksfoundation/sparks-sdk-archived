@@ -1,5 +1,3 @@
-import { ErrorInterface } from '../common/errors';
-
 // primitives
 export type SigningPublicKey = string;
 export type SigningSecretKey = string;
@@ -10,7 +8,7 @@ export type SignatureVerified = boolean;
 export type SigatureDetached = string;
 
 export enum SignerType {
-  CORE_SIGNER = 'CORE_SIGNER',
+  SIGNER_CORE = 'SIGNER_CORE',
   ED25519_SIGNER = 'ED25519_SIGNER',
 }
 

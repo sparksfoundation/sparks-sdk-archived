@@ -3,7 +3,6 @@ import { ControllerErrorType, ControllerType } from "./types"
 
 export class ControllerErrorFactory {
   private controller: ControllerType;
-
   constructor(controller) {
     this.controller = controller;
   }

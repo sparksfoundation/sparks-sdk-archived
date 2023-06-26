@@ -2,7 +2,7 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
 import { CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
-import { CipherAbstract } from "../CipherAbstract";
+import { CipherAbstract } from "../CipherCore";
 import { CipherErrorFactory } from "../errorFactory";
 import { ErrorInterface } from "../../common/errors";
 

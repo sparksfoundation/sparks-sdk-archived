@@ -1,5 +1,5 @@
-  // class interface used by Agent
-  export interface AgentInterface {
+  export enum AgentErrorType {
+    
   }
 
   // abstract class used by classes that use Agent

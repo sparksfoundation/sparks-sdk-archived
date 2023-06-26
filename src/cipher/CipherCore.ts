@@ -1,9 +1,9 @@
 import { CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSharedKey } from "./types";
 import { CipherErrorFactory } from "./errorFactory";
 import { ErrorInterface, SparkError } from "../common/errors";
-const errors = new CipherErrorFactory(CipherType.CORE_CIPHER);
+const errors = new CipherErrorFactory(CipherType.CIPHER_CORE);
 
-export abstract class CipherAbstract {
+export abstract class CipherCore {
   protected _publicKey: EncryptionPublicKey
   protected _secretKey: EncryptionSecret;
 

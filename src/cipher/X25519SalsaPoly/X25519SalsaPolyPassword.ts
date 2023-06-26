@@ -1,6 +1,6 @@
 import util from "tweetnacl-util";
 import { ErrorInterface } from "../../common/errors";
-import { CipherAbstract } from "../CipherAbstract";
+import { CipherAbstract } from "../CipherCore";
 import { DecryptedData, EncryptedData, EncryptionKeyPair } from "../types";
 import { X25519SalsaPoly } from "./X25519SalsaPoly";
 import nacl from "tweetnacl";

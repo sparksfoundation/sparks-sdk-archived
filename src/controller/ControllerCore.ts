@@ -2,9 +2,9 @@ import { ControllerType, Identifier, KeyEventLog } from "./types";
 import { ErrorInterface } from "../common/errors";
 import { ControllerErrorFactory } from "./errorFactory";
 import { Spark } from "../Spark";
-const errors = new ControllerErrorFactory(ControllerType.CORE_CONTROLLER);
+const errors = new ControllerErrorFactory(ControllerType.CONTROLLER_CORE);
 
-export abstract class ControllerAbstract {
+export abstract class ControllerCore {
   protected _identifier: Identifier;
   protected _keyEventLog: KeyEventLog;
   protected _spark: Spark<any, any, any, any, any>;

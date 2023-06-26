@@ -4,7 +4,7 @@ import { SigatureDetached, Signature, SignatureData, SignatureVerified, SigningK
 import { Ed25519 } from "./Ed25519";
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
-import { SignerAbstract } from '../SignerAbstract';
+import { SignerAbstract } from '../SignerCore';
 
 export class Ed25519Password extends SignerAbstract {
     private Ed25519: Ed25519;

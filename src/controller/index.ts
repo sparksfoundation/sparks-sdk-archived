@@ -1,2 +1,2 @@
-export * from './ControllerAbstract';
+export * from './ControllerCore';
 export * from './Basic';

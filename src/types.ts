@@ -1,11 +1,11 @@
 import { AgentAbstract } from "./agent/types";
-import { CipherAbstract } from "./cipher/CipherAbstract";
+import { CipherAbstract } from "./cipher/CipherCore";
 import { EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./cipher/types";
 import { ErrorInterface } from "./common/errors";
 import { ControllerAbstract } from "./controller";
-import { HasherAbstract } from "./hasher/HasherAbstract";
+import { HasherAbstract } from "./hasher/HasherCore";
 import { HashDigest } from "./hasher/types";
-import { SignerAbstract } from "./signer/SignerAbstract";
+import { SignerAbstract } from "./signer/SignerCore";
 import { SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signer/types";
 
 // utils

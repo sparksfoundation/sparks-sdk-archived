@@ -7,6 +7,6 @@ export enum HasherErrorType {
 }
 
 export enum HasherType {
-  CORE_HASHER = 'CORE_HASHER',
+  HASHER_CORE = 'HASHER_CORE',
   BLAKE_3_HASHER = 'BLAKE_3_HASHER',
 }

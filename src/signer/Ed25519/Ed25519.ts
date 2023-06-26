@@ -3,7 +3,7 @@ import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
 import { SignerErrorFactory } from "../errorFactory";
 import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerType, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "../types";
-import { SignerAbstract } from "../SignerAbstract";
+import { SignerAbstract } from "../SignerCore";
 import { ErrorInterface } from "../../common/errors";
 const errors = new SignerErrorFactory(SignerType.ED25519_SIGNER);
 

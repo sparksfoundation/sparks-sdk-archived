@@ -5,9 +5,9 @@ import { HashDigest } from "./hasher/types";
 import { SigningKeyPair } from "./signer/types";
 import { SparkInterface } from "./types";
 import { SparkError, ErrorInterface } from "./common/errors";
-import { CipherAbstract } from "./cipher/CipherAbstract";
-import { HasherAbstract } from "./hasher/HasherAbstract";
-import { SignerAbstract } from "./signer/SignerAbstract";
+import { CipherAbstract } from "./cipher/CipherCore";
+import { HasherAbstract } from "./hasher/HasherCore";
+import { SignerAbstract } from "./signer/SignerCore";
 import { ControllerAbstract } from "./controller";
 
 export class Spark<
