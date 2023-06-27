@@ -50,7 +50,5 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
 
     const test = await channel.open()
 
-    await channel.close()
-
     const receipt = await channel.message('hey')
 }())
