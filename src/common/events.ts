@@ -1,5 +1,5 @@
 import { utcEpochTimestamp } from ".";
-import { ChannelEventType } from "../channel/types/events";
+import { ChannelEventType } from "../channel/ChannelEvent";
 
 // events
 export type EventTimestamp = number;             // utc epoch time in ms

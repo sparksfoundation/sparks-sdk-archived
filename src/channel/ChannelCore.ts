@@ -1,18 +1,15 @@
 
-import { ChannelErrorFactory } from "./errorFactory";
 import { Spark } from "../Spark";
 import cuid from "cuid";
 import { SparkError } from "../common/errors";
 import { PublicKeys } from "../types";
 import { Identifier } from "../controller/types";
 import { utcEpochTimestamp } from "../common";
-import { ChannelId, ChannelMessageId, ChannelPeer, ChannelState, ChannelType } from "./types";
+import { ChannelId, ChannelMessageId, ChannelPeer, ChannelState } from "./types";
 import { OnOpenAccepted, OnOpenRequested, ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise } from "./types/methods";
 import { ChannelEvent, ChannelEventLog, ChannelEventType, ChannelOpenAcceptanceEvent, ChannelOpenConfirmationEvent, ChannelOpenRejectionEvent, ChannelOpenRequestEvent, ChannelReceiptEvents } from "./types/events";
 import { ChannelOpenAcceptanceReceipt, ChannelOpenConfirmationReceipt, ChannelReceipt, ChannelReceiptDigest, ChannelReceiptType } from "./types/receipts";
-import { Channel } from "diagnostics_channel";
 import { EncryptionSharedKey } from "../cipher/types";
-const errors = new ChannelErrorFactory(ChannelType.CHANNEL_CORE);
 
 export abstract class ChannelCore {
   // opens and resolves/rejects on both sides
