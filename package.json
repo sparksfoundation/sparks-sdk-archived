@@ -49,6 +49,11 @@
       "import": "./dist/channel/index.mjs",
       "require": "./dist/channel/index.cjs"
     },
+    "./channel/PostMessage": {
+      "types": "./dist/channel/PostMessage/index.d.ts",
+      "import": "./dist/channel/PostMessage/index.mjs",
+      "require": "./dist/channel/PostMessage/index.cjs"
+    },
     "./cipher": {
       "types": "./dist/cipher/index.d.ts",
       "import": "./dist/cipher/index.mjs",
@@ -74,10 +79,10 @@
       "import": "./dist/controller/Basic/index.mjs",
       "require": "./dist/controller/Basic/index.cjs"
     },
-    "./event": {
-      "types": "./dist/event/index.d.ts",
-      "import": "./dist/event/index.mjs",
-      "require": "./dist/event/index.cjs"
+    "./error": {
+      "types": "./dist/error/index.d.ts",
+      "import": "./dist/error/index.mjs",
+      "require": "./dist/error/index.cjs"
     },
     "./hasher": {
       "types": "./dist/hasher/index.d.ts",

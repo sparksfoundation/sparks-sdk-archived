@@ -30,10 +30,9 @@ export enum ChannelType {
   RESTFUL = 'RESTFUL',
 }
 
-
 export type ResolveOpenPromise = (
-  params: ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | ChannelOpenRejectionEvent | SparkError
-) => ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | ChannelOpenRejectionEvent | SparkError
+  params: ChannelOpenRejectionEvent | ChannelCore | SparkError
+) => ChannelOpenRejectionEvent | ChannelCore | SparkError
 
 export type ResolveClosePromise = (
   params: ChannelCloseConfirmationEvent | SparkError
@@ -46,6 +45,26 @@ export type ResolveMessagePromise = (
 export type RejectPromise = (
   params: ChannelOpenRejectionEvent | SparkError
 ) => ChannelOpenRejectionEvent | SparkError
+
+export type HandleOpenRequested = ({ 
+  event, 
+  resolve, 
+  reject 
+}: { 
+  event: ChannelOpenRequestEvent, 
+  resolve: () => void, 
+  reject: () => void 
+}) => void;
+
+export type HandleOpenAccepted = ({
+  event,
+  resolve,
+  reject,
+}: {
+  event: ChannelOpenAcceptanceEvent,
+  resolve: () => void,
+  reject: () => void,
+}) => void;
 
 // events
 export enum ChannelEventType {

@@ -2,22 +2,23 @@
 import { Spark } from "../Spark";
 import cuid from "cuid";
 import { utcEpochTimestamp } from "../common";
-import { 
-  AnyChannelEvent, AnyChannelReceipt, ChannelCloseConfirmationEvent, 
-  ChannelCloseConfirmationReceipt, ChannelCloseEvent, ChannelErrorEvent, 
-  ChannelEventLog, ChannelEventType, ChannelId, ChannelMessageConfirmationEvent, 
-  ChannelMessageEvent, ChannelMessageId, ChannelMessageReceivedReceipt, 
-  ChannelOpenAcceptanceEvent, ChannelOpenAcceptanceReceipt, ChannelOpenConfirmationEvent, 
-  ChannelOpenConfirmationReceipt, ChannelOpenRejectionEvent, ChannelOpenRequestEvent, 
-  ChannelPeer, ChannelReceiptDigest, ChannelReceiptType, ChannelState, RejectPromise, 
-  ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise 
+import {
+  AnyChannelEvent, AnyChannelReceipt, ChannelCloseConfirmationEvent,
+  ChannelCloseConfirmationReceipt, ChannelCloseEvent, ChannelErrorEvent,
+  ChannelEventLog, ChannelEventType, ChannelId, ChannelMessageConfirmationEvent,
+  ChannelMessageEvent, ChannelMessageId, ChannelMessageReceivedReceipt,
+  ChannelOpenAcceptanceEvent, ChannelOpenAcceptanceReceipt, ChannelOpenConfirmationEvent,
+  ChannelOpenConfirmationReceipt, ChannelOpenRejectionEvent, ChannelOpenRequestEvent,
+  ChannelPeer, ChannelReceiptDigest, ChannelReceiptType, ChannelState, HandleOpenAccepted, HandleOpenRequested, RejectPromise,
+  ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise
 } from "./types";
 import { EncryptionSharedKey } from "../cipher/types";
 import { ChannelErrors } from "../error/channel";
+import { SparkError } from "../error/SparkError";
 
 export abstract class ChannelCore {
   // opens and resolves/rejects on both sides
-  private _openPromises: Map<ChannelId, { resolve: ResolveOpenPromise, reject: RejectPromise }>;
+  private _openPromises: Map<ChannelId, { resolve: ResolveOpenPromise, reject: RejectPromise }> = new Map();
 
   // opens and resolves/rejects only on initiator side
   private _closePromises: Map<ChannelId, { resolve: ResolveClosePromise, reject: RejectPromise }>;
@@ -25,9 +26,6 @@ export abstract class ChannelCore {
 
   // queue messages that come in before the complete open call
   private _messageQueue: any;
-
-  // commit to next event id to keep a logical chain of events (so event omittions can be detected)
-  private _nextEventId: string;
 
   // spark instance
   protected _spark: Spark<any, any, any, any, any>;
@@ -45,10 +43,15 @@ export abstract class ChannelCore {
   public onclose: (payload: any) => void | never;
   public onerror: (payload: any) => void | never;
 
-  constructor(spark: Spark<any, any, any, any, any>) {
+  constructor({ cid, spark }: { cid: ChannelId, spark: Spark<any, any, any, any, any> }) {
     this._spark = spark;
-    this.cid = cuid();
-    this._nextEventId = cuid.slug();
+    this.cid = cid || cuid();
+
+    // bind public methods
+    this.open = this.open.bind(this);
+    this.close = this.close.bind(this);
+    this.message = this.message.bind(this);
+    this.sendRequest = this.sendRequest.bind(this);
   }
 
   private async createReceiptDigest(type: ChannelReceiptType, prev: AnyChannelEvent): Promise<ChannelReceiptDigest> {
@@ -99,7 +102,8 @@ export abstract class ChannelCore {
 
     } catch (error) {
       error.metadata = { receipt: type };
-      return Promise.reject(ChannelErrors.CreateReceiptDigestError(error));
+      const sparkError = ChannelErrors.CreateReceiptDigestError(error);
+      return Promise.reject(sparkError);
     }
   }
 
@@ -116,7 +120,8 @@ export abstract class ChannelCore {
       return receipt;
     } catch (error) {
       error.metadata = { receipt: type };
-      return Promise.reject(ChannelErrors.CreateReceiptDigestError(error));
+      const sparkError = ChannelErrors.CreateReceiptDigestError(error);
+      return Promise.reject(sparkError);
     }
   }
 
@@ -137,10 +142,7 @@ export abstract class ChannelCore {
       const eid = metadata?.neid || cuid.slug();
       const neid = cuid.slug();
       const timestamp = utcEpochTimestamp();
-      const { receipt } = payload;
       const ourInfo = { identifier: this._spark.identifier, publicKeys: this._spark.publicKeys };
-      const theirInfo = { identifier: payload?.identifier, publicKeys: payload?.publicKeys };
-      const sharedKey = this.sharedKey;
 
       switch (type) {
         case ChannelEventType.OPEN_REQUEST:
@@ -158,8 +160,8 @@ export abstract class ChannelCore {
             type: ChannelEventType.OPEN_ACCEPTANCE,
             timestamp,
             payload: {
-              identifier: theirInfo.identifier,
-              publicKeys: theirInfo.publicKeys,
+              identifier: ourInfo.identifier,
+              publicKeys: ourInfo.publicKeys,
               receipt: await this.createReceiptDigest(ChannelReceiptType.OPEN_ACCEPTED, prev)
             },
             metadata: { eid, cid, neid },
@@ -226,13 +228,14 @@ export abstract class ChannelCore {
       }
     } catch (error) {
       error.metadata = { event: type };
-      return Promise.reject(ChannelErrors.CreateEventError(error));
+      const sparkError = ChannelErrors.CreateEventError(error);
+      return Promise.reject(sparkError);
     }
   }
 
   private async setPeer(event: ChannelOpenRequestEvent | ChannelOpenAcceptanceEvent): Promise<void> {
     try {
-      const { payload, metadata } = event;
+      const { payload } = event;
       const { identifier, publicKeys } = payload || {};
       const { encryption, signing } = publicKeys || {};
       if (!identifier || !encryption || !signing) throw new Error("Invalid peer data");
@@ -247,7 +250,8 @@ export abstract class ChannelCore {
 
     } catch (error) {
       error.metadata = { event };
-      return Promise.reject(ChannelErrors.SetPeerError(error));
+      const sparkError = ChannelErrors.SetPeerError(error);
+      return Promise.reject(sparkError);
     }
   }
 
@@ -257,17 +261,17 @@ export abstract class ChannelCore {
    *   - resolved w/open confirmation event
    *   - rejected w/open rejection event
    * - creates an open request event and sends it to the peer
-   * @throws {ChannelErrors.OpenRequestError}
+   * @throws {OPEN_REQUEST_ERROR}
    * @returns {Promise<ChannelOpenConfirmationEvent>}
    */
-  public async open(): Promise<ChannelOpenConfirmationEvent> {
+  public async open(): Promise<ChannelCore | ChannelOpenRejectionEvent | SparkError> {
     return new Promise(async (_resolve, _reject) => {
       try {
         const resolve = _resolve as ResolveOpenPromise;
         const reject = _reject as RejectPromise;
         this._openPromises.set(this.cid, { resolve, reject });
         const event: ChannelOpenRequestEvent = await this.createEvent(ChannelEventType.OPEN_REQUEST, null);
-        this.handleRequest(event);
+        this.sendRequest(event);
       } catch (error) {
         this._openPromises.delete(this.cid);
         return _reject(ChannelErrors.OpenRequestError(error));
@@ -282,7 +286,7 @@ export abstract class ChannelCore {
    * - resolving triggers acceptOpen
    * - rejecting triggers rejectOpen
    */
-  public handleOpenRequested({ event, resolve, reject }: { event: ChannelOpenRequestEvent, resolve: () => void, reject: () => void }): void {
+  protected handleOpenRequested: HandleOpenRequested = ({ event, resolve, reject }) => {
     return resolve();
   }
 
@@ -290,12 +294,10 @@ export abstract class ChannelCore {
    * @description Handles inbound channel open requests
    * - sets up callbacks and passes data to handleOpenRequested
    * @param {ChannelOpenAcceptanceEvent} acceptanceEvent
-   * @throws {ChannelErrors.OnOpenAcceptedError}
+   * @throws {ON_OPEN_REQUESTED_ERROR}
    */
-  private async onOpenRequested(requestEvent: ChannelOpenRequestEvent) {
+  private onOpenRequested(requestEvent: ChannelOpenRequestEvent) {
     try {
-      const promise = this._openPromises.get(this.cid);
-      if (!promise) throw new Error("Open promise not found");
       this.handleOpenRequested({
         event: requestEvent,
         resolve: this.acceptOpen.bind(this, requestEvent),
@@ -303,9 +305,7 @@ export abstract class ChannelCore {
       });
     } catch (error) {
       const sparkError = ChannelErrors.OnOpenRequestedError(error);
-      const promise = this._openPromises.get(this.cid);
-      promise.reject(sparkError);
-      return Promise.reject(ChannelErrors.OnOpenRequestedError(sparkError));
+      return Promise.reject(sparkError);
     }
   }
 
@@ -315,19 +315,28 @@ export abstract class ChannelCore {
    * - creates an open acceptance event and sends it to the peer
    * @param {ChannelOpenRequestEvent} requestEvent
    * @returns {Promise<void>}
-   * @throws {ChannelErrors.ConfirmOpenError}
+   * @throws {CONFIRM_OPEN_ERROR}
    */
-  protected async acceptOpen(requestEvent: ChannelOpenRequestEvent): Promise<void> {
-    try {
-      await this.setPeer(requestEvent);
-      const event: ChannelOpenAcceptanceEvent = await this.createEvent(ChannelEventType.OPEN_ACCEPTANCE, requestEvent);
-      this.handleRequest(event);
-    } catch (error) {
-      const promise = this._openPromises.get(this.cid);
-      const sparkError = ChannelErrors.OnOpenRequestedError(error);
-      promise.reject(sparkError);
-      return Promise.reject(ChannelErrors.OnOpenRequestedError(sparkError));
-    }
+  protected async acceptOpen(requestEvent: ChannelOpenRequestEvent): Promise<ChannelCore> {
+    return new Promise(async (_resolve, _reject) => {
+      try {
+        await this.setPeer(requestEvent);
+        
+        const resolve = _resolve as ResolveOpenPromise;
+        const reject = _reject as RejectPromise;
+        this._openPromises.set(this.cid, { resolve, reject });
+
+        const event: ChannelOpenAcceptanceEvent = await this.createEvent(ChannelEventType.OPEN_ACCEPTANCE, requestEvent);
+        this.sendRequest(event);
+
+      } catch (error) {
+        const promise = this._openPromises.get(this.cid);
+        const sparkError = ChannelErrors.OnOpenRequestedError(error);
+        promise.reject(sparkError);
+        _reject(sparkError);
+        return Promise.reject(sparkError);
+      }
+    });
   }
 
   /**
@@ -335,18 +344,24 @@ export abstract class ChannelCore {
    * - creates an open rejection event and sends it to the peer
    * @param {ChannelOpenRequestEvent} requestEvent
    * @returns {Promise<void>}
-   * @throws {ChannelErrors.RejectOpenError}
+   * @throws {REJECT_OPEN_ERROR}
    */
   protected async rejectOpen(requestOrAcceptEvent: ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent) {
     const promise = this._openPromises.get(this.cid);
     try {
       const rejectEvent: ChannelOpenRejectionEvent = await this.createEvent(ChannelEventType.OPEN_REJECTION, requestOrAcceptEvent);
-      this.handleRequest(rejectEvent);
-      if (promise) promise.resolve(rejectEvent);
+      this.sendRequest(rejectEvent);
+      if (promise) {
+        promise.resolve(rejectEvent);
+        this._openPromises.delete(this.cid);
+      }
     } catch (error) {
       const sparkError = ChannelErrors.ConfirmOpenError(error);
-      if (promise) promise.reject(sparkError);
-      return Promise.reject(ChannelErrors.RejectOpenError(error));
+      if (promise) {
+        promise.reject(sparkError);
+        this._openPromises.delete(this.cid);
+      }
+      return Promise.reject(error);
     }
   }
 
@@ -357,7 +372,7 @@ export abstract class ChannelCore {
    * - resolving triggers confirmOpen
    * - rejecting triggers rejectOpen
    */
-  public handleOpenAccepted({ event, resolve, reject }: { event: ChannelOpenAcceptanceEvent, resolve: () => void, reject: () => void }): void {
+  protected handleOpenAccepted: HandleOpenAccepted = ({ event, resolve, reject }) => {
     return resolve();
   }
 
@@ -365,7 +380,7 @@ export abstract class ChannelCore {
    * @description Handles inbound channel open acceptances
    * - sets up callbacks and passes data to handleOpenAccepted
    * @param {ChannelOpenAcceptanceEvent} acceptanceEvent
-   * @throws {ChannelErrors.OnOpenAcceptedError} 
+   * @throws {ON_OPEN_ACCEPTED_ERROR} 
    */
   private async onOpenAccepted(acceptanceEvent: ChannelOpenAcceptanceEvent) {
     try {
@@ -380,7 +395,7 @@ export abstract class ChannelCore {
       const sparkError = ChannelErrors.OnOpenAcceptedError(error);
       const promise = this._openPromises.get(this.cid);
       promise.reject(sparkError);
-      return Promise.reject(ChannelErrors.OnOpenAcceptedError(sparkError));
+      return Promise.reject(sparkError);
     }
   }
 
@@ -391,24 +406,32 @@ export abstract class ChannelCore {
    * - creates an open confirmation event and sends it to the peer
    * - resolves the open promise with the acceptance event
    * @param {ChannelOpenAcceptanceEvent} acceptanceEvent
-   * @throws {ChannelErrors.ConfirmOpenError}
+   * @throws {CONFIRM_OPEN_ERROR}
    */
   protected async confirmOpen(acceptanceEvent: ChannelOpenAcceptanceEvent) {
-    const promise = this._openPromises.get(this.cid);
-    try {
-      await this.setPeer(acceptanceEvent);
-      const event: ChannelOpenConfirmationEvent = await this.createEvent(ChannelEventType.OPEN_CONFIRMATION, acceptanceEvent);
-      const validReciept: ChannelOpenAcceptanceReceipt = await this.openReceiptDigest(ChannelReceiptType.OPEN_ACCEPTED, acceptanceEvent.payload.receipt);
-      if (!validReciept) throw new Error("Invalid acceptance receipt");
-      if (!promise) throw new Error("Open promise not found");
-
-      this.handleRequest(event);
-      promise.resolve(acceptanceEvent);
-    } catch (error) {
-      const sparkError = ChannelErrors.OnOpenAcceptedError(error);
-      promise.reject(sparkError);
-      return Promise.reject(ChannelErrors.OnOpenAcceptedError(sparkError));
-    }
+    return new Promise(async (_resolve, _reject) => {
+      const promise = this._openPromises.get(this.cid);
+      try {
+        await this.setPeer(acceptanceEvent);
+        const event: ChannelOpenConfirmationEvent = await this.createEvent(ChannelEventType.OPEN_CONFIRMATION, acceptanceEvent);
+        const validReciept: ChannelOpenAcceptanceReceipt = await this.openReceiptDigest(ChannelReceiptType.OPEN_ACCEPTED, acceptanceEvent.payload.receipt);
+        if (!validReciept) throw new Error("Invalid acceptance receipt");
+        if (!promise) throw new Error("Open promise not found");
+        this.sendRequest(event);
+        promise.resolve(this);
+        this._openPromises.delete(this.cid);
+        _resolve(this);
+        this._openPromises.delete(this.cid);
+      } catch (error) {
+        const sparkError = ChannelErrors.ConfirmOpenError(error);
+        if (promise) {
+          promise.reject(sparkError);
+          this._openPromises.delete(this.cid);
+        }
+        _reject(sparkError);
+        return Promise.reject(sparkError);
+      }
+    });
   }
 
   /**
@@ -416,7 +439,7 @@ export abstract class ChannelCore {
    * - checks the receipt digest
    * - resolves the open promise with the confirmation event
    * @param {ChannelOpenConfirmationEvent} confirmationEvent
-   * @throws {ChannelErrors.OpenConfirmedError}
+   * @throws {OPEN_CONFIRMED_ERROR}
    */
   private async onOpenConfirmed(confirmEvent: ChannelOpenConfirmationEvent) {
     const promise = this._openPromises.get(this.cid);
@@ -424,11 +447,15 @@ export abstract class ChannelCore {
       const validReciept: ChannelOpenConfirmationReceipt = await this.openReceiptDigest(ChannelReceiptType.OPEN_CONFIRMED, confirmEvent.payload.receipt);
       if (!validReciept) throw new Error("Invalid confirmation receipt");
       if (!promise) throw new Error("Open promise not found");
-      promise.resolve(confirmEvent);
+      promise.resolve(this);
+      this._openPromises.delete(this.cid);
     } catch (error) {
       const sparkError = ChannelErrors.OpenConfirmedError(error);
-      promise.reject(sparkError);
-      return Promise.reject(ChannelErrors.OpenConfirmedError(sparkError));
+      if (promise) {
+        promise.reject(sparkError);
+        this._openPromises.delete(this.cid);
+      }
+      return Promise.reject(sparkError);
     }
   }
 
@@ -436,7 +463,7 @@ export abstract class ChannelCore {
    * @description Handles inbound channel open rejections
    * - rejects the open promise with the rejection event
    * @param {ChannelOpenRejectionEvent} rejectionEvent
-   * @throws {ChannelErrors.OpenRejectedError}
+   * @throws {OPEN_REJECTED_ERROR}
    */
   private async onOpenRejected(rejectEvent: ChannelOpenRejectionEvent) {
     try {
@@ -444,7 +471,8 @@ export abstract class ChannelCore {
       if (!promise) throw new Error("Open promise not found");
       promise.reject(rejectEvent);
     } catch (error) {
-      return Promise.reject(ChannelErrors.OpenRejectedError(error));
+      const sparkError = ChannelErrors.OpenRejectedError(error);
+      return Promise.reject(sparkError);
     }
   }
 
@@ -461,8 +489,8 @@ export abstract class ChannelCore {
   private confirmMessage() { }
   private completeMessage() { }
 
-  public abstract handleRequest(event: AnyChannelEvent): Promise<void>;
-  public handleResponse(event: AnyChannelEvent): Promise<any> {
+  protected abstract sendRequest(event: AnyChannelEvent): Promise<void>;
+  protected handleResponse(event: AnyChannelEvent): Promise<any> {
     const { type } = event;
     switch (type) {
       case ChannelEventType.OPEN_REQUEST:
