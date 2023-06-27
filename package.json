@@ -49,6 +49,11 @@
       "import": "./dist/channel/index.mjs",
       "require": "./dist/channel/index.cjs"
     },
+    "./channel/Http": {
+      "types": "./dist/channel/Http/index.d.ts",
+      "import": "./dist/channel/Http/index.mjs",
+      "require": "./dist/channel/Http/index.cjs"
+    },
     "./channel/PostMessage": {
       "types": "./dist/channel/PostMessage/index.d.ts",
       "import": "./dist/channel/PostMessage/index.mjs",

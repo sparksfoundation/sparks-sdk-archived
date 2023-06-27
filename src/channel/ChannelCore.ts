@@ -625,7 +625,6 @@ export abstract class ChannelCore {
 
     const isEvent = Object.values(ChannelEventType).includes(type);
     if (isEvent) this.eventLog.push({ response: true, ...event });
-
     switch (type) {
       case ChannelEventType.OPEN_REQUEST:
         return this.onOpenRequested(event as ChannelOpenRequestEvent);
