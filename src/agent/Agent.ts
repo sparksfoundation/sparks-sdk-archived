@@ -1,3 +1,3 @@
-export class Agent implements AgentInterface {
+export class Agent {
   // ...
 }
