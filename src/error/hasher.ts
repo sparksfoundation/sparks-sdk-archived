@@ -5,10 +5,10 @@ export enum HasherErrorName {
 }
 
 export class HasherErrors {
-  public static HashingFailure({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static HashingFailure({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: HasherErrorName.HASHING_ERROR,
-      message: `failed to hash data${message ? `: ${message}` : ''}`,
+      message: `failed to hash data`,
       metadata: { ...metadata },
       stack
     });

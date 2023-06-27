@@ -13,84 +13,84 @@ export enum SignerErrorName {
 }
 
 export class SignerErrors {
-  public static GetSigningPublicKeyError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetSigningPublicKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.GET_SIGNING_PUBLIC_KEY_ERROR,
-      message: `failed to get signing public key${message ? `: ${message}` : ''}`,
+      message: `failed to get signing public key`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static GetSigningSecretKeyError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetSigningSecretKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.GET_SIGNING_SECRET_KEY_ERROR,
-      message: `failed to get signing secret key${message ? `: ${message}` : ''}`,
+      message: `failed to get signing secret key`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static GetSigningKeyPairError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetSigningKeyPairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.GET_SIGNING_KEY_PAIR_ERROR,
-      message: `failed to get signing key pair${message ? `: ${message}` : ''}`,
+      message: `failed to get signing key pair`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static SetSigningKeyPairError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static SetSigningKeyPairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.SET_SIGNING_KEY_PAIR_ERROR,
-      message: `failed to set signing key pair${message ? `: ${message}` : ''}`,
+      message: `failed to set signing key pair`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static GenerateSigningKeyPairError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GenerateSigningKeyPairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.GENERATE_SIGNING_KEY_PAIR_ERROR,
-      message: `failed to generate signing key pair${message ? `: ${message}` : ''}`,
+      message: `failed to generate signing key pair`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static MessageSigningError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static MessageSigningError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.MESSAGE_SIGNING_ERROR,
-      message: `failed to sign message${message ? `: ${message}` : ''}`,
+      message: `failed to sign message`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static SignatureVerificationError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static SignatureVerificationError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.SIGNATURE_VERIFICATION_ERROR,
-      message: `failed to verify signature${message ? `: ${message}` : ''}`,
+      message: `failed to verify signature`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static MessageSealingError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static MessageSealingError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.MESSAGE_SEALING_ERROR,
-      message: `failed to seal message${message ? `: ${message}` : ''}`,
+      message: `failed to seal message`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 
-  public static SignatureOpeningError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static SignatureOpeningError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: SignerErrorName.SIGNATURE_OPENING_ERROR,
-      message: `failed to open signature${message ? `: ${message}` : ''}`,
+      message: `failed to open signature`,
       metadata: { ...metadata },
-      stack
+      stack: stack
     });
   }
 }

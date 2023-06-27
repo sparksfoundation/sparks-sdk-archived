@@ -10,12 +10,13 @@ export type SparkErrorMessage = string;                 // error message describ
 export type SparkErrorTimestampe = number;              // utc epoch time in ms
 export type SparkErrorMetadata = Record<string, any>;   // additional metadata about the error
 export type SparkErrorName = AgentErrorName | SignerErrorName | CipherErrorName | ControllerErrorName | HasherErrorName | ChannelErrorName;
+export type SparkErrorStack = string;
 
 export type SparkErrorParams = {
   name?: SparkErrorName;
   message?: SparkErrorMessage;
   metadata?: SparkErrorMetadata;
-  stack?: Error['stack'];
+  stack?: SparkErrorStack;
 }
 
 export class SparkError {
@@ -23,7 +24,7 @@ export class SparkError {
   public message: SparkErrorMessage;
   public timestamp: SparkErrorTimestampe;
   public metadata: SparkErrorMetadata;
-  public stack: Error['stack'];
+  public stack: SparkErrorStack;
 
   constructor(error: SparkErrorParams) {
     const { name, message = '', metadata = {}, stack } = error;
@@ -31,8 +32,10 @@ export class SparkError {
     this.message = message;
     this.timestamp = utcEpochTimestamp();
     this.metadata = { ...metadata };
-    if (error instanceof Error) {
-      this.stack = stack;
-    }
+    this.stack = stack;
+
+    Object.defineProperties(this, {
+      stack: { enumerable: true }
+    });
   }
 }

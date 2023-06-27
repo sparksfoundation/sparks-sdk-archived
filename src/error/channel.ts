@@ -30,235 +30,235 @@ export enum ChannelErrorName {
 }
 
 export class ChannelErrors {
-  public static CreateReceiptDigestError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static CreateReceiptDigestError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.CREATE_RECEIPT_DIGEST_ERROR,
-      message: `failed to create receipt digest${message ? `: ${message}` : ''}`,
+      message: `failed to create receipt digest`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static CreateEventError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static CreateEventError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.CREATE_EVENT_ERROR,
-      message: `failed to create event${message ? `: ${message}` : ''}`,
+      message: `failed to create event`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static SetPeerError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static SetPeerError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.SET_PEER_ERROR,
-      message: `failed to set peer${message ? `: ${message}` : ''}`,
+      message: `failed to set peer`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OpenRequestError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OpenRequestError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.OPEN_REQUEST_ERROR,
-      message: `failed to open request${message ? `: ${message}` : ''}`,
+      message: `failed to open request`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnOpenRequestedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnOpenRequestedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_OPEN_REQUESTED_ERROR,
-      message: `failed to on open requested${message ? `: ${message}` : ''}`,
+      message: `failed to on open requested`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static AcceptOpenError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static AcceptOpenError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ACCEPT_OPEN_ERROR,
-      message: `failed to accept open${message ? `: ${message}` : ''}`,
+      message: `failed to accept open`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static RejectOpenError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static RejectOpenError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.REJECT_OPEN_ERROR,
-      message: `failed to reject open${message ? `: ${message}` : ''}`,
+      message: `failed to reject open`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnOpenAcceptedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnOpenAcceptedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_OPEN_ACCEPTED_ERROR,
-      message: `failed to on open accepted${message ? `: ${message}` : ''}`,
+      message: `failed to on open accepted`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static ConfirmOpenError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static ConfirmOpenError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.CONFIRM_OPEN_ERROR,
-      message: `failed to confirm open${message ? `: ${message}` : ''}`,
+      message: `failed to confirm open`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OpenConfirmedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OpenConfirmedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.OPEN_CONFIRMED_ERROR,
-      message: `failed to open confirmed${message ? `: ${message}` : ''}`,
+      message: `failed to open confirmed`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OpenRejectedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OpenRejectedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.OPEN_REJECTED_ERROR,
-      message: `failed to open rejected${message ? `: ${message}` : ''}`,
+      message: `failed to open rejected`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static CompleteOpenError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static CompleteOpenError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.COMPLETE_OPEN_ERROR,
-      message: `failed to complete open${message ? `: ${message}` : ''}`,
+      message: `failed to complete open`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static CloseError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static CloseError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.CLOSE_ERROR,
-      message: `failed to close${message ? `: ${message}` : ''}`,
+      message: `failed to close`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnClosedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnClosedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_CLOSED_ERROR,
-      message: `failed to on closed${message ? `: ${message}` : ''}`,
+      message: `failed to on closed`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnCloseConfirmedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnCloseConfirmedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_CLOSE_CONFIRMED_ERROR,
-      message: `failed to on close confirmed${message ? `: ${message}` : ''}`,
+      message: `failed to on close confirmed`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static ConfirmCloseError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static ConfirmCloseError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.CONFIRM_CLOSE_ERROR,
-      message: `failed to confirm close${message ? `: ${message}` : ''}`,
+      message: `failed to confirm close`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static CompleteCloseError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static CompleteCloseError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.COMPLETE_CLOSE_ERROR,
-      message: `failed to complete close${message ? `: ${message}` : ''}`,
+      message: `failed to complete close`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static MessageSendingError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static MessageSendingError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.MESSAGE_SENDING_ERROR,
-      message: `failed to send message${message ? `: ${message}` : ''}`,
+      message: `failed to send message`,
       metadata: { ...metadata },
       stack
     });
   } 
 
-  public static OnMessageConfirmedError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnMessageConfirmedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_MESSAGE_CONFIRMED_ERROR,
-      message: `failed to on message confirmed${message ? `: ${message}` : ''}`,
+      message: `failed to on message confirmed`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static ConfirmMessageError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static ConfirmMessageError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.CONFIRM_MESSAGE_ERROR,
-      message: `failed to confirm message${message ? `: ${message}` : ''}`,
+      message: `failed to confirm message`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static CompleteMessageError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static CompleteMessageError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.COMPLETE_MESSAGE_ERROR,
-      message: `failed to complete message${message ? `: ${message}` : ''}`,
+      message: `failed to complete message`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static HandleRequestError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static HandleRequestError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.HANDLE_REQUEST_ERROR,
-      message: `failed to handle request${message ? `: ${message}` : ''}`,
+      message: `failed to handle request`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static HandleResponseError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static HandleResponseError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.HANDLE_RESPONSE_ERROR,
-      message: `failed to handle response${message ? `: ${message}` : ''}`,
+      message: `failed to handle response`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnMessageError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnMessageError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_MESSAGE_ERROR,
-      message: `failed to on message${message ? `: ${message}` : ''}`,
+      message: `failed to on message`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnCloseError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnCloseError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_CLOSE_ERROR,
-      message: `failed to on close${message ? `: ${message}` : ''}`,
+      message: `failed to on close`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static OnErrorError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static OnErrorError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_ERROR_ERROR,
-      message: `failed to on error${message ? `: ${message}` : ''}`,
+      message: `failed to on error`,
       metadata: { ...metadata },
       stack
     });

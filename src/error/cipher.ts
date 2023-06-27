@@ -12,73 +12,73 @@ export enum CipherErrorName {
 }
 
 export class CipherErrors {
-  public static GetEncryptionPublicKeyError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetEncryptionPublicKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GET_ENCRYPTION_PUBLIC_KEY_ERROR,
-      message: `failed to get encryption public key${message ? `: ${message}` : ''}`,
+      message: `failed to get encryption public key$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static GetEncryptionSecretKeyError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetEncryptionSecretKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GET_ENCRYPTION_SECRET_KEY_ERROR,
-      message: `failed to get encryption secret key${message ? `: ${message}` : ''}`,
+      message: `failed to get encryption secret key$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static GetEncryptionKeypairError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetEncryptionKeypairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GET_ENCRYPTION_KEYPAIR_ERROR,
-      message: `failed to get encryption keypair${message ? `: ${message}` : ''}`,
+      message: `failed to get encryption keypair$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static SetEncryptionKeypairError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static SetEncryptionKeypairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.SET_ENCRYPTION_KEYPAIR_ERROR,
-      message: `failed to set encryption keypair${message ? `: ${message}` : ''}`,
+      message: `failed to set encryption keypair$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static GenerateEncryptionKeyPairError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GenerateEncryptionKeyPairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GENERATE_ENCRYPTION_KEY_PAIR_ERROR,
-      message: `failed to generate encryption keypair${message ? `: ${message}` : ''}`,
+      message: `failed to generate encryption keypair$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static GenerateEncryptionSharedKeyError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GenerateEncryptionSharedKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GENERATE_ENCRYPTION_SHARED_KEY_ERROR,
-      message: `failed to generate encryption shared key${message ? `: ${message}` : ''}`,
+      message: `failed to generate encryption shared key$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static EncryptError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static EncryptError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.ENCRYPT_ERROR,
-      message: `failed to encrypt${message ? `: ${message}` : ''}`,
+      message: `failed to encrypt$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static DecryptError({ message = '', metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static DecryptError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.DECRYPT_ERROR,
-      message: `failed to decrypt${message ? `: ${message}` : ''}`,
+      message: `failed to decrypt$`,
       metadata: { ...metadata },
       stack
     });
