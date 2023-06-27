@@ -1,11 +1,8 @@
 import util from "tweetnacl-util";
-import { ErrorInterface } from "../../common/errors";
-import { HasherErrorFactory } from "../errorFactory";
-import { HashData, HashDigest, HasherType } from "../types";
+import { HashData, HashDigest } from "../types";
 import { HasherCore } from "../HasherCore";
 import { blake3 } from "@noble/hashes/blake3";
-
-const errors = new HasherErrorFactory(HasherType.BLAKE_3_HASHER);
+import { HasherErrors } from "../../error/hasher";
 
 export class Blake3 extends HasherCore {
   public async hash({ data }: { data: HashData }): ReturnType<HasherCore['hash']> {
@@ -14,7 +11,7 @@ export class Blake3 extends HasherCore {
       const digest = util.encodeBase64(blake3(stringData));
       return digest as HashDigest;
     } catch (error) {
-      return errors.HashingFailure(error.message) as ErrorInterface;
+      return Promise.reject(HasherErrors.HashingFailure(error));
     }
   }
 }

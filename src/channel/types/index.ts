@@ -11,6 +11,12 @@ export type ChannelPeer = {
     publicKeys: PublicKeys;
 }
 
+export enum ChannelState {
+  PENDING = 'PENDING',
+  OPENED = 'OPENED',
+  CLOSED = 'CLOSED',
+}
+
 export enum ChannelType {
     CHANNEL_CORE = 'CHANNEL_CORE',
     POSTMESSAGE = 'POSTMESSAGE',

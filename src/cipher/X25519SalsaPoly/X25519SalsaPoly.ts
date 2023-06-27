@@ -1,12 +1,9 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../common";
-import { CipherType, DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSecretKey, EncryptionSharedKey } from "../types";
+import { DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSharedKey } from "../types";
 import { CipherCore } from "../CipherCore";
-import { CipherErrorFactory } from "../errorFactory";
-import { ErrorInterface } from "../../common/errors";
-
-const errors = new CipherErrorFactory(CipherType.X25519_SALSA_POLY_CIPHER);
+import { CipherErrors } from "../../error/cipher";
 
 export class X25519SalsaPoly extends CipherCore {
   public async generateKeyPair(params?: { secretKey?: EncryptionSecret }): ReturnType<CipherCore['generateKeyPair']> {
@@ -17,7 +14,7 @@ export class X25519SalsaPoly extends CipherCore {
       if (!publicKey || !secretKey) throw new Error('keyPair');
       return { publicKey, secretKey } as EncryptionKeyPair;
     } catch (error) {
-      return errors.KeyPairFailure(error.message) as ErrorInterface;
+      return Promise.reject(CipherErrors.GetEncryptionKeypairError(error));
     }
   }
 
@@ -30,7 +27,7 @@ export class X25519SalsaPoly extends CipherCore {
       if (!baseSharedKey) throw new Error();
       return baseSharedKey as EncryptionSharedKey;
     } catch (error) {
-      return errors.SharedKeyFailure(error.message) as ErrorInterface;
+      return Promise.reject(CipherErrors.GenerateEncryptionSharedKeyError(error));
     }
   }
 
@@ -60,10 +57,10 @@ export class X25519SalsaPoly extends CipherCore {
       encrypted.set(nonce);
       encrypted.set(box, nonce.length);
       const ciphertext = util.encodeBase64(encrypted);
-      if (!ciphertext) throw new Error();
+      if (!ciphertext) throw new Error('faild to encrypt')
       return ciphertext as EncryptedData;
     } catch (error) {
-      return errors.EncryptionFailure(error.message) as ErrorInterface;
+      return Promise.reject(CipherErrors.EncryptError(error));
     }
   }
 
@@ -91,10 +88,10 @@ export class X25519SalsaPoly extends CipherCore {
   
       const utf8Result = util.encodeUTF8(decrypted);
       const parsed = parseJSON(utf8Result) || utf8Result;
-      if (!parsed) throw new Error();
+      if (!parsed) throw new Error('faild to decrypt');
       return parsed as DecryptedData;
     } catch(error) {
-      return errors.DecryptionFailure(error.message) as ErrorInterface;
+      return Promise.reject(CipherErrors.DecryptError(error));
     }
   }
 }

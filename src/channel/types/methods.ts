@@ -1,9 +1,9 @@
 import { SparkError } from "../../common/errors"
-import { ChannelCloseConfirmationEvent, ChannelMessageConfirmationEvent, ChannelMessageEvent, ChannelOpenAcceptanceEvent, ChannelOpenConfirmationEvent, ChannelOpenRequestEvent } from "./events"
+import { ChannelCloseConfirmationEvent, ChannelMessageConfirmationEvent, ChannelMessageEvent, ChannelOpenAcceptanceEvent, ChannelOpenConfirmationEvent, ChannelOpenRejectionEvent, ChannelOpenRequestEvent } from "./events"
 
 export type ResolveOpenPromise = (
-    params: ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | SparkError
-) => ChannelOpenAcceptanceEvent | SparkError
+    params: ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | ChannelOpenRejectionEvent | SparkError
+) => ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | ChannelOpenRejectionEvent | SparkError
 
 export type ResolveClosePromise = (
     params: ChannelCloseConfirmationEvent | SparkError

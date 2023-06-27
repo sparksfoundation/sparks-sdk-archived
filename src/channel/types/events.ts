@@ -117,3 +117,8 @@ export interface ChannelMessageConfirmationEvent extends SparkEvent {
         neid: ChannelEventId;
     };
 }
+
+export type ChannelEvent = ChannelOpenRequestEvent | ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | ChannelOpenRejectionEvent | ChannelCloseEvent | ChannelCloseConfirmationEvent | ChannelMessageEvent | ChannelMessageConfirmationEvent;
+export type ChannelEventLog = ChannelEvent[];
+
+export type ChannelReceiptEvents = ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent | ChannelCloseConfirmationEvent | ChannelMessageConfirmationEvent;

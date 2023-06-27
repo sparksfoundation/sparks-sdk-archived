@@ -31,3 +31,5 @@ export interface ChannelMessageReceivedReceipt {
     type: ChannelReceiptType.MESSAGE_RECEIVED;
     eventDigest: ChannelEventDigest;
 }
+
+export type ChannelReceipt = ChannelOpenAcceptanceReceipt | ChannelOpenConfirmationReceipt | ChannelCloseConfirmationReceipt | ChannelMessageReceivedReceipt;

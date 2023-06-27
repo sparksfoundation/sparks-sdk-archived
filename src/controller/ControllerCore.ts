@@ -1,8 +1,6 @@
-import { ControllerType, Identifier, KeyEventLog } from "./types";
-import { ErrorInterface } from "../common/errors";
-import { ControllerErrorFactory } from "./errorFactory";
+import { Identifier, KeyEventLog } from "./types";
 import { Spark } from "../Spark";
-const errors = new ControllerErrorFactory(ControllerType.CONTROLLER_CORE);
+import { ControllerErrors } from "../error/controller";
 
 export abstract class ControllerCore {
   protected _identifier: Identifier;
@@ -19,15 +17,25 @@ export abstract class ControllerCore {
     this.destroy = this.destroy.bind(this);
   }
 
-  public getIdentifier(): Identifier | ErrorInterface {
-    return this._identifier ? this._identifier : errors.InvalidIdentifier();
+  public getIdentifier(): Identifier {
+    try {
+      if (!this._identifier) throw new Error('No identifier found.');
+      return this._identifier;
+    } catch(error) {
+      throw ControllerErrors.GetIdentifierError(error)
+    }
   }
 
-  public getKeyEventLog(): KeyEventLog | ErrorInterface {
-    return this._keyEventLog ? this._keyEventLog : errors.InvalidKeyEventLog();
+  public getKeyEventLog(): KeyEventLog {
+    try {
+      if (!this._keyEventLog) throw new Error('No key event log found.');
+      return this._keyEventLog;
+    } catch(error) {
+      throw ControllerErrors.GetKeyEventLogError(error)
+    }
   }
 
-  public abstract incept(params?: Record<string, any>): Promise<void | ErrorInterface>;
-  public abstract rotate(params?: Record<string, any>): Promise<void | ErrorInterface>;
-  public abstract destroy(params?: Record<string, any>): Promise<void | ErrorInterface>;
+  public abstract incept(params?: Record<string, any>): Promise<void>;
+  public abstract rotate(params?: Record<string, any>): Promise<void>;
+  public abstract destroy(params?: Record<string, any>): Promise<void>;
 }

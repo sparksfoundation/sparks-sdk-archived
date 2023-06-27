@@ -1,11 +1,13 @@
+// TODO - promote error factories to class with type of extended class
+
 import { AgentAbstract } from "./agent/types";
-import { CipherAbstract } from "./cipher/CipherCore";
+import { CipherCore } from "./cipher/CipherCore";
 import { EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./cipher/types";
 import { ErrorInterface } from "./common/errors";
-import { ControllerAbstract } from "./controller";
-import { HasherAbstract } from "./hasher/HasherCore";
+import { ControllerCore } from "./controller";
+import { HasherCore } from "./hasher/HasherCore";
 import { HashDigest } from "./hasher/types";
-import { SignerAbstract } from "./signer/SignerCore";
+import { SignerCore } from "./signer/SignerCore";
 import { SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signer/types";
 
 // utils
@@ -31,10 +33,10 @@ export interface SecretKeys {
 
 export type SparkParams<
   A extends AgentAbstract[],
-  X extends CipherAbstract,
-  C extends ControllerAbstract,
-  H extends HasherAbstract,
-  S extends SignerAbstract,
+  X extends CipherCore,
+  C extends ControllerCore,
+  H extends HasherCore,
+  S extends SignerCore,
 > = {
   agents?: Constructable<A[number]>[];
   cipher: Constructable<X>;
@@ -45,10 +47,10 @@ export type SparkParams<
 
 export interface SparkInterface<
   A extends AgentAbstract[],
-  X extends CipherAbstract,
-  C extends ControllerAbstract,
-  H extends HasherAbstract,
-  S extends SignerAbstract,
+  X extends CipherCore,
+  C extends ControllerCore,
+  H extends HasherCore,
+  S extends SignerCore,
 > {
 
   // spark

@@ -1,50 +1,41 @@
-import { BaseKeyEventProps, CommonKeyEventProps, ControllerErrorType, ControllerType, KeyDestructionEvent, KeyEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
-import { ErrorInterface, ErrorMessage, SparkError } from "../../common/errors";
+import { BaseKeyEventProps, CommonKeyEventProps, KeyDestructionEvent, KeyEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
 import { KeyEventType } from "../types";
 import { ControllerCore } from "../ControllerCore";
 import { KeyPairs } from "../../types";
-import { ControllerErrorFactory } from "../errorFactory";
-const errors = new ControllerErrorFactory(ControllerType.BASIC_CONTROLLER);
+import { ControllerErrors } from "../../error/controller";
 
 export class Basic extends ControllerCore {
-  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent | ErrorInterface> {
+
+  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent> {
+    const keyPairs = this._spark.keyPairs as KeyPairs;
+    const previousKeyCommitment = this._keyEventLog[this._keyEventLog.length - 1]?.nextKeyCommitments;
+    const keyCommitment = await this._spark.hash({ data: keyPairs.signing.publicKey });
+    const nextKeyCommitments = type === KeyEventType.DESTROY ? undefined  : await this._spark.hash({ data: nextKeyPairs.signing.publicKey });
+
     try {
       switch (true) {
-        case this._keyEventLog.length > 0 && this._keyEventLog[this._keyEventLog.length - 1].type === KeyEventType.DESTROY:
-          return errors.IdentityDestroyed();
+          // if incepting and already incepted
         case type === KeyEventType.INCEPT && this._keyEventLog.length > 0:
-          return errors.IdentityAlreadyIncepted();
+          throw new Error('Cannot incept when already incepted.');
+          // if rotating and not incepted
         case type === KeyEventType.ROTATE && this._keyEventLog.length === 0:
-          return errors.IdentityNotIncepted();
-        case (type === KeyEventType.ROTATE || type === KeyEventType.INCEPT) && !nextKeyPairs:
-          return errors.InvalidKeyPairs();
+          throw new Error('Cannot rotate when not incepted.');
+          // if destroying and not incepted
+        case type === KeyEventType.DESTROY && this._keyEventLog.length === 0:
+          throw new Error('Cannot destroy when not incepted.');
+          // if destroying and already destroyed
+        case type === KeyEventType.DESTROY && this._keyEventLog.length > 0 && this._keyEventLog[this._keyEventLog.length - 1].type === KeyEventType.DESTROY:
+          throw new Error('Cannot destroy when already destroyed.');
+          // if invalid next key pairs
+        case type !== KeyEventType.DESTROY && !nextKeyPairs:
+          throw new Error('Invalid next key pairs.');
+          // if invalid type
+        case !Object.values(KeyEventType).includes(type):
+          throw new Error('Invalid key event type.');
+          // if rotation and invalid next key commitment
+        case type === KeyEventType.ROTATE && previousKeyCommitment !== keyCommitment:
+          throw new Error('Invalid next key commitment.');
       }
-
-      if (this._keyEventLog.length > 0 && this._keyEventLog[this._keyEventLog.length - 1].type === KeyEventType.DESTROY) {
-        return errors.IdentityDestroyed();
-      }
-
-      if (type === KeyEventType.INCEPT && this._keyEventLog.length > 0) {
-        return errors.IdentityAlreadyIncepted();
-      }
-
-      const keyPairs = this._spark.keyPairs as KeyPairs;
-      if (SparkError.is(keyPairs)) {
-        return keyPairs as ErrorInterface;
-      }
-
-      // if it's not inception, check that this key matches the previous commitment
-      if (type === KeyEventType.ROTATE) {
-        const previousKeyCommitment = this._keyEventLog[this._keyEventLog.length - 1].nextKeyCommitments;
-        const keyCommitment = await this._spark.hash({ data: keyPairs.signing.publicKey });
-        if (SparkError.is(keyCommitment)) throw keyCommitment;
-        if (previousKeyCommitment !== keyCommitment) {
-          return errors.InvalidKeyCommitment();
-        }
-      }
-
-      const nextKeyCommitments = type === KeyEventType.DESTROY ? undefined  : await this._spark.hash({ data: nextKeyPairs.signing.publicKey });
-      if (SparkError.is(nextKeyCommitments)) throw nextKeyCommitments;
 
       const baseEventProps: BaseKeyEventProps = {
         index: this._keyEventLog.length,
@@ -57,13 +48,8 @@ export class Basic extends ControllerCore {
 
       const eventJSON = JSON.stringify(baseEventProps);
       const version = 'KERI10JSON' + eventJSON.length.toString(16).padStart(6, '0') + '_';
-
       const hashedEvent = await this._spark.hash({ data: eventJSON });
-      if (SparkError.is(hashedEvent)) throw hashedEvent;
-
       const selfAddressingIdentifier = await this._spark.seal({ data: hashedEvent });
-      if (SparkError.is(selfAddressingIdentifier)) throw selfAddressingIdentifier;
-
       const identifier = this._identifier || `B${selfAddressingIdentifier}`;
       const previousEventDigest: string = this._keyEventLog.length > 0 ? this._keyEventLog[this._keyEventLog.length - 1].selfAddressingIdentifier : undefined;
 
@@ -99,35 +85,38 @@ export class Basic extends ControllerCore {
           } as KeyDestructionEvent;
 
         default:
-          throw errors.InvalidKeyEventType();
+          throw new Error('Invalid key event type.');
       }
-
     } catch (error) {
-      if (SparkError.is(error)) return error;
-      return new SparkError({
-        type: ControllerErrorType.KEY_EVENT_ERROR,
-        message: `key event failed: ${error.message}` as ErrorMessage,
-        metadata: { keyEventType: type },
-      });
+      return Promise.reject(ControllerErrors.KeyEventCreationError(error));
     }
   }
 
-  public async incept({ keyPairs }: { keyPairs: KeyPairs }): Promise<void | ErrorInterface> {
-    const inceptionEvent = await this.keyEvent({ nextKeyPairs: keyPairs, type: KeyEventType.INCEPT }) as KeyInceptionEvent;
-    if (SparkError.is(inceptionEvent)) return inceptionEvent as ErrorInterface;
-    this._keyEventLog.push(inceptionEvent);
-    this._identifier = inceptionEvent.identifier;
+  public async incept({ keyPairs }: { keyPairs: KeyPairs }): Promise<void> {
+    try {
+      const inceptionEvent = await this.keyEvent({ nextKeyPairs: keyPairs, type: KeyEventType.INCEPT }) as KeyInceptionEvent;
+      this._keyEventLog.push(inceptionEvent);
+      this._identifier = inceptionEvent.identifier;
+    } catch (error) {
+      return Promise.reject(ControllerErrors.InceptionError(error));
+    }
   }
 
-  public async rotate({ nextKeyPairs }: { nextKeyPairs: KeyPairs }): Promise<void | ErrorInterface> {
-    const rotationEvent = await this.keyEvent({ nextKeyPairs, type: KeyEventType.ROTATE }) as KeyRotationEvent;
-    if (SparkError.is(rotationEvent)) return rotationEvent as ErrorInterface;
-    this._keyEventLog.push(rotationEvent);
+  public async rotate({ nextKeyPairs }: { nextKeyPairs: KeyPairs }): Promise<void> {
+    try {
+      const rotationEvent = await this.keyEvent({ nextKeyPairs, type: KeyEventType.ROTATE }) as KeyRotationEvent;
+      this._keyEventLog.push(rotationEvent);
+    } catch(error) {
+      return Promise.reject(ControllerErrors.RotationError(error));
+    }
   }
 
-  public async destroy(): Promise<void | ErrorInterface> {
-    const destructionEvent = await this.keyEvent({ type: KeyEventType.DESTROY }) as KeyDestructionEvent;
-    if (SparkError.is(destructionEvent)) return destructionEvent as ErrorInterface;
-    this._keyEventLog.push(destructionEvent);
+  public async destroy(): Promise<void> {
+    try {
+      const destructionEvent = await this.keyEvent({ type: KeyEventType.DESTROY }) as KeyDestructionEvent;
+      this._keyEventLog.push(destructionEvent);
+    } catch(error) {
+      return Promise.reject(ControllerErrors.DestroyError(error));
+    }
   }
 }
