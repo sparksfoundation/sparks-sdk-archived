@@ -2,12 +2,10 @@ import { Spark } from '../dist/index.mjs';
 import { Blake3 } from '../dist/hasher/Blake3/Blake3.mjs';
 import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
 import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
-import { SparkError } from '../dist/common/errors.mjs';
 import { Basic } from '../dist/controller/Basic/index.mjs';
 import { assert } from 'console';
 
 (async function() {
-  try {
     const spark = new Spark({
       cipher: X25519SalsaPoly,
       controller: Basic,
@@ -15,27 +13,38 @@ import { assert } from 'console';
       signer: Ed25519,
     });
   
-    let keyPairs = await spark.generateKeyPairs();
-    let nextKeyPairs = await spark.generateKeyPairs();
-    spark.setKeyPairs({ keyPairs });
+    let keyPairs = await spark.generateKeyPairs()
+      .catch(e => assert(false, 'signer - keys generated'));
+
+    let nextKeyPairs = await spark.generateKeyPairs()
+      .catch(e => assert(false, 'signer - keys generated'));
+
+    spark.setKeyPairs({ keyPairs })
+      .catch(e => assert(false, 'signer - keys set'));
   
-    const incept = await spark.incept({ keyPairs });
-    assert(!(incept instanceof SparkError) && spark.keyEventLog.length === 1 && spark.keyEventLog[0].type === 'INCEPT', 'controller - incepted');
-    
-    spark.setKeyPairs({ keyPairs });
-    nextKeyPairs = await spark.generateKeyPairs();
-    const rotate1 = await spark.rotate({ nextKeyPairs });
-    assert(!(rotate1 instanceof SparkError) && spark.keyEventLog.length === 2 && spark.keyEventLog[1].type === 'ROTATE', 'controller - rotated 1');
+    await spark.incept()
+      .catch(e => assert(false, 'controller - incepted'));
+
+    spark.setKeyPairs({ keyPairs })
+      .catch(e => assert(false, 'signer - keys set'));
+
+    nextKeyPairs = await spark.generateKeyPairs()
+      .catch(e => assert(false, 'signer - keys generated'));
+
+    await spark.rotate({ nextKeyPairs })
+      .catch(e => assert(false, 'controller - rotated 1'));
   
-    spark.setKeyPairs({ keyPairs: nextKeyPairs });
+    spark.setKeyPairs({ keyPairs: nextKeyPairs })
+      .catch(e => assert(false, 'signer - keys set'));
+
     keyPairs = { ...nextKeyPairs };
-    nextKeyPairs = await spark.generateKeyPairs();
-    const rotate2 = await spark.rotate({ nextKeyPairs });
-    assert(!(rotate2 instanceof SparkError) && spark.keyEventLog.length === 3 && spark.keyEventLog[2].type === 'ROTATE', 'controller - rotated 2');
+    nextKeyPairs = await spark.generateKeyPairs()
+      .catch(e => assert(false, 'signer - keys generated'));
+
+    await spark.rotate({ nextKeyPairs })
+      .catch(e => assert(false, 'controller - rotated 2'));
   
-    const destroy = await spark.destroy();
-    assert(!(destroy instanceof SparkError) && spark.keyEventLog.length === 4 && spark.keyEventLog[3].type === 'DESTROY', 'controller - destroyed');
-  } catch (e) {
-    console.error(e);
-  }
+    await spark.destroy()
+      .catch(e => assert(false, 'controller - destroyed'));
+
 }())

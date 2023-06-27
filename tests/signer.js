@@ -1,14 +1,11 @@
 import { Spark } from '../dist/index.mjs';
 import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
 import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
-import { SparkError } from '../dist/common/errors.mjs';
 import { Blake3 } from '../dist/hasher/Blake3/index.mjs';
 import { Basic } from '../dist/controller/Basic/index.mjs';
 import { assert } from 'console';
 
 (async function() {
-  try {
-
     const spark = new Spark({
       cipher: X25519SalsaPoly,
       controller: Basic,
@@ -17,27 +14,27 @@ import { assert } from 'console';
     });
   
     const data = { test: 'test' };
-    const keyPairs = await spark.generateKeyPairs(); 
-    spark.setKeyPairs({ keyPairs});
+    const keyPairs = await spark.generateKeyPairs()
+      .catch(e => assert(false, 'signer - keys generated'));
+
+    spark.setKeyPairs({ keyPairs})
+      .catch(e => assert(false, 'signer - keys set'));
+
     const keys = spark.keyPairs;
     
-    const other = await spark.generateKeyPairs();
+    const other = await spark.generateKeyPairs()
+      .catch(e => assert(false, 'signer - other keys generated'));
   
-    const signed = await spark.sign({data});
-    const verified = await spark.verify({ data, signature: signed, publicKey: keys.signing.publicKey });
+    const signed = await spark.sign({ data })
+      .catch(e => assert(false, 'signer - data signed'));
+
+    const verified = await spark.verify({ data, signature: signed, publicKey: keys.signing.publicKey })
+      .catch(e => assert(false, 'signer - data verified'));
   
-    const sealed = await spark.seal({data});
-    const opened = await spark.open({ publicKey: keys.signing.publicKey, signature: sealed });
-  
-    assert(!(keys instanceof SparkError), 'signer - keys generated');
-    assert(!(other instanceof SparkError), 'signer - other keys generated');
-  
-    assert(!(signed instanceof SparkError), 'signer - data signed');
-    assert(!(verified instanceof SparkError), 'signer - data verified');
-  
-    assert(!(sealed instanceof SparkError), 'signer - data sealed');
-    assert(!(opened instanceof SparkError), 'signer - data opened');
-  } catch (e) {
-    console.error(e);
-  }
+    const sealed = await spark.seal({ data })
+      .catch(e => assert(false, 'signer - data sealed'));
+
+    const opened = await spark.open({ publicKey: keys.signing.publicKey, signature: sealed })
+      .catch(e => assert(false, 'signer - data opened'));
+
 }())
