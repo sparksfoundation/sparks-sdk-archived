@@ -10,9 +10,9 @@ export type ChannelNextId = string;
 export type ChannelMessageId = string;
 export type ChannelEventTimestamp = number;                        // utc epoch time in ms
 export type ChannelEventMetadata = Record<string, any>;            // additional metadata about the event
-export type ChannelMessagePayloadDigest = string;             // encrypted data associated with the event
-export type ChannelMessagePayload = string | Record<string, any>;  // data associated with the event
-export type ChannelEventPayload = string | Record<string, any>;    // data associated with the event
+export type ChannelMessageDataDigest = string;             // encrypted data associated with the event
+export type ChannelMessageData = string | Record<string, any>;  // data associated with the event
+export type ChannelEventData = string | Record<string, any>;    // data associated with the event
 export type ChannelPeer = {
   identifier: Identifier;
   publicKeys: PublicKeys;
@@ -84,7 +84,7 @@ export enum ChannelEventType {
 export interface ChannelOpenRequestEvent {
   type: ChannelEventType.OPEN_REQUEST;
   timestamp: ChannelEventTimestamp;
-  payload: {
+  data: {
     identifier: Identifier;
     publicKeys: PublicKeys;
   };
@@ -98,7 +98,7 @@ export interface ChannelOpenRequestEvent {
 export interface ChannelOpenAcceptanceEvent {
   type: ChannelEventType.OPEN_ACCEPTANCE;
   timestamp: ChannelEventTimestamp;
-  payload: {
+  data: {
     identifier: Identifier;
     publicKeys: PublicKeys;
     receipt: ChannelEventDigest;
@@ -113,7 +113,7 @@ export interface ChannelOpenAcceptanceEvent {
 export interface ChannelOpenConfirmationEvent {
   type: ChannelEventType.OPEN_CONFIRMATION;
   timestamp: ChannelEventTimestamp;
-  payload: {
+  data: {
     receipt: ChannelEventDigest
   };
   metadata: {
@@ -126,7 +126,7 @@ export interface ChannelOpenConfirmationEvent {
 export interface ChannelOpenRejectionEvent {
   type: ChannelEventType.OPEN_REJECTION;
   timestamp: ChannelEventTimestamp;
-  payload: {};
+  data: {};
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
@@ -137,7 +137,7 @@ export interface ChannelOpenRejectionEvent {
 export interface ChannelCloseEvent {
   type: ChannelEventType.CLOSE;
   timestamp: ChannelEventTimestamp;
-  payload: {};
+  data: {};
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
@@ -148,7 +148,7 @@ export interface ChannelCloseEvent {
 export interface ChannelCloseConfirmationEvent {
   type: ChannelEventType.CLOSE_CONFIRMATION;
   timestamp: ChannelEventTimestamp;
-  payload: {
+  data: {
     receipt: ChannelEventDigest
   };
   metadata: {
@@ -161,7 +161,7 @@ export interface ChannelCloseConfirmationEvent {
 export interface ChannelMessageEvent {
   type: ChannelEventType.MESSAGE;
   timestamp: ChannelEventTimestamp;
-  payload: ChannelMessagePayloadDigest;
+  data: ChannelMessageDataDigest;
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
@@ -173,7 +173,7 @@ export interface ChannelMessageEvent {
 export interface ChannelDecryptedMessageEvent {
   type: ChannelEventType.MESSAGE;
   timestamp: ChannelEventTimestamp;
-  payload: ChannelMessagePayload;
+  data: ChannelMessageData;
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
@@ -185,7 +185,7 @@ export interface ChannelDecryptedMessageEvent {
 export interface ChannelMessageConfirmationEvent {
   type: ChannelEventType.MESSAGE_CONFIRMATION;
   timestamp: ChannelEventTimestamp;
-  payload: {
+  data: {
     receipt: ChannelEventDigest
   };
   metadata: {
@@ -199,7 +199,7 @@ export interface ChannelMessageConfirmationEvent {
 export interface ChannelErrorEvent {
   type: ChannelEventType.CHANNEL_ERROR;
   timestamp: ChannelEventTimestamp;
-  payload: SparkError;
+  data: SparkError;
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
@@ -256,7 +256,7 @@ export interface ChannelCloseConfirmationReceipt {
 
 export interface ChannelMessageReceivedReceipt {
   type: ChannelReceiptType.MESSAGE_RECEIVED;
-  messageDigest: ChannelMessagePayloadDigest;
+  messageDigest: ChannelMessageDataDigest;
   eventDigest: ChannelEventDigest;
 }
 
