@@ -30,6 +30,13 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
         const channel = await resolve()
             .catch(e => assert(false, 'channel - request accepted'));
 
+        channel.onclose = event => {
+        }
+
+        channel.onmessage = event => {
+            console.log(event);
+        }
+
     }, { spark: website, _window: _1111 });
 
 
@@ -62,6 +69,9 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
     };
 
     const test = await channel.open()
-        .catch(e => {assert(false, 'channel - opened'); console.log(e)});
+        .catch(e => { assert(false, 'channel - opened'); console.log(e) });
 
+    await channel.close()
+
+    const receipt = await channel.message('hey')
 }())

@@ -18,6 +18,8 @@ export enum ChannelErrorName {
   ON_CLOSE_CONFIRMED_ERROR = 'ON_CLOSE_CONFIRMED_ERROR',
   CONFIRM_CLOSE_ERROR = 'CONFIRM_CLOSE_ERROR',
   COMPLETE_CLOSE_ERROR = 'COMPLETE_CLOSE_ERROR',
+  CREATE_MESSAGE_DIGEST_ERROR = 'CREATE_MESSAGE_DIGEST_ERROR',
+  OPEN_MESSAGE_DIGEST_ERROR = 'OPEN_MESSAGE_DIGEST_ERROR',
   MESSAGE_SENDING_ERROR = 'MESSAGE_SENDING_ERROR',
   ON_MESSAGE_CONFIRMED_ERROR = 'ON_MESSAGE_CONFIRMED_ERROR',
   CONFIRM_MESSAGE_ERROR = 'CONFIRM_MESSAGE_ERROR',
@@ -27,6 +29,7 @@ export enum ChannelErrorName {
   ON_MESSAGE_ERROR = 'ON_MESSAGE_ERROR',
   ON_CLOSE_ERROR = 'ON_CLOSE_ERROR',
   ON_ERROR_ERROR = 'ON_ERROR_ERROR',
+
 }
 
 export class ChannelErrors {
@@ -183,6 +186,24 @@ export class ChannelErrors {
     });
   }
 
+  public static CreateMessageDigestError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+    return new SparkError({
+      name: ChannelErrorName.CREATE_MESSAGE_DIGEST_ERROR,
+      message: `failed to create message digest`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  public static OpenMessageDigestError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+    return new SparkError({
+      name: ChannelErrorName.OPEN_MESSAGE_DIGEST_ERROR,
+      message: `failed to open message digest`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
   public static MessageSendingError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.MESSAGE_SENDING_ERROR,
@@ -195,7 +216,7 @@ export class ChannelErrors {
   public static OnMessageConfirmedError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: ChannelErrorName.ON_MESSAGE_CONFIRMED_ERROR,
-      message: `failed to on message confirmed`,
+      message: `failed to process message confirmation`,
       metadata: { ...metadata },
       stack
     });

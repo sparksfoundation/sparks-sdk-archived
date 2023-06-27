@@ -10,6 +10,8 @@ export type ChannelNextId = string;
 export type ChannelMessageId = string;
 export type ChannelEventTimestamp = number;                        // utc epoch time in ms
 export type ChannelEventMetadata = Record<string, any>;            // additional metadata about the event
+export type ChannelMessagePayloadDigest = string;             // encrypted data associated with the event
+export type ChannelMessagePayload = string | Record<string, any>;  // data associated with the event
 export type ChannelEventPayload = string | Record<string, any>;    // data associated with the event
 export type ChannelPeer = {
   identifier: Identifier;
@@ -89,7 +91,7 @@ export interface ChannelOpenRequestEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
@@ -104,7 +106,7 @@ export interface ChannelOpenAcceptanceEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
@@ -117,7 +119,7 @@ export interface ChannelOpenConfirmationEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
@@ -128,7 +130,7 @@ export interface ChannelOpenRejectionEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
@@ -139,7 +141,7 @@ export interface ChannelCloseEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
@@ -152,18 +154,30 @@ export interface ChannelCloseConfirmationEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
 export interface ChannelMessageEvent {
   type: ChannelEventType.MESSAGE;
   timestamp: ChannelEventTimestamp;
-  payload: ChannelEventPayload;
+  payload: ChannelMessagePayloadDigest;
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
+    mid: ChannelMessageId;
+  };
+}
+
+export interface ChannelDecryptedMessageEvent {
+  type: ChannelEventType.MESSAGE;
+  timestamp: ChannelEventTimestamp;
+  payload: ChannelMessagePayload;
+  metadata: {
+    eid: ChannelEventId;
+    cid: ChannelId;
+    nid: ChannelEventId;
     mid: ChannelMessageId;
   };
 }
@@ -177,7 +191,7 @@ export interface ChannelMessageConfirmationEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
     mid: ChannelMessageId;
   };
 }
@@ -189,7 +203,7 @@ export interface ChannelErrorEvent {
   metadata: {
     eid: ChannelEventId;
     cid: ChannelId;
-    neid: ChannelEventId;
+    nid: ChannelEventId;
   };
 }
 
@@ -201,10 +215,16 @@ export type AnyChannelEvent =
   | ChannelCloseEvent
   | ChannelCloseConfirmationEvent
   | ChannelMessageEvent
+  | ChannelDecryptedMessageEvent
   | ChannelMessageConfirmationEvent
   | ChannelErrorEvent;
 
-export type ChannelEventLog = AnyChannelEvent[];
+export type AnyChannelEventWithSource = AnyChannelEvent & {
+  request?: boolean;
+  response?: boolean;
+};
+
+export type ChannelEventLog = AnyChannelEventWithSource[];
 
 // receipts
 export type ChannelReceiptDigest = string;
@@ -236,6 +256,7 @@ export interface ChannelCloseConfirmationReceipt {
 
 export interface ChannelMessageReceivedReceipt {
   type: ChannelReceiptType.MESSAGE_RECEIVED;
+  messageDigest: ChannelMessagePayloadDigest;
   eventDigest: ChannelEventDigest;
 }
 

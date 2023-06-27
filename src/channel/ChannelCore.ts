@@ -4,9 +4,9 @@ import cuid from "cuid";
 import { utcEpochTimestamp } from "../common";
 import {
   AnyChannelEvent, AnyChannelReceipt, ChannelCloseConfirmationEvent,
-  ChannelCloseConfirmationReceipt, ChannelCloseEvent, ChannelErrorEvent,
+  ChannelCloseConfirmationReceipt, ChannelCloseEvent, ChannelDecryptedMessageEvent, ChannelErrorEvent,
   ChannelEventLog, ChannelEventType, ChannelId, ChannelMessageConfirmationEvent,
-  ChannelMessageEvent, ChannelMessageId, ChannelMessageReceivedReceipt,
+  ChannelMessageEvent, ChannelMessageId, ChannelMessagePayload, ChannelMessagePayloadDigest, ChannelMessageReceivedReceipt,
   ChannelOpenAcceptanceEvent, ChannelOpenAcceptanceReceipt, ChannelOpenConfirmationEvent,
   ChannelOpenConfirmationReceipt, ChannelOpenRejectionEvent, ChannelOpenRequestEvent,
   ChannelPeer, ChannelReceiptDigest, ChannelReceiptType, ChannelState, HandleOpenAccepted, HandleOpenRequested, RejectPromise,
@@ -21,8 +21,8 @@ export abstract class ChannelCore {
   private _openPromises: Map<ChannelId, { resolve: ResolveOpenPromise, reject: RejectPromise }> = new Map();
 
   // opens and resolves/rejects only on initiator side
-  private _closePromises: Map<ChannelId, { resolve: ResolveClosePromise, reject: RejectPromise }>;
-  private _messagePromises: Map<ChannelMessageId, { resolve: ResolveMessagePromise, reject: RejectPromise }>;
+  private _closePromises: Map<ChannelId, { resolve: ResolveClosePromise, reject: RejectPromise }> = new Map();
+  private _messagePromises: Map<ChannelMessageId, { resolve: ResolveMessagePromise, reject: RejectPromise }> = new Map();
 
   // queue messages that come in before the complete open call
   private _messageQueue: any;
@@ -35,10 +35,9 @@ export abstract class ChannelCore {
   public peer: ChannelPeer;
   public sharedKey: EncryptionSharedKey;
   public status: ChannelState;
-  public events: ChannelEventLog;
+  public eventLog: ChannelEventLog = [];
 
   // event callbacks for receivers only
-  public onopen: (payload: any) => void | never;
   public onmessage: (payload: any) => void | never;
   public onclose: (payload: any) => void | never;
   public onerror: (payload: any) => void | never;
@@ -88,6 +87,7 @@ export abstract class ChannelCore {
         case ChannelEventType.MESSAGE:
           receipt = {
             type: ChannelReceiptType.MESSAGE_RECEIVED,
+            messageDigest: await this.createMessageDigest(payload),
             eventDigest: eventSealed,
           };
           break;
@@ -125,22 +125,46 @@ export abstract class ChannelCore {
     }
   }
 
-  private async createEvent(type: ChannelEventType.OPEN_REQUEST, prev: null): Promise<ChannelOpenRequestEvent>;
-  private async createEvent(type: ChannelEventType.OPEN_ACCEPTANCE, prev: ChannelOpenRequestEvent): Promise<ChannelOpenAcceptanceEvent>;
-  private async createEvent(type: ChannelEventType.OPEN_CONFIRMATION, prev: ChannelOpenAcceptanceEvent): Promise<ChannelOpenConfirmationEvent>;
-  private async createEvent(type: ChannelEventType.CLOSE, prev: ChannelOpenConfirmationEvent): Promise<ChannelCloseEvent>;
-  private async createEvent(type: ChannelEventType.CLOSE_CONFIRMATION, prev: ChannelCloseEvent): Promise<ChannelCloseConfirmationEvent>;
-  private async createEvent(type: ChannelEventType.MESSAGE, prev: ChannelOpenConfirmationEvent): Promise<ChannelMessageEvent>;
-  private async createEvent(type: ChannelEventType.MESSAGE_CONFIRMATION, prev: ChannelMessageEvent): Promise<ChannelMessageConfirmationEvent>;
-  private async createEvent(type: ChannelEventType.OPEN_REJECTION, prev: ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent): Promise<ChannelOpenRejectionEvent>;
-  private async createEvent(type: ChannelEventType.CHANNEL_ERROR, prev: AnyChannelEvent): Promise<ChannelErrorEvent>;
-  private async createEvent(type: ChannelEventType, prev: AnyChannelEvent): Promise<AnyChannelEvent> {
+  private async createMessageDigest(payload: ChannelMessagePayload) {
     try {
-      const { payload = {}, metadata = {} } = prev as any || {};
+      const sharedKey = this.sharedKey;
+      const messageEncrypted = await this._spark.encrypt({ data: payload, sharedKey });
+      const messageSealed = await this._spark.seal({ data: messageEncrypted });
+      return messageSealed;
+    } catch (error) {
+      const sparkError = ChannelErrors.CreateMessageDigestError(error);
+      return Promise.reject(sparkError);
+    }
+  }
+
+  private async openMessageDigest(messageDigest: ChannelMessagePayloadDigest): Promise<ChannelMessagePayload> {
+    try {
+      const sharedKey = this.sharedKey;
+      const messageEncrypted = await this._spark.open({ signature: messageDigest, publicKey: this.peer.publicKeys.signing });
+      const message = await this._spark.decrypt({ data: messageEncrypted, sharedKey });
+      return message;
+    } catch (error) {
+      const sparkError = ChannelErrors.OpenMessageDigestError(error);
+      return Promise.reject(sparkError);
+    }
+  }
+
+  private async createEvent(type: ChannelEventType.OPEN_REQUEST, event: null): Promise<ChannelOpenRequestEvent>;
+  private async createEvent(type: ChannelEventType.OPEN_ACCEPTANCE, event: ChannelOpenRequestEvent): Promise<ChannelOpenAcceptanceEvent>;
+  private async createEvent(type: ChannelEventType.OPEN_CONFIRMATION, event: ChannelOpenAcceptanceEvent): Promise<ChannelOpenConfirmationEvent>;
+  private async createEvent(type: ChannelEventType.CLOSE, event: ChannelOpenConfirmationEvent): Promise<ChannelCloseEvent>;
+  private async createEvent(type: ChannelEventType.CLOSE_CONFIRMATION, event: ChannelCloseEvent): Promise<ChannelCloseConfirmationEvent>;
+  private async createEvent(type: ChannelEventType.MESSAGE, event: ChannelMessagePayload): Promise<ChannelMessageEvent>;
+  private async createEvent(type: ChannelEventType.MESSAGE_CONFIRMATION, event: ChannelDecryptedMessageEvent): Promise<ChannelMessageConfirmationEvent>;
+  private async createEvent(type: ChannelEventType.OPEN_REJECTION, event: ChannelOpenAcceptanceEvent | ChannelOpenConfirmationEvent): Promise<ChannelOpenRejectionEvent>;
+  private async createEvent(type: ChannelEventType.CHANNEL_ERROR, event: AnyChannelEvent): Promise<ChannelErrorEvent>;
+  private async createEvent(type: ChannelEventType, event: AnyChannelEvent): Promise<AnyChannelEvent> {
+    try {
+      const { payload = {}, metadata = {} } = event as any || {};
       const cid = this.cid;
-      const mid = metadata?.nmid || cuid.slug();
-      const eid = metadata?.neid || cuid.slug();
-      const neid = cuid.slug();
+      const eid = this.eventLog.length ? this.eventLog[this.eventLog.length - 1]?.metadata?.eid : cuid.slug();
+      const nid = cuid.slug();
+      const mid = metadata?.mid || cuid.slug();
       const timestamp = utcEpochTimestamp();
       const ourInfo = { identifier: this._spark.identifier, publicKeys: this._spark.publicKeys };
 
@@ -153,7 +177,7 @@ export abstract class ChannelCore {
               identifier: ourInfo.identifier,
               publicKeys: ourInfo.publicKeys,
             },
-            metadata: { eid, cid, neid },
+            metadata: { eid, cid, nid },
           };
         case ChannelEventType.OPEN_ACCEPTANCE:
           return {
@@ -162,66 +186,64 @@ export abstract class ChannelCore {
             payload: {
               identifier: ourInfo.identifier,
               publicKeys: ourInfo.publicKeys,
-              receipt: await this.createReceiptDigest(ChannelReceiptType.OPEN_ACCEPTED, prev)
+              receipt: await this.createReceiptDigest(ChannelReceiptType.OPEN_ACCEPTED, event)
             },
-            metadata: { eid, cid, neid },
+            metadata: { eid, cid, nid },
           };
         case ChannelEventType.OPEN_CONFIRMATION:
           return {
             type: ChannelEventType.OPEN_CONFIRMATION,
             timestamp,
             payload: {
-              receipt: await this.createReceiptDigest(ChannelReceiptType.OPEN_CONFIRMED, prev),
+              receipt: await this.createReceiptDigest(ChannelReceiptType.OPEN_CONFIRMED, event),
             },
-            metadata: { eid, cid, neid }
+            metadata: { eid, cid, nid }
           };
         case ChannelEventType.OPEN_REJECTION:
           return {
             type: ChannelEventType.OPEN_REJECTION,
             timestamp,
             payload: {},
-            metadata: { eid, cid, neid },
+            metadata: { eid, cid, nid },
           };
         case ChannelEventType.CLOSE:
           return {
             type: ChannelEventType.CLOSE,
             timestamp,
             payload: {},
-            metadata: { eid, cid, neid },
+            metadata: { eid, cid, nid },
           };
         case ChannelEventType.CLOSE_CONFIRMATION:
           return {
             type: ChannelEventType.CLOSE_CONFIRMATION,
             timestamp,
             payload: {
-              receipt: await this.createReceiptDigest(ChannelReceiptType.CLOSE_CONFIRMED, prev),
+              receipt: await this.createReceiptDigest(ChannelReceiptType.CLOSE_CONFIRMED, event),
             },
-            metadata: { eid, cid, neid },
+            metadata: { eid, cid, nid },
           };
         case ChannelEventType.MESSAGE:
           return {
             type: ChannelEventType.MESSAGE,
             timestamp,
-            payload: {
-              message: payload.message,
-            },
-            metadata: { eid, cid, neid, mid },
+            payload: await this.createMessageDigest(payload),
+            metadata: { eid, cid, nid, mid },
           };
         case ChannelEventType.MESSAGE_CONFIRMATION:
           return {
             type: ChannelEventType.MESSAGE_CONFIRMATION,
             timestamp,
             payload: {
-              receipt: await this.createReceiptDigest(ChannelReceiptType.MESSAGE_RECEIVED, prev),
+              receipt: await this.createReceiptDigest(ChannelReceiptType.MESSAGE_RECEIVED, event),
             },
-            metadata: { eid, cid, neid, mid },
+            metadata: { eid, cid, nid, mid },
           };
         case ChannelEventType.CHANNEL_ERROR:
           return {
             type: ChannelEventType.CHANNEL_ERROR,
             timestamp,
             payload: payload,
-            metadata: { eid, cid, neid },
+            metadata: { eid, cid, nid },
           };
         default:
           throw new Error("Invalid event type");
@@ -271,7 +293,7 @@ export abstract class ChannelCore {
         const reject = _reject as RejectPromise;
         this._openPromises.set(this.cid, { resolve, reject });
         const event: ChannelOpenRequestEvent = await this.createEvent(ChannelEventType.OPEN_REQUEST, null);
-        this.sendRequest(event);
+        this._sendRequest(event);
       } catch (error) {
         this._openPromises.delete(this.cid);
         return _reject(ChannelErrors.OpenRequestError(error));
@@ -321,13 +343,13 @@ export abstract class ChannelCore {
     return new Promise(async (_resolve, _reject) => {
       try {
         await this.setPeer(requestEvent);
-        
+
         const resolve = _resolve as ResolveOpenPromise;
         const reject = _reject as RejectPromise;
         this._openPromises.set(this.cid, { resolve, reject });
 
         const event: ChannelOpenAcceptanceEvent = await this.createEvent(ChannelEventType.OPEN_ACCEPTANCE, requestEvent);
-        this.sendRequest(event);
+        this._sendRequest(event);
 
       } catch (error) {
         const promise = this._openPromises.get(this.cid);
@@ -350,7 +372,7 @@ export abstract class ChannelCore {
     const promise = this._openPromises.get(this.cid);
     try {
       const rejectEvent: ChannelOpenRejectionEvent = await this.createEvent(ChannelEventType.OPEN_REJECTION, requestOrAcceptEvent);
-      this.sendRequest(rejectEvent);
+      this._sendRequest(rejectEvent);
       if (promise) {
         promise.resolve(rejectEvent);
         this._openPromises.delete(this.cid);
@@ -417,7 +439,7 @@ export abstract class ChannelCore {
         const validReciept: ChannelOpenAcceptanceReceipt = await this.openReceiptDigest(ChannelReceiptType.OPEN_ACCEPTED, acceptanceEvent.payload.receipt);
         if (!validReciept) throw new Error("Invalid acceptance receipt");
         if (!promise) throw new Error("Open promise not found");
-        this.sendRequest(event);
+        this._sendRequest(event);
         promise.resolve(this);
         this._openPromises.delete(this.cid);
         _resolve(this);
@@ -470,28 +492,118 @@ export abstract class ChannelCore {
       const promise = this._openPromises.get(this.cid);
       if (!promise) throw new Error("Open promise not found");
       promise.reject(rejectEvent);
+      this._openPromises.delete(this.cid);
     } catch (error) {
       const sparkError = ChannelErrors.OpenRejectedError(error);
       return Promise.reject(sparkError);
     }
   }
 
-  public close() { }
-  private async onClosed(closeEvent: ChannelCloseEvent) { }
-  private async onCloseConfirmed(confirmEvent: ChannelCloseConfirmationEvent) { }
+  public close(): Promise<ChannelCloseConfirmationEvent | SparkError> {
+    return new Promise(async (_resolve, _reject) => {
+      try {
+        const resolve = _resolve as ResolveClosePromise;
+        const reject = _reject as RejectPromise;
+        this._closePromises.set(this.cid, { resolve, reject });
+        const event: ChannelCloseEvent = await this.createEvent(ChannelEventType.CLOSE, null);
+        this._sendRequest(event);
+      } catch (error) {
+        this._closePromises.delete(this.cid);
+        return _reject(ChannelErrors.OpenRequestError(error));
+      }
+    })
+  }
 
-  private confirmClose() { }
-  private completeClose() { }
+  private async onClosed(closeEvent: ChannelCloseEvent) {
+    try {
+      const event: ChannelCloseConfirmationEvent = await this.createEvent(ChannelEventType.CLOSE_CONFIRMATION, closeEvent);
+      this._sendRequest(event);
+      if (this.onclose) this.onclose(closeEvent);
+    } catch (error) {
+      const sparkError = ChannelErrors.OnClosedError(error);
+      return Promise.reject(sparkError);
+    }
+  }
 
-  public message() { }
-  private async onMessage(messageEvent: ChannelMessageEvent) { }
-  private async onMessageConfirmed(confirmEvent: ChannelMessageConfirmationEvent) { }
-  private confirmMessage() { }
-  private completeMessage() { }
+  private async onCloseConfirmed(confirmEvent: ChannelCloseConfirmationEvent) {
+    const promise = this._closePromises.get(this.cid);
+    try {
+      const validReciept: ChannelCloseConfirmationReceipt = await this.openReceiptDigest(ChannelReceiptType.CLOSE_CONFIRMED, confirmEvent.payload.receipt);
+      if (!validReciept) throw new Error("Invalid confirmation receipt");
+      if (!promise) throw new Error("Close promise not found");
+      promise.resolve(confirmEvent);
+      this._closePromises.delete(this.cid);
+    } catch (error) {
+      const sparkError = ChannelErrors.OnCloseConfirmedError(error);
+      if (promise) {
+        promise.reject(sparkError);
+        this._closePromises.delete(this.cid);
+      }
+      return Promise.reject(sparkError);
+    }
+  }
+
+  public message(payload) {
+    return new Promise(async (_resolve, _reject) => {
+      try {
+        const resolve = _resolve as ResolveMessagePromise;
+        const reject = _reject as RejectPromise;
+        const event: ChannelMessageEvent = await this.createEvent(ChannelEventType.MESSAGE, { payload });
+        this._messagePromises.set(event.metadata.mid, { resolve, reject });
+        this._sendRequest(event);
+      } catch (error) {
+        return _reject(ChannelErrors.MessageSendingError(error));
+      }
+    })
+  }
+  private async onMessage(messageEvent: ChannelMessageEvent) {
+    try {
+      const message = await this.openMessageDigest(messageEvent.payload);
+      const decryptedEvent: ChannelDecryptedMessageEvent = { ...messageEvent, payload: message }
+      const event: ChannelMessageConfirmationEvent = await this.createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
+      if (this.onmessage) this.onmessage(decryptedEvent);
+      this._sendRequest(event);
+    } catch (error) {
+      const sparkError = ChannelErrors.OnMessageError(error);
+      return Promise.reject(sparkError);
+    }
+  }
+  private async onMessageConfirmed(confirmEvent: ChannelMessageConfirmationEvent) {
+    const promise = this._messagePromises.get(confirmEvent.metadata.mid);
+    try {
+      const validReciept: ChannelMessageReceivedReceipt = await this.openReceiptDigest(ChannelReceiptType.MESSAGE_RECEIVED, confirmEvent.payload.receipt);
+      if (!validReciept) throw new Error("Invalid confirmation receipt");
+      if (!promise) throw new Error("Message promise not found");
+      promise.resolve(confirmEvent);
+      this._messagePromises.delete(confirmEvent.metadata.mid);
+    } catch (error) {
+      const sparkError = ChannelErrors.OnMessageConfirmedError(error);
+      if (promise) {
+        promise.reject(sparkError);
+        this._messagePromises.delete(confirmEvent.metadata.mid);
+      }
+      return Promise.reject(sparkError);
+    }
+  }
 
   protected abstract sendRequest(event: AnyChannelEvent): Promise<void>;
+  private _sendRequest(event: AnyChannelEvent): Promise<void> {
+    try {
+      if (!this.sendRequest) throw new Error("sendRequest method not implemented");
+      const result = this.sendRequest(event);
+      this.eventLog.push({ request: true, ...event });
+      return result;
+    } catch (error) {
+      const sparkError = ChannelErrors.HandleRequestError(error);
+      return Promise.reject(sparkError);
+    }
+  }
   protected handleResponse(event: AnyChannelEvent): Promise<any> {
     const { type } = event;
+
+    const isEvent = Object.values(ChannelEventType).includes(type);
+    if (isEvent) this.eventLog.push({ response: true, ...event });
+
     switch (type) {
       case ChannelEventType.OPEN_REQUEST:
         return this.onOpenRequested(event as ChannelOpenRequestEvent);
@@ -510,25 +622,12 @@ export abstract class ChannelCore {
       case ChannelEventType.MESSAGE_CONFIRMATION:
         return this.onMessageConfirmed(event as ChannelMessageConfirmationEvent);
       case ChannelEventType.CHANNEL_ERROR:
-        return this._onError(event as ChannelErrorEvent);
+        if (this.onerror) {
+          this.onerror(event as ChannelErrorEvent);
+        }
       default:
         break;
     }
-  };
-
-  // fires only on receiving side, initiator gets promise receipts instead
-  private async _onOpen(payload) {
-    if (this.onopen) this.onopen(payload);
-  };
-
-  // fires only on receiving side, initiator gets promise receipts instead
-  private async _onMessage(payload) {
-    if (this.onmessage) this.onmessage(payload);
-  };
-
-  // fires on both sides
-  private async _onError(error) {
-    if (this.onerror) this.onerror(error);
   };
 }
 
