@@ -4,18 +4,17 @@ import { EncryptionKeyPair } from "./cipher/types";
 import { HashDigest } from "./hasher/types";
 import { SigningKeyPair } from "./signer/types";
 import { SparkInterface } from "./types";
-import { SparkError, ErrorInterface } from "./common/errors";
-import { CipherAbstract } from "./cipher/CipherCore";
-import { HasherAbstract } from "./hasher/HasherCore";
-import { SignerAbstract } from "./signer/SignerCore";
-import { ControllerAbstract } from "./controller";
+import { CipherCore } from "./cipher/CipherCore";
+import { HasherCore } from "./hasher/HasherCore";
+import { SignerCore } from "./signer/SignerCore";
+import { ControllerCore } from "./controller";
 
 export class Spark<
   A extends AgentAbstract[],
-  X extends CipherAbstract,
-  C extends ControllerAbstract,
-  H extends HasherAbstract,
-  S extends SignerAbstract
+  X extends CipherCore,
+  C extends ControllerCore,
+  H extends HasherCore,
+  S extends SignerCore
 > implements SparkInterface<A, X, C, H, S> {
 
   public readonly cipher: X;
@@ -53,48 +52,40 @@ export class Spark<
   }
 
   // spark
-  public get publicKeys(): PublicKeys | ErrorInterface {
+  public get publicKeys(): PublicKeys {
     const keyPairs = this.keyPairs as KeyPairs;
-    if (SparkError.is(keyPairs)) return keyPairs as ErrorInterface;
     return {
       encryption: keyPairs.encryption.publicKey,
       signing: keyPairs.signing.publicKey,
     } as PublicKeys;
   }
 
-  public get secretKeys(): SecretKeys | ErrorInterface {
+  public get secretKeys(): SecretKeys {
     const keyPairs = this.keyPairs as KeyPairs;
-    if (SparkError.is(keyPairs)) return keyPairs as ErrorInterface;
     return {
       encryption: keyPairs.encryption.secretKey,
       signing: keyPairs.signing.secretKey,
     } as SecretKeys;
   }
 
-  public get keyPairs(): KeyPairs | ErrorInterface {
+  public get keyPairs(): KeyPairs {
     const encryption = this.cipher.getKeyPair();
     const signing = this.signer.getKeyPair();
-    const errors = SparkError.get(encryption, signing);
-    if (errors) return errors as ErrorInterface;
     return { encryption, signing } as KeyPairs;
   }
 
-  public async generateKeyPairs(args: any): Promise<KeyPairs | ErrorInterface> {
+  public async generateKeyPairs(args: any): Promise<KeyPairs> {
     const encryption = await this.cipher.generateKeyPair(args) as EncryptionKeyPair;
     const signing = await this.signer.generateKeyPair(args) as SigningKeyPair;
-    const errors = SparkError.get(encryption, signing);
-    if (errors) return errors as ErrorInterface;
     return { encryption, signing } as KeyPairs;
   }
 
-  public setKeyPairs({ keyPairs }: { keyPairs: KeyPairs }): void | ErrorInterface {
-    const singing = this.signer.setKeyPair({ keyPair: keyPairs?.signing });
-    const encryption = this.cipher.setKeyPair({ keyPair: keyPairs?.encryption });
-    const errors = SparkError.get(singing, encryption);
-    if (errors) return errors as ErrorInterface;
+  public async setKeyPairs({ keyPairs }: { keyPairs: KeyPairs }): Promise<void> {
+    this.signer.setKeyPair({ keyPair: keyPairs.signing });
+    this.cipher.setKeyPair({ keyPair: keyPairs.encryption });
   }
 
-  import(data: HashDigest): Promise<void | ErrorInterface> {
+  import(data: HashDigest): Promise<void> {
     return Promise.resolve();
   }
 

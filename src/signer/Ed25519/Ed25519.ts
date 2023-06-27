@@ -18,7 +18,7 @@ export class Ed25519 extends SignerCore {
     }
   }
 
-  public async seal(data: SignatureData): Promise<Signature> {
+  public async seal({ data }: { data: SignatureData }): Promise<Signature> {
     try {
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);
@@ -36,16 +36,17 @@ export class Ed25519 extends SignerCore {
       const uintSignature = util.decodeBase64(signature);
       const uintPublicKey = util.decodeBase64(publicKey);
       const uintResult = nacl.sign.open(uintSignature, uintPublicKey);
+      if (!uintResult) throw new Error('invalid signature')
       const utf8Result = util.encodeUTF8(uintResult);
       const data = parseJSON(utf8Result) || utf8Result;
-      if (!data) throw new Error('Failed to open signature.')
+      if (!data) throw new Error('invalid utf8 encoding')
       return data as SignatureData;
     } catch (error) {
       return Promise.reject(SignerErrors.SignatureOpeningError(error));
     }
   }
 
-  public async sign(data: SignatureData): Promise<SigatureDetached> {
+  public async sign({ data }: { data: SignatureData }): Promise<SigatureDetached> {
     try {
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);

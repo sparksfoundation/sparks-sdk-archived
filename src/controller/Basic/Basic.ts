@@ -92,8 +92,9 @@ export class Basic extends ControllerCore {
     }
   }
 
-  public async incept({ keyPairs }: { keyPairs: KeyPairs }): Promise<void> {
+  public async incept(): Promise<void> {
     try {
+      const keyPairs = this._spark.keyPairs as KeyPairs;
       const inceptionEvent = await this.keyEvent({ nextKeyPairs: keyPairs, type: KeyEventType.INCEPT }) as KeyInceptionEvent;
       this._keyEventLog.push(inceptionEvent);
       this._identifier = inceptionEvent.identifier;
