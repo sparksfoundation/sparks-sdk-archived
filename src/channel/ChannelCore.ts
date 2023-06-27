@@ -1,15 +1,13 @@
 
 import { Spark } from "../Spark";
 import cuid from "cuid";
-import { SparkError } from "../common/errors";
 import { PublicKeys } from "../types";
 import { Identifier } from "../controller/types";
 import { utcEpochTimestamp } from "../common";
-import { ChannelId, ChannelMessageId, ChannelPeer, ChannelState } from "./types";
-import { OnOpenAccepted, OnOpenRequested, ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise } from "./types/methods";
-import { ChannelEvent, ChannelEventLog, ChannelEventType, ChannelOpenAcceptanceEvent, ChannelOpenConfirmationEvent, ChannelOpenRejectionEvent, ChannelOpenRequestEvent, ChannelReceiptEvents } from "./types/events";
-import { ChannelOpenAcceptanceReceipt, ChannelOpenConfirmationReceipt, ChannelReceipt, ChannelReceiptDigest, ChannelReceiptType } from "./types/receipts";
+import { ChannelId, ChannelMessageId, ChannelPeer, ChannelState, ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise } from "./types";
 import { EncryptionSharedKey } from "../cipher/types";
+import { AnyChannelEvent, ChannelCloseConfirmationEvent, ChannelEventLog, ChannelEventType, ChannelMessageEvent, ChannelOpenRequestEvent } from "./ChannelEvent";
+import { ChannelReceiptType } from "./ChannelReceipt";
 
 export abstract class ChannelCore {
   // opens and resolves/rejects on both sides
@@ -47,105 +45,158 @@ export abstract class ChannelCore {
     this._nextEventId = cuid.slug();
   }
 
-  // event id rotations
-  private eventId() {
-    const eid = this._nextEventId;
-    this._nextEventId = cuid.slug();
-    return eid;
-  }
-
-  private nextEventId() {
-    return this._nextEventId;
-  }
-
-  // initiator
-  // > open
-  // < onOpenAccepted
-  // > confirmOpen | rejectOpen
-  // < onpenConfirmed
-  // completeOpen
-
-  // receiver
-  // < onOpenRequested
-  // > acceptOpen | rejectOpen
-  // < onpenConfirmed
-  // > confirmOpen
-  // completeOpen
-
-  // helpers
-  private async setPeer(requestOrAcceptEvent: ChannelOpenRequestEvent | ChannelOpenAcceptanceEvent): Promise<void | SparkError> {
+  private async generateReceipt(type: ChannelReceiptType, prev: AnyChannelEvent): Promise<ChannelReceiptType | null> {
     try {
-      const { payload } = requestOrAcceptEvent;
-      const identifier = payload.identifier as Identifier;
-      if (!identifier) throw new Error('missing identifier');
 
-      const publicKeys = payload.publicKeys as PublicKeys;
+      const { payload = {}, metadata = {} } = prev as any || {};
+      const ourInfo = { identifier: this._spark.identifier, publicKeys: this._spark.publicKeys };
+      const theirInfo = { identifier: payload?.identifier, publicKeys: payload?.publicKeys };
+      const sharedKey = this.sharedKey;
+      const peers = [ourInfo, theirInfo];
 
-      const encryptionPublicKey = publicKeys.encryption;
-      if (!encryptionPublicKey) throw new Error('missing encryptionPublicKey')
+      const eventEncrypted = await this._spark.encrypt({ data: prev, sharedKey });
+      const eventSealed = await this._spark.seal({ data: eventEncrypted });
 
-      const signingPublicKey = publicKeys.signing;
-      if (!signingPublicKey) throw new Error('missing signingPublicKey');
+      let receipt: ChannelReceipt;
+      switch (prev.type) {
+        case ChannelEventType.OPEN_REQUEST:
+          receipt = {
+            type: ChannelReceiptType.OPEN_ACCEPTED,
+            peers: peers,
+            eventDigest: eventSealed,
+          };
+          break;
+        case ChannelEventType.OPEN_ACCEPTANCE:
+          receipt = {
+            type: ChannelReceiptType.OPEN_CONFIRMED,
+            peers: peers,
+            eventDigest: eventSealed,
+          };
+          break;
+        case ChannelEventType.CLOSE:
+          receipt = {
+            type: ChannelReceiptType.CLOSE_CONFIRMED,
+            eventDigest: eventSealed,
+          };
+          break;
+        case ChannelEventType.MESSAGE:
+          receipt = {
+            type: ChannelReceiptType.MESSAGE_RECEIVED,
+            eventDigest: eventSealed,
+          };
+          break;
+        default:
+          return null;
+      }
 
-      const sharedKey = await this._spark.generateSharedEncryptionKey({ publicKey: encryptionPublicKey });
-      if (SparkError.is(sharedKey)) throw sharedKey;
+      if (!receipt) throw new Error("Receipt could not be generated");
 
-      this.peer = { identifier, publicKeys };
-      this.sharedKey = sharedKey;
+      const receiptEncrypted = await this._spark.encrypt({ data: receipt, sharedKey });
+      const sealedReceiptDigest = await this._spark.seal({ data: receiptEncrypted });
+      return sealedReceiptDigest;
     } catch (error) {
-      return errors.InvalidPeerInfo(error.message);
+      return Promise.reject(error);
     }
   }
 
-  private async openReceiptDigest(acceptOrConfirmEvent: ChannelReceiptEvents): Promise<ChannelReceipt | SparkError> {
-    const receiptDigest = acceptOrConfirmEvent.payload.receipt;
-    const openedReceipt = await this._spark.open({ data: receiptDigest, publicKey: this.peer.publicKeys.signing });
-    const decrypted = await this._spark.decrypt({ data: openedReceipt, sharedKey: this.sharedKey }) as ChannelReceipt;
-    const openErrors = SparkError.get(this.peer.publicKeys, this.peer.identifier, receiptDigest, openedReceipt, decrypted);
-    if (openErrors) return openErrors as SparkError;
-  }
+  private async generateEvent(type: ChannelEventType, prev: AnyChannelEvent): Promise<AnyChannelEvent | null> {
+    try {
+      const { payload = {}, metadata = {} } = prev as any || {};
+      const cid = this.cid;
+      const mid = metadata?.nmid || cuid.slug();
+      const eid = metadata?.neid || cuid.slug();
+      const neid = cuid.slug();
+      const timestamp = utcEpochTimestamp();
+      const { receipt } = payload;
+      const ourInfo = { identifier: this._spark.identifier, publicKeys: this._spark.publicKeys };
+      const theirInfo = { identifier: payload?.identifier, publicKeys: payload?.publicKeys };
+      const sharedKey = this.sharedKey;
 
-  private async sealReceiptData(event: ChannelOpenRequestEvent | ChannelOpenAcceptanceEvent): Promise<ChannelReceiptDigest | SparkError> {
-    const { payload } = event;
-    const ourIdentifier = this._spark.identifier as Identifier;
-    const ourPublicKeys = this._spark.publicKeys as PublicKeys;
-    const theirIdentifier = payload.identifier as Identifier;
-    const theirPublicKeys = payload.publicKeys as PublicKeys;
-
-    const hashedEvent = await this._spark.hash({ data: event })
-    const encryptedEventHash = await this._spark.encrypt({ data: hashedEvent, sharedKey: this.sharedKey });
-    const eventDigest = await this._spark.seal({ data: encryptedEventHash, publicKey: ourPublicKeys.encryption });
-
-    const sealErrors = SparkError.get(ourPublicKeys, ourIdentifier, hashedEvent, encryptedEventHash, eventDigest);
-    if (sealErrors) return sealErrors as SparkError;
-
-    let receiptData;
-
-    switch (event.type) {
-      case ChannelEventType.OPEN_REQUEST:
-        receiptData = {
-          type: ChannelReceiptType.OPEN_ACCEPTED,
-          eventDigest,
-          peers: [
-            { identifier: ourIdentifier, publicKeys: ourPublicKeys },
-            { identifier: theirIdentifier, publicKeys: theirPublicKeys },
-          ],
-        } as ChannelOpenAcceptanceReceipt;
-        break;
-      case ChannelEventType.OPEN_ACCEPTANCE:
-        receiptData = {
-          type: ChannelReceiptType.OPEN_CONFIRMED,
-          eventDigest,
-          peers: [
-            { identifier: ourIdentifier, publicKeys: ourPublicKeys },
-            { identifier: theirIdentifier, publicKeys: theirPublicKeys },
-          ],
-        } as ChannelOpenConfirmationReceipt;
-        break;
-      default:
-        return errors.InvalidReceiptEventType();
+      let outgoingEvent: AnyChannelEvent;
+      switch (type) {
+        case ChannelEventType.OPEN_REQUEST:
+          outgoingEvent = {
+            type: ChannelEventType.OPEN_REQUEST,
+            timestamp,
+            payload: {
+              identifier: ourInfo.identifier,
+              publicKeys: ourInfo.publicKeys,
+            },
+            metadata: { eid, cid, neid },
+          };
+          break;
+        case ChannelEventType.OPEN_ACCEPTANCE:
+          outgoingEvent = {
+            type: ChannelEventType.OPEN_ACCEPTANCE,
+            timestamp,
+            payload: {
+              identifier: theirInfo.identifier,
+              publicKeys: theirInfo.publicKeys,
+              receipt: await this.generateReceipt(ChannelReceiptType.OPEN_ACCEPTED, prev)
+            },
+            metadata: { eid, cid, neid },
+          };
+          break;
+        case ChannelEventType.OPEN_CONFIRMATION:
+          outgoingEvent = {
+            type: ChannelEventType.OPEN_CONFIRMATION,
+            timestamp,
+            payload: {
+              receipt: await this.generateReceipt(ChannelReceiptType.OPEN_CONFIRMED, prev),
+            },
+            metadata: { eid, cid, neid }
+          };
+          break;
+        case ChannelEventType.OPEN_REJECTION:
+          outgoingEvent = {
+            type: ChannelEventType.OPEN_REJECTION,
+            timestamp,
+            payload: {},
+            metadata: { eid, cid, neid },
+          };
+          break;
+        case ChannelEventType.CLOSE:
+          outgoingEvent = {
+            type: ChannelEventType.CLOSE,
+            timestamp,
+            payload: {},
+            metadata: { eid, cid, neid },
+          };
+          break;
+        case ChannelEventType.CLOSE_CONFIRMATION:
+          outgoingEvent = {
+            type: ChannelEventType.CLOSE_CONFIRMATION,
+            timestamp,
+            payload: {},
+            metadata: { eid, cid, neid },
+          } as ChannelCloseConfirmationEvent;
+          break;
+        case ChannelEventType.MESSAGE:
+          outgoingEvent = {
+            type: ChannelEventType.MESSAGE,
+            timestamp,
+            payload: {},
+            metadata: { eid, cid, neid, mid },
+          } as ChannelMessageEvent;
+          break;
+        case ChannelEventType.MESSAGE_CONFIRMATION:
+          outgoingEvent = {
+            type: ChannelEventType.MESSAGE_CONFIRMATION,
+            timestamp,
+            payload: {
+              receipt: await this.generateReceipt(ChannelReceiptType.MESSAGE_RECEIVED, prev),
+            },
+            metadata: { eid, cid, neid, mid },
+          };
+          break;
+        default:
+          return null; // Event type not supported
+      }
+    } catch (error) {
+      return Promise.reject(error);
     }
   }
+
 
   // send a request event to the peer
   public async open(): Promise<ChannelOpenConfirmationEvent | SparkError> {
