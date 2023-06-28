@@ -7,11 +7,7 @@ import { ControllerCore } from "./controllers";
 import { HasherCore } from "./hashers/HasherCore";
 import { SignerCore } from "./signers/SignerCore";
 import { SignedEncryptedData, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./signers/types";
-
-// utils
-export interface Constructable<T> {
-  new(...args: any[]): T;
-}
+import { Constructable, UnwrapPromise } from "./utilities/types";
 
 // spark
 export interface KeyPairs {
@@ -43,6 +39,10 @@ export type SparkParams<
   signer: Constructable<S>;
 };
 
+export type SparkImportAgentParam<A extends AgentCore[]> = {
+  [K in keyof A]: Parameters<A[K]['import']>[0];
+};
+
 export interface SparkInterface<
   A extends AgentCore[],
   X extends CipherCore,
@@ -55,9 +55,22 @@ export interface SparkInterface<
   publicKeys: PublicKeys;
   secretKeys: SecretKeys;
   keyPairs: KeyPairs;
-  generateKeyPairs: (params?: Record<string, any>) => Promise<KeyPairs>;
-  setKeyPairs: (params?: Record<string, any>) => void;
+
+  generateKeyPairs: (params?: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+  }) => Promise<{
+    cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
+    signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>,
+  }>;
+
+  setKeyPairs: (params?: {
+    cipher: Parameters<X['setKeyPair']>[0],
+    signer: Parameters<S['setKeyPair']>[0],
+  }) => void;
+
   import: (data: SignedEncryptedData) => Promise<void>;
+
   export: () => Promise<SignedEncryptedData>;
 
   // agent
@@ -71,10 +84,22 @@ export interface SparkInterface<
 
   // controller
   identifier: ReturnType<C['getIdentifier']>;
-  keyEventLog: ReturnType<C['getKeyEventLog']>;
-  incept: (params?: Record<string, any>) => Promise<void>;
-  rotate: (params?: Record<string, any>) => Promise<void>;
-  destroy: (params?: Record<string, any>) => Promise<void>;
+  
+  keyEventLog: C['getKeyEventLog'];
+  incept: (params?: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+  }) => Promise<void>;
+
+  rotate: (params?: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+  }) => Promise<void>;
+
+  destroy: (params?: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+  }) => Promise<void>;
 
   // hasher
   hash: H['hash'];
