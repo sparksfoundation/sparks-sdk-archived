@@ -73,7 +73,9 @@ export class Spark<
     return { cipher, signer } as KeyPairs;
   }
 
-  public generateKeyPairs: SparkInterface<A, X, C, H, S>['generateKeyPairs'] = async ({ signer, cipher }) => {
+  public generateKeyPairs: SparkInterface<A, X, C, H, S>['generateKeyPairs'] = async (params) => {
+    const { cipher, signer } = params || {};
+    console.log(cipher, signer)
     const signerKeyPair = await this.signer.generateKeyPair(signer) as UnwrapPromise<ReturnType<S['generateKeyPair']>>;
     const cipherKeyPair = await this.cipher.generateKeyPair(cipher) as UnwrapPromise<ReturnType<X['generateKeyPair']>>;
     return Promise.resolve({ signer: signerKeyPair, cipher: cipherKeyPair });

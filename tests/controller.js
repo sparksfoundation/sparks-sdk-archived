@@ -18,38 +18,26 @@ import nacl from 'tweetnacl';
     const salt = util.encodeBase64(nacl.randomBytes(16));
     const password = 'password';
   
-    let keyPairs = await spark.generateKeyPairs({ password, salt })
-      .catch(e => assert(false, 'signer - keys generated'));
-
-    let nextKeyPairs = await spark.generateKeyPairs({ password, salt })
-      .catch(e => assert(false, 'signer - keys generated'));
-
-    spark.setKeyPairs(keyPairs)
-      .catch(e => assert(false, 'signer - keys set'));
-  
-    await spark.incept()
+    await spark.incept({ 
+      signer: { password, salt },
+      cipher: { password, salt },
+    })
       .catch(e => { console.log(e); assert(false, 'controller - incepted');});
 
-    spark.setKeyPairs(keyPairs)
-      .catch(e => { console.log(e); assert(false, 'signer - keys set');});
-
-    nextKeyPairs = await spark.generateKeyPairs({ password, salt })
-      .catch(e => { console.log(e); assert(false, 'signer - keys generated');});
-
-    await spark.rotate({ nextKeyPairs })
+    await spark.rotate({
+      signer: { password, salt },
+      cipher: { password, salt },
+    })
       .catch(e => { console.log(e); assert(false, 'controller - rotated 1');});
   
-    spark.setKeyPairs(nextKeyPairs)
-      .catch(e => { console.log(e); assert(false, 'signer - keys set');});
-
-    keyPairs = { ...nextKeyPairs };
-    nextKeyPairs = await spark.generateKeyPairs({ password, salt })
-      .catch(e => { console.log(e); assert(false, 'signer - keys generated');});
-
-    await spark.rotate({ nextKeyPairs })
+    await spark.rotate({
+      signer: { password, salt },
+      cipher: { password, salt },
+    })
       .catch(e => { console.log(e); assert(false, 'controller - rotated 2');});
+
+      console.log(spark.keyPairs)
   
     await spark.destroy()
       .catch(e => { console.log(e); assert(false, 'controller - destroyed');});
-
 }())
