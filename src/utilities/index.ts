@@ -21,7 +21,6 @@ export function parseJSON(data) {
     }
 }
 
-
 export function randomSalt() {
     return util.encodeBase64(nacl.randomBytes(32));
 }

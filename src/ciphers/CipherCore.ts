@@ -16,6 +16,14 @@ export abstract class CipherCore {
     this.decrypt = this.decrypt.bind(this);
   }
 
+  public async import(data: Record<string, any>): Promise<void> {
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    return Promise.resolve({});
+  }
+
   public getPublicKey(): EncryptionPublicKey {
     try {
       if (!this._publicKey) throw new Error('No public key found.')
@@ -45,13 +53,12 @@ export abstract class CipherCore {
     }
   }
 
-  public setKeyPair({ keyPair }: { keyPair: EncryptionKeyPair }): void {
+  public setKeyPair({ publicKey, secretKey }: EncryptionKeyPair): void {
     try {
-      if (!keyPair) throw new Error('No key pair found.')
-      if (!keyPair.publicKey) throw new Error('No public key found.')
-      if (!keyPair.secretKey) throw new Error('No secret key found.')
-      this._publicKey = keyPair.publicKey as EncryptionPublicKey;
-      this._secretKey = keyPair.secretKey as EncryptionSecret;
+      if (!publicKey) throw new Error('No public key found.')
+      if (!secretKey) throw new Error('No secret key found.')
+      this._publicKey = publicKey as EncryptionPublicKey;
+      this._secretKey = secretKey as EncryptionSecret;
     } catch (error) {
       throw CipherErrors.SetEncryptionKeypairError(error);
     }

@@ -17,6 +17,19 @@ export abstract class ControllerCore {
     this.destroy = this.destroy.bind(this);
   }
 
+  public async import(data: Record<string, any>): Promise<void> {
+    this._identifier = data.identifier;
+    this._keyEventLog = data.keyEventLog;
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    return Promise.resolve({
+      identifier: this._identifier,
+      keyEventLog: this._keyEventLog,
+    });
+  }
+
   public getIdentifier(): Identifier {
     try {
       if (!this._identifier) throw new Error('No identifier found.');

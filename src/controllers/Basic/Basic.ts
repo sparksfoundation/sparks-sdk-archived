@@ -5,6 +5,15 @@ import { KeyPairs } from "../../types";
 import { ControllerErrors } from "../../errors/controller";
 
 export class Basic extends ControllerCore {
+  public async import(data: Record<string, any>): Promise<void> {
+    await super.import(data);
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    const data = await super.export();
+    return Promise.resolve(data);
+  }
 
   private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent> {
     const keyPairs = this._spark.keyPairs as KeyPairs;
@@ -99,7 +108,6 @@ export class Basic extends ControllerCore {
       this._keyEventLog.push(inceptionEvent);
       this._identifier = inceptionEvent.identifier;
     } catch (error) {
-      console.log(error);
       return Promise.reject(ControllerErrors.InceptionError(error));
     }
   }

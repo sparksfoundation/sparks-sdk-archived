@@ -18,6 +18,14 @@ export abstract class SignerCore {
     this.open = this.open.bind(this);
   }
 
+  public async import(data: Record<string, any>): Promise<void> {
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    return Promise.resolve({});
+  }
+
   public getPublicKey(): SigningPublicKey {
     try {
       if (!this._publicKey) throw new Error('No public key found.');
@@ -50,13 +58,12 @@ export abstract class SignerCore {
     }
   }
 
-  public setKeyPair({ keyPair }: { keyPair: SigningKeyPair }): void {
+  public setKeyPair({ publicKey, secretKey }: SigningKeyPair): void {
     try {
-      if (!keyPair) throw new Error('No key pair found.');
-      if (!keyPair.publicKey) throw new Error('No public key found.');
-      if (!keyPair.secretKey) throw new Error('No secret key found.');
-      this._publicKey = keyPair.publicKey as SigningPublicKey;
-      this._secretKey = keyPair.secretKey as SigningSecretKey;
+      if (!publicKey) throw new Error('No public key found.');
+      if (!secretKey) throw new Error('No secret key found.');
+      this._publicKey = publicKey as SigningPublicKey;
+      this._secretKey = secretKey as SigningSecretKey;
     } catch (error) {
       throw SignerErrors.SetSigningKeyPairError(error);
     }

@@ -6,6 +6,16 @@ import { CipherCore } from "../CipherCore";
 import { CipherErrors } from "../../errors/cipher";
 
 export class X25519SalsaPoly extends CipherCore {
+  public async import(data: Record<string, any>): Promise<void> {
+    await super.import(data);
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    const data = await super.export();
+    return Promise.resolve(data);
+  }
+  
   public async generateKeyPair(params?: { secretKey?: EncryptionSecret }): ReturnType<CipherCore['generateKeyPair']> {
     try {
       const keyPair = params?.secretKey ? nacl.box.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.box.keyPair();

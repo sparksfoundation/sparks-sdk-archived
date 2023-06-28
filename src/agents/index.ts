@@ -1,1 +1,1 @@
-export * from './Agent'
+export * from './AgentCore'

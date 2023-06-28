@@ -6,6 +6,15 @@ import { SignerCore } from "../SignerCore";
 import { SignerErrors } from "../../errors/signer";
 
 export class Ed25519 extends SignerCore {
+  public async import(data: Record<string, any>): Promise<void> {
+    await super.import(data);
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    const data = await super.export();
+    return Promise.resolve(data);
+  }
 
   public async generateKeyPair(params?: { secretKey: SigningSecretKey }): Promise<SigningKeyPair> {
     try {

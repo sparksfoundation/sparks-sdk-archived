@@ -1,16 +1,15 @@
 import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
-import { AgentAbstract } from "./agents/types";
 import { EncryptionKeyPair } from "./ciphers/types";
-import { HashDigest } from "./hashers/types";
-import { SigningKeyPair } from "./signers/types";
+import { SignedEncryptedData, SigningKeyPair } from "./signers/types";
 import { SparkInterface } from "./types";
+import { AgentCore } from "./agents/AgentCore";
 import { CipherCore } from "./ciphers/CipherCore";
 import { HasherCore } from "./hashers/HasherCore";
 import { SignerCore } from "./signers/SignerCore";
 import { ControllerCore } from "./controllers";
 
 export class Spark<
-  A extends AgentAbstract[],
+  A extends AgentCore[],
   X extends CipherCore,
   C extends ControllerCore,
   H extends HasherCore,
@@ -43,11 +42,11 @@ export class Spark<
     });
 
     Object.defineProperties(this, {
-      agents: { enumerable: false },
-      cipher: { enumerable: false },
-      hasher: { enumerable: false },
-      signer: { enumerable: false },
-      controller: { enumerable: false },
+      agents: { enumerable: false, writable: false },
+      cipher: { enumerable: false, writable: false },
+      hasher: { enumerable: false, writable: false },
+      signer: { enumerable: false, writable: false },
+      controller: { enumerable: false, writable: false },
     });
   }
 
@@ -74,23 +73,23 @@ export class Spark<
     return { encryption, signing } as KeyPairs;
   }
 
-  public async generateKeyPairs(args: any): Promise<KeyPairs> {
-    const encryption = await this.cipher.generateKeyPair(args) as EncryptionKeyPair;
-    const signing = await this.signer.generateKeyPair(args) as SigningKeyPair;
+  // todo fix typings here
+  public async generateKeyPairs(params: any): Promise<KeyPairs> {
+    const signer = params.signing || params as SigningKeyPair;
+    const signing = await this.signer.generateKeyPair(signer) as SigningKeyPair;
+    const cipher = params.encryption || params as EncryptionKeyPair;
+    const encryption = await this.cipher.generateKeyPair(cipher) as EncryptionKeyPair;
+
     return { encryption, signing } as KeyPairs;
   }
 
-  public async setKeyPairs({ keyPairs }: { keyPairs: KeyPairs }): Promise<void> {
-    this.signer.setKeyPair({ keyPair: keyPairs.signing });
-    this.cipher.setKeyPair({ keyPair: keyPairs.encryption });
-  }
+  // todo fix typings here
+  public async setKeyPairs(params: any): Promise<void> {
+    const signer = params.signing || params as SigningKeyPair;
+    this.signer.setKeyPair(signer);
 
-  import(data: HashDigest): Promise<void> {
-    return Promise.resolve();
-  }
-
-  export(): Promise<HashDigest> {
-    return Promise.resolve('');
+    const cipher = params.encryption || params as EncryptionKeyPair;
+    this.cipher.setKeyPair(cipher);
   }
 
   // cipher
@@ -124,6 +123,7 @@ export class Spark<
   }
 
   get incept(): C['incept'] {
+    
     return this.controller.incept;
   }
 
@@ -163,5 +163,45 @@ export class Spark<
 
   get open(): S['open'] {
     return this.signer.open;
+  }
+
+  public async import(data: SignedEncryptedData): Promise<void> {
+    const opened = await this.signer.open({ signature: data, publicKey: this.publicKeys.signing });
+    const decrypted = await this.cipher.decrypt({ data: opened }) as Record<string, any>;
+
+    await Promise.all(
+      Object.entries(this.agents).map(async ([key, agent]) => {
+        await agent.import(decrypted);
+      })
+    );
+    
+    await Promise.all([
+      this.cipher.import(decrypted),
+      this.hasher.import(decrypted),
+      this.signer.import(decrypted),
+      this.controller.import(decrypted),
+    ]);
+  }
+
+  public async export(): Promise<SignedEncryptedData> {
+    // create an object with all the data
+    const data = {};
+
+    await Promise.all(
+      Object.entries(this.agents).map(async ([key, agent]) => {
+        data[key] = await agent.export();
+      })
+    );
+
+    Object.assign(data, {
+      cipher: await this.cipher.export(),
+      hasher: await this.hasher.export(),
+      signer: await this.signer.export(),
+      controller: await this.controller.export(),
+    });
+
+    const encrypted = await this.cipher.encrypt({ data });
+    const signed = await this.signer.seal({ data: encrypted });
+    return signed;
   }
 }

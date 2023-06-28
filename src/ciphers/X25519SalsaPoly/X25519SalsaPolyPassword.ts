@@ -6,14 +6,34 @@ import nacl from "tweetnacl";
 import * as scrypt from "scrypt-pbkdf";
 import { CipherErrors } from "../../errors/cipher";
 
+export type EncryptionKeyPairWithSalt = EncryptionKeyPair & { salt: string };
+
 export class X25519SalsaPolyPassword extends CipherCore {
   private X25519SalsaPoly: X25519SalsaPoly;
+  private _salt: string;
+  
   constructor() {
     super();
     this.X25519SalsaPoly = new X25519SalsaPoly();
   }
 
-  public async generateKeyPair({ password, salt: nonce }: { password: string, salt?: string }): Promise<EncryptionKeyPair> {
+  public get salt(): string {
+    return this._salt;
+  }
+
+  public async import(data: Record<string, any>): Promise<void> {
+    this._salt = data.salt;
+    await super.import(data);
+    return Promise.resolve();
+  }
+
+  public async export(): Promise<Record<string, any>> {
+    const data = await super.export();
+    data.salt = this._salt;
+    return Promise.resolve(data);
+  }
+
+  public async generateKeyPair({ password, salt: nonce }: { password: string, salt: string }): Promise<EncryptionKeyPairWithSalt> {
     try {
       const options = { N: 16384, r: 8, p: 1 };
       const salt = nonce || util.encodeBase64(nacl.randomBytes(16));
@@ -27,7 +47,8 @@ export class X25519SalsaPolyPassword extends CipherCore {
       const uint8Seed = util.decodeUTF8(seed);
       const keyPair = nacl.box.keyPair.fromSecretKey(uint8Seed);
       const secretKey = util.encodeBase64(keyPair.secretKey);
-      return { publicKey: util.encodeBase64(keyPair.publicKey), secretKey } as EncryptionKeyPair;
+
+      return { publicKey: util.encodeBase64(keyPair.publicKey), secretKey, salt } as EncryptionKeyPairWithSalt;
     } catch (error) {
       return Promise.reject(CipherErrors.GenerateEncryptionKeyPairError(error));
     }
@@ -41,12 +62,14 @@ export class X25519SalsaPolyPassword extends CipherCore {
     return this.X25519SalsaPoly.getSecretKey();
   }
 
-  public getKeyPair(): EncryptionKeyPair {
-    return this.X25519SalsaPoly.getKeyPair();
+  public getKeyPair(): EncryptionKeyPairWithSalt {
+    const keyPair = this.X25519SalsaPoly.getKeyPair();
+    return { ...keyPair, salt: this._salt };
   }
 
-  public setKeyPair({ keyPair }: { keyPair: EncryptionKeyPair }): void {
-    this.X25519SalsaPoly.setKeyPair({ keyPair });
+  public setKeyPair({ publicKey, secretKey, salt }: EncryptionKeyPairWithSalt): void {
+    this._salt = salt;
+    this.X25519SalsaPoly.setKeyPair({ publicKey, secretKey });
   }
 
   public async decrypt(params: Parameters<X25519SalsaPoly['decrypt']>[0]): Promise<DecryptedData> {

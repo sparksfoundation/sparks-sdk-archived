@@ -1,14 +1,12 @@
 // TODO - promote error factories to class with type of extended class
 
-import { AgentAbstract } from "./agents/types";
+import { AgentCore } from "./agents/AgentCore";
 import { CipherCore } from "./ciphers/CipherCore";
-import { EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./ciphers/types";
-import { ErrorInterface } from "./utilities/errors";
+import { EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./ciphers/types";
 import { ControllerCore } from "./controllers";
 import { HasherCore } from "./hashers/HasherCore";
-import { HashDigest } from "./hashers/types";
 import { SignerCore } from "./signers/SignerCore";
-import { SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signers/types";
+import { SignedEncryptedData, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signers/types";
 
 // utils
 export interface Constructable<T> {
@@ -32,7 +30,7 @@ export interface SecretKeys {
 }
 
 export type SparkParams<
-  A extends AgentAbstract[],
+  A extends AgentCore[],
   X extends CipherCore,
   C extends ControllerCore,
   H extends HasherCore,
@@ -46,7 +44,7 @@ export type SparkParams<
 };
 
 export interface SparkInterface<
-  A extends AgentAbstract[],
+  A extends AgentCore[],
   X extends CipherCore,
   C extends ControllerCore,
   H extends HasherCore,
@@ -54,13 +52,13 @@ export interface SparkInterface<
 > {
 
   // spark
-  publicKeys: PublicKeys | ErrorInterface;
-  secretKeys: SecretKeys | ErrorInterface;
-  keyPairs: KeyPairs | ErrorInterface;
-  generateKeyPairs: (params?: Record<string, any>) => Promise<KeyPairs | ErrorInterface>;
-  setKeyPairs: ({ keyPairs }: { keyPairs: KeyPairs }) => void | ErrorInterface;
-  import: (data: EncryptedData) => Promise<void | ErrorInterface>;
-  export: () => Promise<HashDigest | ErrorInterface>;
+  publicKeys: PublicKeys;
+  secretKeys: SecretKeys;
+  keyPairs: KeyPairs;
+  generateKeyPairs: (params?: Record<string, any>) => Promise<KeyPairs>;
+  setKeyPairs: (params?: Record<string, any>) => void;
+  import: (data: SignedEncryptedData) => Promise<void>;
+  export: () => Promise<SignedEncryptedData>;
 
   // agent
   agents?: { [key: string]: InstanceType<Constructable<A[number]>> };

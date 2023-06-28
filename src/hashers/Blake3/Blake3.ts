@@ -5,6 +5,16 @@ import { blake3 } from "@noble/hashes/blake3";
 import { HasherErrors } from "../../errors/hasher";
 
 export class Blake3 extends HasherCore {
+  public async import(data: Record<string, any>): Promise<void> {
+    await super.import(data);
+    return Promise.resolve();
+  }
+  
+  public async export(): Promise<Record<string, any>> {
+    const data = await super.export();
+    return Promise.resolve(data);
+  }
+
   public async hash({ data }: { data: HashData }): ReturnType<HasherCore['hash']> {
     try {
       const stringData = typeof data !== 'string' ? JSON.stringify(data) : data;
