@@ -1,8 +1,8 @@
 import { Spark } from '../dist/index.mjs';
-import { Ed25519Password } from '../dist/signer/Ed25519/index.mjs';
-import { Blake3 } from '../dist/hasher/Blake3/index.mjs';
-import { Basic } from '../dist/controller/Basic/index.mjs';
-import { X25519SalsaPolyPassword } from '../dist/cipher/X25519SalsaPoly/index.mjs';
+import { Ed25519Password } from '../dist/signers/Ed25519/index.mjs';
+import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
+import { Basic } from '../dist/controllers/Basic/index.mjs';
+import { X25519SalsaPolyPassword } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
 import { assert } from 'console';
 import cuid from 'cuid';
 
@@ -18,7 +18,7 @@ import cuid from 'cuid';
     let keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
       .catch(e => assert(false, 'password - keys generated'));
 
-    await spark.setKeyPairs({ keyPairs})
+    await spark.setKeyPairs(keyPairs)
       .catch(e => assert(false, 'password - keys set'));
 
     const firstKeys = spark.keyPairs;
@@ -26,7 +26,7 @@ import cuid from 'cuid';
     keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
       .catch(e => assert(false, 'password - keys generated'));
 
-    await spark.setKeyPairs({ keyPairs })
+    await spark.setKeyPairs(keyPairs)
       .catch(e => assert(false, 'password - keys set'));
 
     const secondKeys = spark.keyPairs;

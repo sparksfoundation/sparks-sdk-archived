@@ -1,12 +1,12 @@
 import * as scrypt from 'scrypt-pbkdf';
-import { SigatureDetached, Signature, SignatureData, SignatureVerified, SigningKeyPair } from "../types";
+import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerKeyPair } from "../types";
 import { Ed25519 } from "./Ed25519";
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
 import { SignerCore } from '../SignerCore';
 import { SignerErrors } from '../../errors/signer';
 
-export type SigningKeyPairWithSalt = SigningKeyPair & { salt: string };
+export type SignerKeyPairWithSalt = SignerKeyPair & { salt: string };
 
 export class Ed25519Password extends SignerCore {
   private Ed25519: Ed25519;
@@ -33,7 +33,7 @@ export class Ed25519Password extends SignerCore {
     return Promise.resolve(data);
   }
 
-  public async generateKeyPair({ password, salt: nonce }: { password: string, salt?: string }): Promise<SigningKeyPairWithSalt> {
+  public async generateKeyPair({ password, salt: nonce }: { password: string, salt?: string }): Promise<SignerKeyPairWithSalt> {
     try {
       const options = { N: 16384, r: 8, p: 1 };
       const salt = nonce || util.encodeBase64(nacl.randomBytes(16));
@@ -48,26 +48,26 @@ export class Ed25519Password extends SignerCore {
       const keyPair = nacl.sign.keyPair.fromSeed(uint8Seed);
       const secretKey = util.encodeBase64(keyPair.secretKey);
 
-      return { publicKey: util.encodeBase64(keyPair.publicKey), secretKey, salt } as SigningKeyPairWithSalt;
+      return { publicKey: util.encodeBase64(keyPair.publicKey), secretKey, salt } as SignerKeyPairWithSalt;
     } catch (error) {
-      return Promise.reject(SignerErrors.GenerateSigningKeyPairError(error));
+      return Promise.reject(SignerErrors.GenerateSignerKeyPairError(error));
     }
   }
 
-  public getPublicKey(): SigningKeyPair['publicKey'] {
+  public getPublicKey(): SignerKeyPair['publicKey'] {
     return this.Ed25519.getPublicKey();
   }
 
-  public getSecretKey(): SigningKeyPair['secretKey'] {
+  public getSecretKey(): SignerKeyPair['secretKey'] {
     return this.Ed25519.getSecretKey();
   }
 
-  public getKeyPair(): SigningKeyPairWithSalt {
+  public getKeyPair(): SignerKeyPairWithSalt {
     const keyPair = this.Ed25519.getKeyPair();
     return { ...keyPair, salt: this._salt }
   }
 
-  public setKeyPair({ publicKey, secretKey, salt }: SigningKeyPairWithSalt): void {
+  public setKeyPair({ publicKey, secretKey, salt }: SignerKeyPairWithSalt): void {
     this._salt = salt;
     this.Ed25519.setKeyPair({ publicKey, secretKey });
   }

@@ -24,32 +24,32 @@ import nacl from 'tweetnacl';
     let nextKeyPairs = await spark.generateKeyPairs({ password, salt })
       .catch(e => assert(false, 'signer - keys generated'));
 
-    spark.setKeyPairs({ keyPairs })
+    spark.setKeyPairs(keyPairs)
       .catch(e => assert(false, 'signer - keys set'));
   
     await spark.incept()
-      .catch(e => assert(false, 'controller - incepted'));
+      .catch(e => { console.log(e); assert(false, 'controller - incepted');});
 
-    spark.setKeyPairs({ keyPairs })
-      .catch(e => assert(false, 'signer - keys set'));
+    spark.setKeyPairs(keyPairs)
+      .catch(e => { console.log(e); assert(false, 'signer - keys set');});
 
     nextKeyPairs = await spark.generateKeyPairs({ password, salt })
-      .catch(e => assert(false, 'signer - keys generated'));
+      .catch(e => { console.log(e); assert(false, 'signer - keys generated');});
 
     await spark.rotate({ nextKeyPairs })
-      .catch(e => assert(false, 'controller - rotated 1'));
+      .catch(e => { console.log(e); assert(false, 'controller - rotated 1');});
   
-    spark.setKeyPairs({ keyPairs: nextKeyPairs })
-      .catch(e => assert(false, 'signer - keys set'));
+    spark.setKeyPairs(nextKeyPairs)
+      .catch(e => { console.log(e); assert(false, 'signer - keys set');});
 
     keyPairs = { ...nextKeyPairs };
     nextKeyPairs = await spark.generateKeyPairs({ password, salt })
-      .catch(e => assert(false, 'signer - keys generated'));
+      .catch(e => { console.log(e); assert(false, 'signer - keys generated');});
 
     await spark.rotate({ nextKeyPairs })
-      .catch(e => assert(false, 'controller - rotated 2'));
+      .catch(e => { console.log(e); assert(false, 'controller - rotated 2');});
   
     await spark.destroy()
-      .catch(e => assert(false, 'controller - destroyed'));
+      .catch(e => { console.log(e); assert(false, 'controller - destroyed');});
 
 }())

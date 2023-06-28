@@ -1,7 +1,7 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../utilities";
-import { SigatureDetached, Signature, SignatureData, SignatureVerified, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "../types";
+import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "../types";
 import { SignerCore } from "../SignerCore";
 import { SignerErrors } from "../../errors/signer";
 
@@ -16,15 +16,15 @@ export class Ed25519 extends SignerCore {
     return Promise.resolve(data);
   }
 
-  public async generateKeyPair(params?: { secretKey: SigningSecretKey }): Promise<SigningKeyPair> {
+  public async generateKeyPair(params?: { secretKey: SignerSecretKey }): Promise<SignerKeyPair> {
     try {
       const keyPair = params?.secretKey ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.sign.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
       if (!publicKey || !secretKey) throw new Error('Failed to generate key pair.');
-      return { publicKey, secretKey } as SigningKeyPair;
+      return { publicKey, secretKey } as SignerKeyPair;
     } catch (error) {
-      return Promise.reject(SignerErrors.GenerateSigningKeyPairError(error));
+      return Promise.reject(SignerErrors.GenerateSignerKeyPairError(error));
     }
   }
 
@@ -41,7 +41,7 @@ export class Ed25519 extends SignerCore {
     }
   }
 
-  public async open({ publicKey, signature }: { publicKey: SigningPublicKey, signature: Signature }): Promise<SignatureData> {
+  public async open({ publicKey, signature }: { publicKey: SignerPublicKey, signature: Signature }): Promise<SignatureData> {
     try {
       const uintSignature = util.decodeBase64(signature);
       const uintPublicKey = util.decodeBase64(publicKey);
@@ -69,7 +69,7 @@ export class Ed25519 extends SignerCore {
     }
   }
 
-  public async verify({ publicKey, signature, data }: { publicKey: SigningPublicKey, signature: Signature, data: SignatureData }): Promise<SignatureVerified> {
+  public async verify({ publicKey, signature, data }: { publicKey: SignerPublicKey, signature: Signature, data: SignatureData }): Promise<SignatureVerified> {
     try {
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);

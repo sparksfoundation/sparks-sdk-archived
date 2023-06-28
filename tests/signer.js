@@ -1,8 +1,8 @@
 import { Spark } from '../dist/index.mjs';
-import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
-import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
-import { Blake3 } from '../dist/hasher/Blake3/index.mjs';
-import { Basic } from '../dist/controller/Basic/index.mjs';
+import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
+import { Basic } from '../dist/controllers/Basic/index.mjs';
 import { assert } from 'console';
 
 (async function() {
@@ -15,10 +15,10 @@ import { assert } from 'console';
   
     const data = { test: 'test' };
     const keyPairs = await spark.generateKeyPairs()
-      .catch(e => assert(false, 'signer - keys generated'));
+      .catch(e => {console.log(e); assert(false, 'signer - keys generated')});
 
-    spark.setKeyPairs({ keyPairs})
-      .catch(e => assert(false, 'signer - keys set'));
+    spark.setKeyPairs(keyPairs)
+      .catch(e => {console.log(e); assert(false, 'signer - keys set') });
 
     const keys = spark.keyPairs;
     
@@ -28,13 +28,13 @@ import { assert } from 'console';
     const signed = await spark.sign({ data })
       .catch(e => assert(false, 'signer - data signed'));
 
-    const verified = await spark.verify({ data, signature: signed, publicKey: keys.signing.publicKey })
+    const verified = await spark.verify({ data, signature: signed, publicKey: keys.signer.publicKey })
       .catch(e => assert(false, 'signer - data verified'));
   
     const sealed = await spark.seal({ data })
       .catch(e => assert(false, 'signer - data sealed'));
 
-    const opened = await spark.open({ publicKey: keys.signing.publicKey, signature: sealed })
+    const opened = await spark.open({ publicKey: keys.signer.publicKey, signature: sealed })
       .catch(e => assert(false, 'signer - data opened'));
 
 }())

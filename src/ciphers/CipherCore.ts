@@ -1,8 +1,8 @@
 import { CipherErrors } from "../errors/cipher";
-import { DecryptedData, EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecret, EncryptionSharedKey } from "./types";
+import { DecryptedData, EncryptedData, CipherKeyPair, CipherPublicKey, EncryptionSecret, EncryptionSharedKey } from "./types";
 
 export abstract class CipherCore {
-  protected _publicKey: EncryptionPublicKey
+  protected _publicKey: CipherPublicKey
   protected _secretKey: EncryptionSecret;
 
   constructor() {
@@ -24,12 +24,12 @@ export abstract class CipherCore {
     return Promise.resolve({});
   }
 
-  public getPublicKey(): EncryptionPublicKey {
+  public getPublicKey(): CipherPublicKey {
     try {
       if (!this._publicKey) throw new Error('No public key found.')
-      return this._publicKey as EncryptionPublicKey;
+      return this._publicKey as CipherPublicKey;
     } catch (error) {
-      throw CipherErrors.GetEncryptionPublicKeyError(error);
+      throw CipherErrors.GetCipherPublicKeyError(error);
     }
   }
 
@@ -38,33 +38,33 @@ export abstract class CipherCore {
       if (!this._secretKey) throw new Error('No secret key found.')
       return this._secretKey as EncryptionSecret;
     } catch (error) {
-      throw CipherErrors.GetEncryptionSecretKeyError(error);
+      throw CipherErrors.GetCipherSecretKeyError(error);
     }
   }
 
-  public getKeyPair(): EncryptionKeyPair {
+  public getKeyPair(): CipherKeyPair {
     try {
-      const publicKey = this.getPublicKey() as EncryptionPublicKey;
+      const publicKey = this.getPublicKey() as CipherPublicKey;
       const secretKey = this.getSecretKey() as EncryptionSecret;
       if (!publicKey || !secretKey) throw new Error('No key pair found.');
-      return { publicKey, secretKey } as EncryptionKeyPair;
+      return { publicKey, secretKey } as CipherKeyPair;
     } catch (error) {
       throw CipherErrors.GetEncryptionKeypairError(error);
     }
   }
 
-  public setKeyPair({ publicKey, secretKey }: EncryptionKeyPair): void {
+  public setKeyPair({ publicKey, secretKey }: CipherKeyPair): void {
     try {
       if (!publicKey) throw new Error('No public key found.')
       if (!secretKey) throw new Error('No secret key found.')
-      this._publicKey = publicKey as EncryptionPublicKey;
+      this._publicKey = publicKey as CipherPublicKey;
       this._secretKey = secretKey as EncryptionSecret;
     } catch (error) {
       throw CipherErrors.SetEncryptionKeypairError(error);
     }
   }
 
-  public abstract generateKeyPair(params?: Record<string, any>): Promise<EncryptionKeyPair>;
+  public abstract generateKeyPair(params?: Record<string, any>): Promise<CipherKeyPair>;
   public abstract generateSharedKey(params?: Record<string, any>): Promise<EncryptionSharedKey>;
   public abstract encrypt(params?: Record<string, any>): Promise<EncryptedData>;
   public abstract decrypt(params?: Record<string, any>): Promise<DecryptedData>;

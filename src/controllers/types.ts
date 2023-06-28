@@ -1,5 +1,5 @@
 import { HashDigest } from "../hashers/types";
-import { SigningPublicKey } from "../signers/types";
+import { SignerPublicKey } from "../signers/types";
 import { CombinedInterface } from "../utilities/types";
 
 export enum ControllerType {
@@ -12,9 +12,9 @@ export type Identifier = string;
 // primitives
 export type SigningThreshold = number;                    // kt: minimum amount of signatures needed for this event to be valid (multisig)
 export type SequenceIndex = number;                       // s: sequence number
-export type SigningKeys = SigningPublicKey[];             // k: list of signing key
+export type SigningKeys = SignerPublicKey[];             // k: list of signing key
 export type NextKeyCommitments = HashDigest[];            // n: next keys
-export type Backer = SigningPublicKey;                    // b: individual backer
+export type Backer = SignerPublicKey;                    // b: individual backer
 export type BackerThreshold = number;                     // bt: minimum amount of backers threshold
 export type SelfAddressingIdentifier = HashDigest;        // d: self-addressing identifier
 export type Version = string;                             // v: version

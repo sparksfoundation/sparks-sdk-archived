@@ -1,10 +1,10 @@
 import { SignerErrors } from "../errors/signer";
-import { Signature, SignatureData, SignatureVerified, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./types";
+import { Signature, SignatureData, SignatureVerified, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./types";
 
 // abstract class used by classes that use Hasher
 export abstract class SignerCore {
-  protected _publicKey: SigningPublicKey;
-  protected _secretKey: SigningSecretKey;
+  protected _publicKey: SignerPublicKey;
+  protected _secretKey: SignerSecretKey;
 
   constructor() {
     this.getPublicKey = this.getPublicKey.bind(this);
@@ -26,50 +26,50 @@ export abstract class SignerCore {
     return Promise.resolve({});
   }
 
-  public getPublicKey(): SigningPublicKey {
+  public getPublicKey(): SignerPublicKey {
     try {
       if (!this._publicKey) throw new Error('No public key found.');
-      return this._publicKey as SigningPublicKey;
+      return this._publicKey as SignerPublicKey;
     } catch (error) {
-      throw SignerErrors.GetSigningPublicKeyError(error);
+      throw SignerErrors.GetSignerPublicKeyError(error);
     }
   }
 
-  public getSecretKey(): SigningSecretKey {
+  public getSecretKey(): SignerSecretKey {
     try {
       if (!this._secretKey) throw new Error('No secret key found.');
-      return this._secretKey as SigningSecretKey;
+      return this._secretKey as SignerSecretKey;
     } catch (error) {
-      throw SignerErrors.GetSigningSecretKeyError(error);
+      throw SignerErrors.GetSignerSecretKeyError(error);
     }
   }
 
-  public getKeyPair(): SigningKeyPair {
+  public getKeyPair(): SignerKeyPair {
     try {
-      const publicKey = this.getPublicKey() as SigningPublicKey;
+      const publicKey = this.getPublicKey() as SignerPublicKey;
       if (!publicKey) throw new Error('No public key found.');
   
-      const secretKey = this.getSecretKey() as SigningSecretKey;
+      const secretKey = this.getSecretKey() as SignerSecretKey;
       if (!secretKey) throw new Error('No secret key found.');
   
-      return { publicKey, secretKey } as SigningKeyPair;
+      return { publicKey, secretKey } as SignerKeyPair;
     } catch(error) {
-      throw SignerErrors.GetSigningKeyPairError(error);
+      throw SignerErrors.GetSignerKeyPairError(error);
     }
   }
 
-  public setKeyPair({ publicKey, secretKey }: SigningKeyPair): void {
+  public setKeyPair({ publicKey, secretKey }: SignerKeyPair): void {
     try {
       if (!publicKey) throw new Error('No public key found.');
       if (!secretKey) throw new Error('No secret key found.');
-      this._publicKey = publicKey as SigningPublicKey;
-      this._secretKey = secretKey as SigningSecretKey;
+      this._publicKey = publicKey as SignerPublicKey;
+      this._secretKey = secretKey as SignerSecretKey;
     } catch (error) {
-      throw SignerErrors.SetSigningKeyPairError(error);
+      throw SignerErrors.SetSignerKeyPairError(error);
     }
   }
 
-  public abstract generateKeyPair(params?: Record<string, any>): Promise<SigningKeyPair>;
+  public abstract generateKeyPair(params?: Record<string, any>): Promise<SignerKeyPair>;
   public abstract sign(params?: Record<string, any>): Promise<Signature>;
   public abstract verify(params?: Record<string, any>): Promise<SignatureVerified>;
 

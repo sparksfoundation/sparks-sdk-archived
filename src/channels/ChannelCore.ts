@@ -115,7 +115,7 @@ export abstract class ChannelCore {
   private async openReceiptDigest(type: ChannelReceiptType, receipDigest): Promise<AnyChannelReceipt> {
     try {
       const sharedKey = this.sharedKey;
-      const publicKey = this.peer.publicKeys.signing;
+      const publicKey = this.peer.publicKeys.signer;
       const receiptEncrypted = await this._spark.open({ signature: receipDigest, publicKey });
       const receipt = await this._spark.decrypt({ data: receiptEncrypted, sharedKey });
       return receipt;
@@ -141,7 +141,7 @@ export abstract class ChannelCore {
   private async openMessageDigest(messageDigest: ChannelMessageDataDigest): Promise<ChannelMessageData> {
     try {
       const sharedKey = this.sharedKey;
-      const messageEncrypted = await this._spark.open({ signature: messageDigest, publicKey: this.peer.publicKeys.signing });
+      const messageEncrypted = await this._spark.open({ signature: messageDigest, publicKey: this.peer.publicKeys.signer });
       const message = await this._spark.decrypt({ data: messageEncrypted, sharedKey });
       return message;
     } catch (error) {
@@ -260,15 +260,15 @@ export abstract class ChannelCore {
     try {
       const { data } = event;
       const { identifier, publicKeys } = data || {};
-      const { encryption, signing } = publicKeys || {};
-      if (!identifier || !encryption || !signing) throw new Error("Invalid peer data");
+      const { cipher, signer } = publicKeys || {};
+      if (!identifier || !cipher || !signer) throw new Error("Invalid peer data");
 
       this.peer = {
         identifier: data.identifier,
         publicKeys: data.publicKeys
       };
 
-      const sharedKey = await this._spark.generateSharedEncryptionKey({ publicKey: encryption });
+      const sharedKey = await this._spark.generateCipherSharedKey({ publicKey: cipher });
       this.sharedKey = sharedKey;
 
     } catch (error) {

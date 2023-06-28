@@ -1,9 +1,9 @@
 import { Spark } from '../dist/index.mjs';
-import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
-import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
-import { Blake3 } from '../dist/hasher/Blake3/index.mjs';
-import { Basic } from '../dist/controller/Basic/index.mjs';
-import { FetchAPI } from '../dist/channel/Http/index.mjs';
+import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
+import { Basic } from '../dist/controllers/Basic/index.mjs';
+import { FetchAPI } from '../dist/channels/Http/index.mjs';
 import { assert } from 'console';
 
 import fetch from 'node-fetch';
@@ -21,7 +21,7 @@ global.fetch = fetch;
                 signer: Ed25519,
             });
             const clientKeys = await client.generateKeyPairs()
-            client.setKeyPairs({ keyPairs: clientKeys })
+            client.setKeyPairs(clientKeys)
             await client.incept()
     
             const channel = new FetchAPI({

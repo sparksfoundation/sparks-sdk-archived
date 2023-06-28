@@ -12,19 +12,19 @@ export enum CipherErrorName {
 }
 
 export class CipherErrors {
-  public static GetEncryptionPublicKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetCipherPublicKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GET_ENCRYPTION_PUBLIC_KEY_ERROR,
-      message: `failed to get encryption public key$`,
+      message: `failed to get cipher public key$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static GetEncryptionSecretKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GetCipherSecretKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GET_ENCRYPTION_SECRET_KEY_ERROR,
-      message: `failed to get encryption secret key$`,
+      message: `failed to get cipher secret key$`,
       metadata: { ...metadata },
       stack
     });
@@ -33,7 +33,7 @@ export class CipherErrors {
   public static GetEncryptionKeypairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GET_ENCRYPTION_KEYPAIR_ERROR,
-      message: `failed to get encryption keypair$`,
+      message: `failed to get cipher keypair$`,
       metadata: { ...metadata },
       stack
     });
@@ -42,16 +42,16 @@ export class CipherErrors {
   public static SetEncryptionKeypairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.SET_ENCRYPTION_KEYPAIR_ERROR,
-      message: `failed to set encryption keypair$`,
+      message: `failed to set cipher keypair$`,
       metadata: { ...metadata },
       stack
     });
   }
 
-  public static GenerateEncryptionKeyPairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+  public static GenerateCipherKeyPairError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GENERATE_ENCRYPTION_KEY_PAIR_ERROR,
-      message: `failed to generate encryption keypair$`,
+      message: `failed to generate cipher keypair$`,
       metadata: { ...metadata },
       stack
     });
@@ -60,7 +60,7 @@ export class CipherErrors {
   public static GenerateEncryptionSharedKeyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
       name: CipherErrorName.GENERATE_ENCRYPTION_SHARED_KEY_ERROR,
-      message: `failed to generate encryption shared key$`,
+      message: `failed to generate cipher shared key$`,
       metadata: { ...metadata },
       stack
     });

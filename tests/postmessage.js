@@ -1,9 +1,9 @@
 import { Spark } from '../dist/index.mjs';
-import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
-import { Blake3 } from '../dist/hasher/Blake3/index.mjs';
-import { Basic } from '../dist/controller/Basic/index.mjs';
-import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
-import { PostMessage } from '../dist/channel/PostMessage/index.mjs';
+import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
+import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
+import { Basic } from '../dist/controllers/Basic/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { PostMessage } from '../dist/channels/PostMessage/index.mjs';
 import { assert } from 'console';
 import { _0000, _1111 } from './utilities/MockWindow.js';
 

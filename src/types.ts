@@ -2,11 +2,11 @@
 
 import { AgentCore } from "./agents/AgentCore";
 import { CipherCore } from "./ciphers/CipherCore";
-import { EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./ciphers/types";
+import { CipherKeyPair, CipherPublicKey, CipherSecretKey } from "./ciphers/types";
 import { ControllerCore } from "./controllers";
 import { HasherCore } from "./hashers/HasherCore";
 import { SignerCore } from "./signers/SignerCore";
-import { SignedEncryptedData, SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signers/types";
+import { SignedEncryptedData, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./signers/types";
 
 // utils
 export interface Constructable<T> {
@@ -15,18 +15,18 @@ export interface Constructable<T> {
 
 // spark
 export interface KeyPairs {
-  encryption: EncryptionKeyPair;
-  signing: SigningKeyPair;
+  cipher: CipherKeyPair;
+  signer: SignerKeyPair;
 }
 
 export interface PublicKeys {
-  encryption: EncryptionPublicKey;
-  signing: SigningPublicKey;
+  cipher: CipherPublicKey;
+  signer: SignerPublicKey;
 }
 
 export interface SecretKeys {
-  encryption: EncryptionSecretKey;
-  signing: SigningSecretKey;
+  cipher: CipherSecretKey;
+  signer: SignerSecretKey;
 }
 
 export type SparkParams<
@@ -64,24 +64,24 @@ export interface SparkInterface<
   agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
 
   // cipher
-  generateSharedEncryptionKey: X['generateSharedKey'];
-  setEncryptionKeyPair: X['setKeyPair'];
+  generateCipherSharedKey: X['generateSharedKey'];
+  setCipherKeyPair: X['setKeyPair'];
   encrypt: X['encrypt'];
   decrypt: X['decrypt'];
 
   // controller
   identifier: ReturnType<C['getIdentifier']>;
   keyEventLog: ReturnType<C['getKeyEventLog']>;
-  incept: C['incept'];
-  rotate: C['rotate'];
-  destroy: C['destroy'];
+  incept: (params?: Record<string, any>) => Promise<void>;
+  rotate: (params?: Record<string, any>) => Promise<void>;
+  destroy: (params?: Record<string, any>) => Promise<void>;
 
   // hasher
   hash: H['hash'];
 
   // signer
-  generateSingingKeyPair: S['generateKeyPair'];
-  setSigningKeyPair: S['setKeyPair'];
+  generateSignerKeyPair: S['generateKeyPair'];
+  setSignerKeyPair: S['setKeyPair'];
   sign: S['sign'];
   seal: S['seal'];
   verify: S['verify'];

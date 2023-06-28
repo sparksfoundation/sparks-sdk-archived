@@ -1,7 +1,7 @@
 export type EncryptionSharedKey = string;
-export type EncryptionPublicKey = string;
-export type EncryptionSecretKey = string;
-export type EncryptionKeyPair = { publicKey: EncryptionPublicKey, secretKey: EncryptionSecretKey };
+export type CipherPublicKey = string;
+export type CipherSecretKey = string;
+export type CipherKeyPair = { publicKey: CipherPublicKey, secretKey: CipherSecretKey };
 export type DecryptedData = string | Record<string, any>;
 export type EncryptedData = string;
 export type EncryptionSecret = string;

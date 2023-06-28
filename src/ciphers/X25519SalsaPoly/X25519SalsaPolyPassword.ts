@@ -1,12 +1,12 @@
 import util from "tweetnacl-util";
 import { CipherCore } from "../CipherCore";
-import { DecryptedData, EncryptedData, EncryptionKeyPair } from "../types";
+import { DecryptedData, EncryptedData, CipherKeyPair } from "../types";
 import { X25519SalsaPoly } from "./X25519SalsaPoly";
 import nacl from "tweetnacl";
 import * as scrypt from "scrypt-pbkdf";
 import { CipherErrors } from "../../errors/cipher";
 
-export type EncryptionKeyPairWithSalt = EncryptionKeyPair & { salt: string };
+export type CipherKeyPairWithSalt = CipherKeyPair & { salt: string };
 
 export class X25519SalsaPolyPassword extends CipherCore {
   private X25519SalsaPoly: X25519SalsaPoly;
@@ -33,7 +33,7 @@ export class X25519SalsaPolyPassword extends CipherCore {
     return Promise.resolve(data);
   }
 
-  public async generateKeyPair({ password, salt: nonce }: { password: string, salt: string }): Promise<EncryptionKeyPairWithSalt> {
+  public async generateKeyPair({ password, salt: nonce }: { password: string, salt: string }): Promise<CipherKeyPairWithSalt> {
     try {
       const options = { N: 16384, r: 8, p: 1 };
       const salt = nonce || util.encodeBase64(nacl.randomBytes(16));
@@ -48,26 +48,26 @@ export class X25519SalsaPolyPassword extends CipherCore {
       const keyPair = nacl.box.keyPair.fromSecretKey(uint8Seed);
       const secretKey = util.encodeBase64(keyPair.secretKey);
 
-      return { publicKey: util.encodeBase64(keyPair.publicKey), secretKey, salt } as EncryptionKeyPairWithSalt;
+      return { publicKey: util.encodeBase64(keyPair.publicKey), secretKey, salt } as CipherKeyPairWithSalt;
     } catch (error) {
-      return Promise.reject(CipherErrors.GenerateEncryptionKeyPairError(error));
+      return Promise.reject(CipherErrors.GenerateCipherKeyPairError(error));
     }
   }
 
-  public getPublicKey(): EncryptionKeyPair['publicKey'] {
+  public getPublicKey(): CipherKeyPair['publicKey'] {
     return this.X25519SalsaPoly.getPublicKey();
   }
 
-  public getSecretKey(): EncryptionKeyPair['secretKey'] {
+  public getSecretKey(): CipherKeyPair['secretKey'] {
     return this.X25519SalsaPoly.getSecretKey();
   }
 
-  public getKeyPair(): EncryptionKeyPairWithSalt {
+  public getKeyPair(): CipherKeyPairWithSalt {
     const keyPair = this.X25519SalsaPoly.getKeyPair();
     return { ...keyPair, salt: this._salt };
   }
 
-  public setKeyPair({ publicKey, secretKey, salt }: EncryptionKeyPairWithSalt): void {
+  public setKeyPair({ publicKey, secretKey, salt }: CipherKeyPairWithSalt): void {
     this._salt = salt;
     this.X25519SalsaPoly.setKeyPair({ publicKey, secretKey });
   }

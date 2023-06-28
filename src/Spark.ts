@@ -1,6 +1,6 @@
 import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
-import { EncryptionKeyPair } from "./ciphers/types";
-import { SignedEncryptedData, SigningKeyPair } from "./signers/types";
+import { CipherKeyPair } from "./ciphers/types";
+import { SignedEncryptedData, SignerKeyPair } from "./signers/types";
 import { SparkInterface } from "./types";
 import { AgentCore } from "./agents/AgentCore";
 import { CipherCore } from "./ciphers/CipherCore";
@@ -54,50 +54,46 @@ export class Spark<
   public get publicKeys(): PublicKeys {
     const keyPairs = this.keyPairs as KeyPairs;
     return {
-      encryption: keyPairs.encryption.publicKey,
-      signing: keyPairs.signing.publicKey,
+      cipher: keyPairs.cipher.publicKey,
+      signer: keyPairs.signer.publicKey,
     } as PublicKeys;
   }
 
   public get secretKeys(): SecretKeys {
     const keyPairs = this.keyPairs as KeyPairs;
     return {
-      encryption: keyPairs.encryption.secretKey,
-      signing: keyPairs.signing.secretKey,
+      cipher: keyPairs.cipher.secretKey,
+      signer: keyPairs.signer.secretKey,
     } as SecretKeys;
   }
 
   public get keyPairs(): KeyPairs {
-    const encryption = this.cipher.getKeyPair();
-    const signing = this.signer.getKeyPair();
-    return { encryption, signing } as KeyPairs;
+    const cipher = this.cipher.getKeyPair();
+    const signer = this.signer.getKeyPair();
+    return { cipher, signer } as KeyPairs;
   }
 
   // todo fix typings here
-  public async generateKeyPairs(params: any): Promise<KeyPairs> {
-    const signer = params.signing || params as SigningKeyPair;
-    const signing = await this.signer.generateKeyPair(signer) as SigningKeyPair;
-    const cipher = params.encryption || params as EncryptionKeyPair;
-    const encryption = await this.cipher.generateKeyPair(cipher) as EncryptionKeyPair;
-
-    return { encryption, signing } as KeyPairs;
+  public async generateKeyPairs(params?: any): Promise<KeyPairs> {
+    const { cipher, signer } = params || {}; 
+    const signerKeyPair = await this.signer.generateKeyPair(signer || params) as SignerKeyPair;
+    const cipherKeyPair = await this.cipher.generateKeyPair(cipher || params) as CipherKeyPair;
+    return { signer: signerKeyPair, cipher: cipherKeyPair } as KeyPairs;
   }
 
   // todo fix typings here
   public async setKeyPairs(params: any): Promise<void> {
-    const signer = params.signing || params as SigningKeyPair;
-    this.signer.setKeyPair(signer);
-
-    const cipher = params.encryption || params as EncryptionKeyPair;
-    this.cipher.setKeyPair(cipher);
+    const { cipher, signer } = params || {};
+    this.signer.setKeyPair(signer || params);
+    this.cipher.setKeyPair(cipher || params);
   }
 
   // cipher
-  get generateSharedEncryptionKey(): X['generateSharedKey'] {
+  get generateCipherSharedKey(): X['generateSharedKey'] {
     return this.cipher.generateSharedKey;
   }
 
-  get setEncryptionKeyPair(): X['setKeyPair'] {
+  get setCipherKeyPair(): X['setKeyPair'] {
     return this.cipher.setKeyPair;
   }
 
@@ -122,17 +118,20 @@ export class Spark<
     return this.controller.getKeyEventLog() as ReturnType<C['getKeyEventLog']>;
   }
 
-  get incept(): C['incept'] {
-    
-    return this.controller.incept;
+  public async incept(params?: any) {
+    const keyPairs = await this.generateKeyPairs(params);
+    await this.setKeyPairs(keyPairs);
+    await this.controller.incept();
   }
 
-  get rotate(): C['rotate'] {
-    return this.controller.rotate;
+  public async rotate(params?: any) {
+    const nextKeyPairs = await this.generateKeyPairs(params);
+    await this.controller.rotate({ nextKeyPairs });
+    await this.setKeyPairs(nextKeyPairs);
   }
 
-  get destroy(): C['destroy'] {
-    return this.controller.destroy;
+  public async destroy(params?: any) {
+    await this.controller.destroy();
   }
 
   // hasher
@@ -141,11 +140,11 @@ export class Spark<
   }
 
   // signer
-  get generateSingingKeyPair(): S['generateKeyPair'] {
+  get generateSignerKeyPair(): S['generateKeyPair'] {
     return this.signer.generateKeyPair;
   }
 
-  get setSigningKeyPair(): S['setKeyPair'] {
+  get setSignerKeyPair(): S['setKeyPair'] {
     return this.signer.setKeyPair;
   }
 
@@ -166,7 +165,7 @@ export class Spark<
   }
 
   public async import(data: SignedEncryptedData): Promise<void> {
-    const opened = await this.signer.open({ signature: data, publicKey: this.publicKeys.signing });
+    const opened = await this.signer.open({ signature: data, publicKey: this.publicKeys.signer });
     const decrypted = await this.cipher.decrypt({ data: opened }) as Record<string, any>;
 
     await Promise.all(

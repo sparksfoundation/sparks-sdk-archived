@@ -14,14 +14,27 @@ import { Basic } from '../dist/controllers/Basic/index.mjs';
 
   const password = 'password';
   let keyPairs = await spark.generateKeyPairs({ password })
-
-  console.log('keyPairs', keyPairs)
+  await spark.setKeyPairs(keyPairs);
+  const data = await spark.export();
 
   let newKeys = await spark.generateKeyPairs({
-    signing: { password, salt: keyPairs.signing.salt },
-    encryption: { password, salt: keyPairs.encryption.salt },
+    signer: { password, salt: keyPairs.signer.salt },
+    cipher: { password, salt: keyPairs.cipher.salt },
   });
 
-  console.log('newKeys', newKeys)
+  const test = new Spark({
+    cipher: X25519SalsaPolyPassword,
+    controller: Basic,
+    hasher: Blake3,
+    signer: Ed25519Password,
+  });
+
+  const keys = await test.generateKeyPairs({
+    signer: { password, salt: keyPairs.signer.salt },
+    cipher: { password, salt: keyPairs.cipher.salt },
+  });
+
+  await test.setKeyPairs(keys);
+  await test.import(data);
 
 }())

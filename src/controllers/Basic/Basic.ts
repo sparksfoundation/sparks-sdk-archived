@@ -18,8 +18,8 @@ export class Basic extends ControllerCore {
   private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent> {
     const keyPairs = this._spark.keyPairs as KeyPairs;
     const previousKeyCommitment = this._keyEventLog[this._keyEventLog.length - 1]?.nextKeyCommitments;
-    const keyCommitment = await this._spark.hash({ data: keyPairs.signing.publicKey });
-    const nextKeyCommitments = type === KeyEventType.DESTROY ? undefined  : await this._spark.hash({ data: nextKeyPairs.signing.publicKey });
+    const keyCommitment = await this._spark.hash({ data: keyPairs.signer.publicKey });
+    const nextKeyCommitments = type === KeyEventType.DESTROY ? undefined  : await this._spark.hash({ data: nextKeyPairs.signer.publicKey });
 
     try {
       switch (true) {
@@ -49,7 +49,7 @@ export class Basic extends ControllerCore {
       const baseEventProps: BaseKeyEventProps = {
         index: this._keyEventLog.length,
         signingThreshold: 1,
-        signingKeys: [keyPairs.signing.publicKey],
+        signingKeys: [keyPairs.signer.publicKey],
         backerThreshold: 0,
         backers: [],
         nextKeyCommitments,
