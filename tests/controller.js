@@ -1,22 +1,27 @@
 import { Spark } from '../dist/index.mjs';
-import { Blake3 } from '../dist/hasher/Blake3/Blake3.mjs';
-import { Ed25519 } from '../dist/signer/Ed25519/index.mjs';
-import { X25519SalsaPoly } from '../dist/cipher/X25519SalsaPoly/index.mjs';
-import { Basic } from '../dist/controller/Basic/index.mjs';
+import { Blake3 } from '../dist/hashers/Blake3/Blake3.mjs';
+import { Ed25519Password } from '../dist/signers/Ed25519/index.mjs';
+import { X25519SalsaPolyPassword } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Basic } from '../dist/controllers/Basic/index.mjs';
 import { assert } from 'console';
+import util from 'tweetnacl-util';
+import nacl from 'tweetnacl';
 
 (async function() {
     const spark = new Spark({
-      cipher: X25519SalsaPoly,
+      cipher: X25519SalsaPolyPassword,
       controller: Basic,
       hasher: Blake3,
-      signer: Ed25519,
+      signer: Ed25519Password,
     });
+
+    const salt = util.encodeBase64(nacl.randomBytes(16));
+    const password = 'password';
   
-    let keyPairs = await spark.generateKeyPairs()
+    let keyPairs = await spark.generateKeyPairs({ password, salt })
       .catch(e => assert(false, 'signer - keys generated'));
 
-    let nextKeyPairs = await spark.generateKeyPairs()
+    let nextKeyPairs = await spark.generateKeyPairs({ password, salt })
       .catch(e => assert(false, 'signer - keys generated'));
 
     spark.setKeyPairs({ keyPairs })
@@ -28,7 +33,7 @@ import { assert } from 'console';
     spark.setKeyPairs({ keyPairs })
       .catch(e => assert(false, 'signer - keys set'));
 
-    nextKeyPairs = await spark.generateKeyPairs()
+    nextKeyPairs = await spark.generateKeyPairs({ password, salt })
       .catch(e => assert(false, 'signer - keys generated'));
 
     await spark.rotate({ nextKeyPairs })
@@ -38,7 +43,7 @@ import { assert } from 'console';
       .catch(e => assert(false, 'signer - keys set'));
 
     keyPairs = { ...nextKeyPairs };
-    nextKeyPairs = await spark.generateKeyPairs()
+    nextKeyPairs = await spark.generateKeyPairs({ password, salt })
       .catch(e => assert(false, 'signer - keys generated'));
 
     await spark.rotate({ nextKeyPairs })

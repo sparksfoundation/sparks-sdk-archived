@@ -39,75 +39,80 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
-    "./agent": {
-      "types": "./dist/agent/index.d.ts",
-      "import": "./dist/agent/index.mjs",
-      "require": "./dist/agent/index.cjs"
+    "./agents": {
+      "types": "./dist/agents/index.d.ts",
+      "import": "./dist/agents/index.mjs",
+      "require": "./dist/agents/index.cjs"
     },
-    "./channel": {
-      "types": "./dist/channel/index.d.ts",
-      "import": "./dist/channel/index.mjs",
-      "require": "./dist/channel/index.cjs"
+    "./channels": {
+      "types": "./dist/channels/index.d.ts",
+      "import": "./dist/channels/index.mjs",
+      "require": "./dist/channels/index.cjs"
     },
-    "./channel/Http": {
-      "types": "./dist/channel/Http/index.d.ts",
-      "import": "./dist/channel/Http/index.mjs",
-      "require": "./dist/channel/Http/index.cjs"
+    "./channels/Http": {
+      "types": "./dist/channels/Http/index.d.ts",
+      "import": "./dist/channels/Http/index.mjs",
+      "require": "./dist/channels/Http/index.cjs"
     },
-    "./channel/PostMessage": {
-      "types": "./dist/channel/PostMessage/index.d.ts",
-      "import": "./dist/channel/PostMessage/index.mjs",
-      "require": "./dist/channel/PostMessage/index.cjs"
+    "./channels/PostMessage": {
+      "types": "./dist/channels/PostMessage/index.d.ts",
+      "import": "./dist/channels/PostMessage/index.mjs",
+      "require": "./dist/channels/PostMessage/index.cjs"
     },
-    "./cipher": {
-      "types": "./dist/cipher/index.d.ts",
-      "import": "./dist/cipher/index.mjs",
-      "require": "./dist/cipher/index.cjs"
+    "./channels/WebRTC": {
+      "types": "./dist/channels/WebRTC/index.d.ts",
+      "import": "./dist/channels/WebRTC/index.mjs",
+      "require": "./dist/channels/WebRTC/index.cjs"
     },
-    "./cipher/X25519SalsaPoly": {
-      "types": "./dist/cipher/X25519SalsaPoly/index.d.ts",
-      "import": "./dist/cipher/X25519SalsaPoly/index.mjs",
-      "require": "./dist/cipher/X25519SalsaPoly/index.cjs"
+    "./ciphers": {
+      "types": "./dist/ciphers/index.d.ts",
+      "import": "./dist/ciphers/index.mjs",
+      "require": "./dist/ciphers/index.cjs"
     },
-    "./common": {
-      "types": "./dist/common/index.d.ts",
-      "import": "./dist/common/index.mjs",
-      "require": "./dist/common/index.cjs"
+    "./ciphers/X25519SalsaPoly": {
+      "types": "./dist/ciphers/X25519SalsaPoly/index.d.ts",
+      "import": "./dist/ciphers/X25519SalsaPoly/index.mjs",
+      "require": "./dist/ciphers/X25519SalsaPoly/index.cjs"
     },
-    "./controller": {
-      "types": "./dist/controller/index.d.ts",
-      "import": "./dist/controller/index.mjs",
-      "require": "./dist/controller/index.cjs"
+    "./controllers": {
+      "types": "./dist/controllers/index.d.ts",
+      "import": "./dist/controllers/index.mjs",
+      "require": "./dist/controllers/index.cjs"
     },
-    "./controller/Basic": {
-      "types": "./dist/controller/Basic/index.d.ts",
-      "import": "./dist/controller/Basic/index.mjs",
-      "require": "./dist/controller/Basic/index.cjs"
+    "./controllers/Basic": {
+      "types": "./dist/controllers/Basic/index.d.ts",
+      "import": "./dist/controllers/Basic/index.mjs",
+      "require": "./dist/controllers/Basic/index.cjs"
     },
-    "./error": {
-      "types": "./dist/error/index.d.ts",
-      "import": "./dist/error/index.mjs",
-      "require": "./dist/error/index.cjs"
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "import": "./dist/errors/index.mjs",
+      "require": "./dist/errors/index.cjs"
     },
-    "./hasher": {
-      "types": "./dist/hasher/index.d.ts",
-      "import": "./dist/hasher/index.mjs",
-      "require": "./dist/hasher/index.cjs"
+    "./hashers": {
+      "types": "./dist/hashers/index.d.ts",
+      "import": "./dist/hashers/index.mjs",
+      "require": "./dist/hashers/index.cjs"
     },
-    "./hasher/Blake3": {
-      "types": "./dist/hasher/Blake3/index.d.ts",
-      "import": "./dist/hasher/Blake3/index.mjs",
-      "require": "./dist/hasher/Blake3/index.cjs"
+    "./hashers/Blake3": {
+      "types": "./dist/hashers/Blake3/index.d.ts",
+      "import": "./dist/hashers/Blake3/index.mjs",
+      "require": "./dist/hashers/Blake3/index.cjs"
     },
-    "./signer": {
-      "types": "./dist/signer/index.d.ts",
-      "import": "./dist/signer/index.mjs",
-      "require": "./dist/signer/index.cjs"
+    "./signers": {
+      "types": "./dist/signers/index.d.ts",
+      "import": "./dist/signers/index.mjs",
+      "require": "./dist/signers/index.cjs"
     },
-    "./signer/Ed25519": {
-      "types": "./dist/signer/Ed25519/index.d.ts",
-      "import": "./dist/signer/Ed25519/index.mjs",
-      "require": "./dist/signer/Ed25519/index.cjs"
+    "./signers/Ed25519": {
+      "types": "./dist/signers/Ed25519/index.d.ts",
+      "import": "./dist/signers/Ed25519/index.mjs",
+      "require": "./dist/signers/Ed25519/index.cjs"
+    },
+    "./utilities": {
+      "types": "./dist/utilities/index.d.ts",
+      "import": "./dist/utilities/index.mjs",
+      "require": "./dist/utilities/index.cjs"
     }
   },
   "main": "./dist/index.cjs",

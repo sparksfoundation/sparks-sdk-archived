@@ -1,13 +1,13 @@
 import { Constructable, KeyPairs, PublicKeys, SecretKeys, SparkParams } from "./types";
-import { AgentAbstract } from "./agent/types";
-import { EncryptionKeyPair } from "./cipher/types";
-import { HashDigest } from "./hasher/types";
-import { SigningKeyPair } from "./signer/types";
+import { AgentAbstract } from "./agents/types";
+import { EncryptionKeyPair } from "./ciphers/types";
+import { HashDigest } from "./hashers/types";
+import { SigningKeyPair } from "./signers/types";
 import { SparkInterface } from "./types";
-import { CipherCore } from "./cipher/CipherCore";
-import { HasherCore } from "./hasher/HasherCore";
-import { SignerCore } from "./signer/SignerCore";
-import { ControllerCore } from "./controller";
+import { CipherCore } from "./ciphers/CipherCore";
+import { HasherCore } from "./hashers/HasherCore";
+import { SignerCore } from "./signers/SignerCore";
+import { ControllerCore } from "./controllers";
 
 export class Spark<
   A extends AgentAbstract[],
@@ -43,11 +43,11 @@ export class Spark<
     });
 
     Object.defineProperties(this, {
-      agents: { enumerable: false, writable: false },
-      cipher: { enumerable: false, writable: false },
-      hasher: { enumerable: false, writable: false },
-      signer: { enumerable: false, writable: false },
-      controller: { enumerable: false, writable: false },
+      agents: { enumerable: false },
+      cipher: { enumerable: false },
+      hasher: { enumerable: false },
+      signer: { enumerable: false },
+      controller: { enumerable: false },
     });
   }
 
@@ -94,7 +94,7 @@ export class Spark<
   }
 
   // cipher
-  get generateSharedEncryptionKey():  X['generateSharedKey'] {
+  get generateSharedEncryptionKey(): X['generateSharedKey'] {
     return this.cipher.generateSharedKey;
   }
 
@@ -112,7 +112,11 @@ export class Spark<
 
   // controller
   get identifier(): ReturnType<C['getIdentifier']> {
-    return this.controller.getIdentifier() as ReturnType<C['getIdentifier']>;
+    try {
+      return this.controller.getIdentifier() as ReturnType<C['getIdentifier']>;
+    } catch (error) {
+      return null;
+    }
   }
 
   get keyEventLog(): ReturnType<C['getKeyEventLog']> {

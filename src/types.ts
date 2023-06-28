@@ -1,14 +1,14 @@
 // TODO - promote error factories to class with type of extended class
 
-import { AgentAbstract } from "./agent/types";
-import { CipherCore } from "./cipher/CipherCore";
-import { EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./cipher/types";
-import { ErrorInterface } from "./common/errors";
-import { ControllerCore } from "./controller";
-import { HasherCore } from "./hasher/HasherCore";
-import { HashDigest } from "./hasher/types";
-import { SignerCore } from "./signer/SignerCore";
-import { SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signer/types";
+import { AgentAbstract } from "./agents/types";
+import { CipherCore } from "./ciphers/CipherCore";
+import { EncryptedData, EncryptionKeyPair, EncryptionPublicKey, EncryptionSecretKey } from "./ciphers/types";
+import { ErrorInterface } from "./utilities/errors";
+import { ControllerCore } from "./controllers";
+import { HasherCore } from "./hashers/HasherCore";
+import { HashDigest } from "./hashers/types";
+import { SignerCore } from "./signers/SignerCore";
+import { SigningKeyPair, SigningPublicKey, SigningSecretKey } from "./signers/types";
 
 // utils
 export interface Constructable<T> {
