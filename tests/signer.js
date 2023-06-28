@@ -18,7 +18,7 @@ import { assert } from 'console';
       .catch(e => {console.log(e); assert(false, 'signer - keys generated')});
 
     spark.setKeyPairs(keyPairs)
-      .catch(e => {console.log(e); assert(false, 'signer - keys set') });
+      .catch(e => assert(false, 'signer - keys set'));
 
     const keys = spark.keyPairs;
     
