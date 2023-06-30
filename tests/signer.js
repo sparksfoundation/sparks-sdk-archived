@@ -1,30 +1,28 @@
-import { Spark } from '../dist';
-import { Ed25519Password } from '../dist/signers/Ed25519';
-import { X25519SalsaPolyPassword } from '../dist/ciphers/X25519SalsaPoly';
-import { Blake3 } from '../dist/hashers/Blake3';
-import { Basic } from '../dist/controllers/Basic';
+import { Spark } from '../dist/index.mjs';
+import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
+import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
+import { Basic } from '../dist/controllers/Basic/index.mjs';
 import { assert } from 'console';
 
 (async function () {
   const alice = new Spark({
-    agents: [ Ed25519Password, ],
-    cipher: X25519SalsaPolyPassword,
+    agents: [Ed25519,],
+    cipher: X25519SalsaPoly,
     controller: Basic,
     hasher: Blake3,
-    signer: Ed25519Password,
+    signer: Ed25519,
   });
+  await alice.incept();
 
-  const bob = new Spark<any, X25519SalsaPolyPassword, Basic, Blake3, Ed25519Password>({
-    cipher: X25519SalsaPolyPassword,
+  const bob = new Spark({
+    cipher: X25519SalsaPoly,
     controller: Basic,
     hasher: Blake3,
-    signer: Ed25519Password,
+    signer: Ed25519,
   });
 
-  await bob.incept({
-    cipher: { password: 'test' },
-    signer: { password: 'test' },
-  });
+  await bob.incept();
 
   const data = { test: 'test' };
 

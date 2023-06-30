@@ -14,15 +14,12 @@ import cuid from 'cuid';
       signer: Ed25519Password,
     });
 
-    // you would never do this in production
-    // instead you should use import / export
-    // but to ensure consistent key generation
-    // we are using the same salt
-
-    const firstKeys = await alice.incept({ 
-      signer: { password: 'test', salt: cuid() },
-      cipher: { password: 'test', salt: cuid() },
+    const salt = cuid();
+    await alice.incept({ 
+      signer: { password: 'test', salt: salt },
+      cipher: { password: 'test', salt: salt },
     });
+    const firstKeys = alice.publicKeys
 
     const aliceLater = new Spark({
       cipher: X25519SalsaPolyPassword,
@@ -31,33 +28,11 @@ import cuid from 'cuid';
       signer: Ed25519Password,
     });
 
-    const secondKeys = await aliceLater.incept({
-      signer: { password: 'test', salt: cuid() },
-      cipher: { password: 'test', salt: cuid() },
+    await aliceLater.incept({
+      signer: { password: 'test', salt: salt },
+      cipher: { password: 'test', salt: salt },
     });
-
+    const secondKeys = aliceLater.publicKeys
 
     assert(JSON.stringify(firstKeys) === JSON.stringify(secondKeys), 'password - first and second keys match');
-    
-  
-    // const salt = cuid();
-
-    // let keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
-    //   .catch(e => assert(false, 'password - keys generated'));
-
-    // await spark.setKeyPairs(keyPairs)
-    //   .catch(e => assert(false, 'password - keys set'));
-
-    // const firstKeys = spark.keyPairs;
-    
-    // keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
-    //   .catch(e => assert(false, 'password - keys generated'));
-
-    // await spark.setKeyPairs(keyPairs)
-    //   .catch(e => assert(false, 'password - keys set'));
-
-    // const secondKeys = spark.keyPairs;
-
-    // assert(JSON.stringify(firstKeys) === JSON.stringify(secondKeys), 'password - first and second keys match');
-
 }())

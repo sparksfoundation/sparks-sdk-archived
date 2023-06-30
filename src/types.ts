@@ -57,6 +57,8 @@ export interface SparkInterface<
     cipher: ReturnType<X['getKeyPair']>,
   };
 
+  keyEventLog: ReturnType<C['getKeyEventLog']>;
+
   incept(params: {
     cipher: Parameters<X['generateKeyPair']>[0],
     signer: Parameters<S['generateKeyPair']>[0],
@@ -67,6 +69,8 @@ export interface SparkInterface<
     Parameters<S['generateKeyPair']>[0] &
     Parameters<C['incept']>[0]
   ): Promise<void>;
+
+  incept(params?: Parameters<C['incept']>[0]): Promise<void>;
 
   rotate(params: {
     cipher: Parameters<X['generateKeyPair']>[0],
@@ -99,7 +103,4 @@ export interface SparkInterface<
   // imports exports evertything
   import: (data: SignedEncryptedData) => Promise<void>;
   export: () => Promise<SignedEncryptedData>;
-
-  // controller facade, uses cipher and signer to automate key generation
-  keyEventLog: C['getKeyEventLog'];
 }

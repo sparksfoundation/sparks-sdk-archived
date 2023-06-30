@@ -62,31 +62,25 @@ export class Spark<
   // Private helper methods not exposed in the interface
 
   // generateKeyPairs can be called with either same or separate params for both or cipher and signer
-  private async generateKeyPairs(params:
-    Parameters<X['generateKeyPair']>[0] &
-    Parameters<S['generateKeyPair']>[0]
-  ): Promise<{
-    cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
-    signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
-  }>;
-
-  private async generateKeyPairs(params: {
-    cipher: Parameters<X['generateKeyPair']>[0],
-    signer: Parameters<S['generateKeyPair']>[0]
-  }): Promise<{
-    cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
-    signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
-  }>;
-
-  private async generateKeyPairs(params?: any): Promise<{
-    cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
-    signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
-  }> {
-    const signer = ('signer' in params) ? params?.signer : params;
-    const cipher = ('cipher' in params) ? params?.cipher : params;
-    const signerKeyPair = await this.signer.generateKeyPair(signer) as UnwrapPromise<ReturnType<S['generateKeyPair']>>;
-    const cipherKeyPair = await this.cipher.generateKeyPair(cipher) as UnwrapPromise<ReturnType<X['generateKeyPair']>>;
-    return Promise.resolve({ signer: signerKeyPair, cipher: cipherKeyPair });
+  private generateKeyPairs: {
+    (params: Parameters<X['generateKeyPair']>[0] & Parameters<S['generateKeyPair']>[0]): Promise<{
+      cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
+      signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
+    }>;
+    (params: { cipher: Parameters<X['generateKeyPair']>[0], signer: Parameters<S['generateKeyPair']>[0] }): Promise<{
+      cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
+      signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
+    }>;
+    (): Promise<{
+      cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
+      signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
+    }>;
+  } = async (params?: any) => {
+    const signerParams = params && params.signer ? params.signer : params;
+    const cipherParams = params && params.cipher ? params.cipher : params;
+    const signer = await this.signer.generateKeyPair(signerParams) as UnwrapPromise<ReturnType<S['generateKeyPair']>>;
+    const cipher = await this.cipher.generateKeyPair(cipherParams) as UnwrapPromise<ReturnType<X['generateKeyPair']>>;
+    return Promise.resolve({ signer, cipher });
   };
 
   // sets the key pairs for both cipher and signer
@@ -99,7 +93,6 @@ export class Spark<
     this.cipher.setKeyPair(cipher);
   }
 
-  // todo - try to fix the as requirement
   public get keyPairs(): {
     signer: ReturnType<S['getKeyPair']>,
     cipher: ReturnType<X['getKeyPair']>,
@@ -125,10 +118,6 @@ export class Spark<
       cipher: keyPairs.cipher.publicKey as ReturnType<X['getPublicKey']>,
       signer: keyPairs.signer.publicKey as ReturnType<S['getPublicKey']>,
     };
-  }
-
-  get keyEventLog(): C['getKeyEventLog'] {
-    return this.controller.getKeyEventLog;
   }
 
   // public facing properties and interface methods
@@ -171,19 +160,26 @@ export class Spark<
     return signed;
   }
 
+  // controller facade
+  get identifier(): ReturnType<C['getIdentifier']> {
+    try {
+      return this.controller.getIdentifier() as ReturnType<C['getIdentifier']>;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  public get keyEventLog(): ReturnType<C['getKeyEventLog']> {
+    return this.controller.getKeyEventLog() as ReturnType<C['getKeyEventLog']>;
+  }
+
   public incept: {
     (params: Parameters<X['generateKeyPair']>[0] & Parameters<S['generateKeyPair']>[0]): Promise<void>;
     (params: { cipher: Parameters<X['generateKeyPair']>[0], signer: Parameters<S['generateKeyPair']>[0] }): Promise<void>;
+    (): Promise<void>;
   } = async (params?: any) => {
-    if ('cipher' in params && 'signer' in params) {
-      const keyPairs = await this.generateKeyPairs(params);
-      this.setKeyPairs(keyPairs);
-    } else if (params && typeof params === 'object') {
-      throw new Error('Both cipher and signer parameters are required.');
-    } else {
-      const keyPairs = await this.generateKeyPairs({ cipher: params, signer: params });
-      this.setKeyPairs(keyPairs);
-    }
+    const keyPairs = await this.generateKeyPairs(params);
+    this.setKeyPairs(keyPairs);
     await this.controller.incept();
   };
 
@@ -200,13 +196,9 @@ export class Spark<
     await this.controller.destroy();
   }
 
-  // cipher
+  // cipher facade
   get generateCipherSharedKey(): X['generateSharedKey'] {
     return this.cipher.generateSharedKey;
-  }
-
-  get setCipherKeyPair(): X['setKeyPair'] {
-    return this.cipher.setKeyPair;
   }
 
   get encrypt(): X['encrypt'] {
@@ -217,29 +209,12 @@ export class Spark<
     return this.cipher.decrypt;
   }
 
-  // controller
-  get identifier(): ReturnType<C['getIdentifier']> {
-    try {
-      return this.controller.getIdentifier() as ReturnType<C['getIdentifier']>;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // hasher
+  // hasher facade
   get hash(): H['hash'] {
     return this.hasher.hash;
   }
 
-  // signer
-  get generateSignerKeyPair(): S['generateKeyPair'] {
-    return this.signer.generateKeyPair;
-  }
-
-  get setSignerKeyPair(): S['setKeyPair'] {
-    return this.signer.setKeyPair;
-  }
-
+  // signer facade
   get sign(): S['sign'] {
     return this.signer.sign;
   }

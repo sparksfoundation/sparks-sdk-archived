@@ -36,11 +36,14 @@ global.fetch = fetch;
         // test by iterating over all sparks and sending a message from each
         // there should be a delay between each message
         const delay = 100;
+        const max_messages = 10;
         let i = 0;
-        while (true) {
+        while (i < max_messages) {
             const channel = channels[i++ % max_users];
             await channel.message(Math.random().toString(36).substring(2, 8));
             await new Promise(resolve => setTimeout(resolve, delay));
+            i += 1;
+            if (i >= max_messages) break;
         }
     } catch (error) {
         console.error(error);

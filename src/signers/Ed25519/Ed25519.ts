@@ -16,7 +16,7 @@ export class Ed25519 extends CoreSigner {
     return Promise.resolve(data);
   }
 
-  public async generateKeyPair(params?: { secretKey: SignerSecretKey }): Promise<SignerKeyPair> {
+  public async generateKeyPair(params?: { secretKey?: SignerSecretKey }): Promise<SignerKeyPair> {
     try {
       const keyPair = params?.secretKey ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.sign.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
