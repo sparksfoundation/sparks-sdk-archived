@@ -26,6 +26,9 @@ export class PostMessage extends CoreChannel {
         this._window.addEventListener('message', (event) => {
             super.handleResponse(event.data);
         });
+        this._window.addEventListener('beforeunload', async () => {
+            await this.close();
+        });
     }
 
     protected async sendRequest(event: AnyChannelEvent): Promise<void> {
@@ -38,7 +41,7 @@ export class PostMessage extends CoreChannel {
         if (!win || !spark || !callback) {
             throw new Error('missing required arguments: spark, callback');
         }
-
+        
         win.addEventListener('message', async (event) => {
             const { type, cid } = event.data;
             const isRequest = type === ChannelEventType.OPEN_REQUEST;
