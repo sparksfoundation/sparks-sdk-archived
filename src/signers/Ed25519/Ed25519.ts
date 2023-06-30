@@ -71,6 +71,7 @@ export class Ed25519 extends CoreSigner {
 
   public async verify({ publicKey, signature, data }: { publicKey: SignerPublicKey, signature: Signature, data: SignatureData }): Promise<SignatureVerified> {
     try {
+      if (!data) throw new Error('Missing data to verify signature.');
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       const uintData = util.decodeUTF8(dataString as string);
       const uintSignature = util.decodeBase64(signature);
