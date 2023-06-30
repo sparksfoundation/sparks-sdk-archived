@@ -5,6 +5,7 @@ import { CoreController } from "./controllers";
 import { CoreHasher } from "./hashers/CoreHasher";
 import { CoreSigner } from "./signers/CoreSigner";
 import { SignedEncryptedData, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./signers/types";
+import { Constructable } from "./utilities/types";
 
 // spark
 export interface KeyPairs {
@@ -33,7 +34,7 @@ export interface SparkInterface<
 > {
 
   // cores can be accessed for advanced functionality
-  agents: { [key: string]: A[number] };
+  agents: { [key: string]: InstanceType<Constructable<A[number]>> };
   cipher: X;
   controller: C;
   hasher: H;
@@ -41,7 +42,7 @@ export interface SparkInterface<
 
   // helpers to get keys
   identifier: ReturnType<C['getIdentifier']>;
-  
+
   publicKeys: {
     cipher: ReturnType<X['getPublicKey']>,
     signer: ReturnType<S['getPublicKey']>,
@@ -59,16 +60,17 @@ export interface SparkInterface<
 
   keyEventLog: ReturnType<C['getKeyEventLog']>;
 
-  incept(params: {
-    cipher: Parameters<X['generateKeyPair']>[0],
-    signer: Parameters<S['generateKeyPair']>[0],
-  } & Parameters<C['incept']>[0]): Promise<void>;
 
   incept(params:
     Parameters<X['generateKeyPair']>[0] &
     Parameters<S['generateKeyPair']>[0] &
     Parameters<C['incept']>[0]
   ): Promise<void>;
+
+  incept(params: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+  } & Parameters<C['incept']>[0]): Promise<void>;
 
   incept(params?: Parameters<C['incept']>[0]): Promise<void>;
 
@@ -101,6 +103,17 @@ export interface SparkInterface<
   open: S['open'];
 
   // imports exports evertything
-  import: (data: SignedEncryptedData) => Promise<void>;
+  import(params:
+    Parameters<X['generateKeyPair']>[0] &
+    Parameters<S['generateKeyPair']>[0] &
+    { data: SignedEncryptedData }
+  ): Promise<void>;
+
+  import(params: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+    data: SignedEncryptedData,
+  }): Promise<void>;
+
   export: () => Promise<SignedEncryptedData>;
 }

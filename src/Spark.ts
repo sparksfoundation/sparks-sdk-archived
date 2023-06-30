@@ -6,8 +6,7 @@ import { CoreHasher } from "./hashers/CoreHasher";
 import { CoreSigner } from "./signers/CoreSigner";
 import { CoreController } from "./controllers";
 import { Constructable, UnwrapPromise } from "./utilities/types";
-import { CipherKeyPair } from "./ciphers/types";
-import { SignerKeyPair } from "./signers/types";
+import { SignedEncryptedData } from "./signers/types";
 
 export class Spark<
   A extends CoreAgent[],
@@ -21,7 +20,7 @@ export class Spark<
   public readonly controller: C;
   public readonly hasher: H;
   public readonly signer: S;
-  public readonly agents: { [key: string]: CoreAgent } = {};
+  public readonly agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
 
   constructor({
     agents,
@@ -30,7 +29,7 @@ export class Spark<
     hasher,
     signer
   }: {
-    agents?: Constructable<A[number]>[];
+    agents?: Array<new (spark: Spark<A, X, C, H, S>) => A[number]>;
     cipher: Constructable<X>;
     controller: Constructable<C>;
     hasher: Constructable<H>;
@@ -44,8 +43,8 @@ export class Spark<
 
     if (agents && Array.isArray(agents) && agents.length > 0) {
       agents.forEach((agent) => {
-        const _agent = new agent(this);
-        const name = agent.constructor.name.charAt(0).toLowerCase() + agent.constructor.name.slice(1);
+        const _agent = new agent(this) as InstanceType<Constructable<A[number]>>;
+        const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
         this.agents[name] = _agent;
       });
     }
@@ -121,30 +120,39 @@ export class Spark<
   }
 
   // public facing properties and interface methods
-  public import: SparkInterface<A, X, C, H, S>['import'] = async (data) => {
+  public import: {
+    (params: Parameters<X['generateKeyPair']>[0] & Parameters<S['generateKeyPair']>[0] & { data: SignedEncryptedData }): Promise<void>;
+    (params: { cipher: Parameters<X['generateKeyPair']>[0], signer: Parameters<S['generateKeyPair']>[0], data: SignedEncryptedData }): Promise<void>;
+  } = async (params?: any) => {
+    const { data, ...keyPairParams } = params;
+    const keyPairs = await this.generateKeyPairs(keyPairParams);
+    this.setKeyPairs(keyPairs);
+
     const opened = await this.signer.open({ signature: data, publicKey: this.publicKeys.signer });
     const decrypted = await this.cipher.decrypt({ data: opened }) as Record<string, any>;
 
     await Promise.all(
       Object.entries(this.agents).map(async ([key, agent]) => {
-        await agent.import(decrypted);
+        await agent.import(decrypted.agents[key]);
       })
     );
 
     await Promise.all([
-      this.cipher.import(decrypted),
-      this.hasher.import(decrypted),
-      this.signer.import(decrypted),
-      this.controller.import(decrypted),
+      this.cipher.import(decrypted.cipher),
+      this.hasher.import(decrypted.hasher),
+      this.signer.import(decrypted.signer),
+      this.controller.import(decrypted.controller),
     ]);
   }
 
   public export: SparkInterface<A, X, C, H, S>['export'] = async () => {
-    const data = {};
+    const data = {
+      agents: {},
+    };
 
     await Promise.all(
       Object.entries(this.agents).map(async ([key, agent]) => {
-        data[key] = await agent.export();
+        data.agents[key] = await agent.export();
       })
     );
 
