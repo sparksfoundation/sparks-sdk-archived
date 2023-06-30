@@ -1,8 +1,8 @@
 import { Spark } from "../../Spark";
-import { ChannelCore } from "../ChannelCore";
+import { CoreChannel } from "../CoreChannel";
 import { AnyChannelEvent, ChannelEventType, ChannelId, HandleOpenRequested } from "../types";
 
-export class RestAPI extends ChannelCore {
+export class RestAPI extends CoreChannel {
     static promises: Map<string, any> = new Map();
     static receives: Map<string, any> = new Map();
     static requestHandler: Function;

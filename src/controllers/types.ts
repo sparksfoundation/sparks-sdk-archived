@@ -1,9 +1,8 @@
 import { HashDigest } from "../hashers/types";
 import { SignerPublicKey } from "../signers/types";
-import { CombinedInterface } from "../utilities/types";
 
 export enum ControllerType {
-  CONTROLLER_CORE = 'CONTROLLER_CORE',
+  CORE_CONTROLLER = 'CORE_CONTROLLER',
   BASIC_CONTROLLER = 'BASIC_CONTROLLER',
 }
 
@@ -70,13 +69,10 @@ export interface KeyDestructionEvent {
 }
 
 // unions
-export type KeyEvent = KeyInceptionEvent | KeyRotationEvent | KeyDestructionEvent;
-
-// intersect
-export type CommonKeyEventProps = CombinedInterface<[KeyInceptionEvent, KeyRotationEvent, KeyDestructionEvent]>
+export type AnyKeyEvent = KeyInceptionEvent | KeyRotationEvent | KeyDestructionEvent;
 
 // base is anything common that doesn't need to be computed
-export type BaseKeyEventProps = Omit<CommonKeyEventProps, 'type' | 'identifier' | 'version' | 'selfAddressingIdentifier'>;
+export type BaseKeyEventProps = Omit<AnyKeyEvent, 'type' | 'identifier' | 'version' | 'selfAddressingIdentifier'>;
 
 export type KeyEventMap = {
   [KeyEventType.INCEPT]: KeyInceptionEvent;
@@ -85,4 +81,4 @@ export type KeyEventMap = {
 }
 
 // collections
-export type KeyEventLog = KeyEvent[]
+export type KeyEventLog = AnyKeyEvent[]

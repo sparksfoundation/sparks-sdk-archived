@@ -1,4 +1,4 @@
-export abstract class AgentCore {
+export abstract class CoreAgent {
   public async import(data: Record<string, any>): Promise<void> {
     return Promise.resolve();
   }

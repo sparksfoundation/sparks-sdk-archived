@@ -10,6 +10,7 @@ export type SignedData = string;
 export type SignedEncryptedData = string;
 
 export enum SignerType {
-  SIGNER_CORE = 'SIGNER_CORE',
+  CORE_SIGNER = 'CORE_SIGNER',
   ED25519_SIGNER = 'ED25519_SIGNER',
+  ED25519_PASSWORD_SIGNER = 'ED25519_PASSWORD_SIGNER',
 }

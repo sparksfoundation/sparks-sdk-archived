@@ -7,7 +7,8 @@ export type EncryptedData = string;
 export type EncryptionSecret = string;
 
 export enum CipherType {
-  CIPHER_CORE = 'CIPHER_CORE',
+  CORE_CIPHER = 'CORE_CIPHER',
   X25519_SALSA_POLY_CIPHER = 'X25519_SALSA_POLY_CIPHER',
+  X25519_SALSA_POLY_CIPHER_PASSWORD = 'X25519_SALSA_POLY_CIPHER_PASSWORD',
 }
 

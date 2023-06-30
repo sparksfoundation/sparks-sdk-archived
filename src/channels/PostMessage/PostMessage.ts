@@ -1,8 +1,8 @@
 import { Spark } from "../../Spark";
-import { ChannelCore } from "../ChannelCore";
+import { CoreChannel } from "../CoreChannel";
 import { AnyChannelEvent, ChannelEventType, ChannelId, HandleOpenRequested } from "../types";
 
-export class PostMessage extends ChannelCore {
+export class PostMessage extends CoreChannel {
     private source: Window;
     private origin: Window['origin'];
     private _window?: Window;

@@ -1,7 +1,7 @@
 import { blake3 } from "@noble/hashes/blake3";
 import { Spark } from "../../Spark";
 import { Identifier } from "../../controllers/types";
-import { ChannelCore } from "../ChannelCore";
+import { CoreChannel } from "../CoreChannel";
 import { AnyChannelEvent, ChannelEventType, ChannelId, HandleOpenRequested } from "../types";
 import Peer, { DataConnection } from "peerjs";
 import util from 'tweetnacl-util';
@@ -32,7 +32,7 @@ const iceServers = [
   },
 ]
 
-export class WebRTC extends ChannelCore {
+export class WebRTC extends CoreChannel {
   protected static peerjs: Peer;
   protected connection: DataConnection;
   protected address: string;

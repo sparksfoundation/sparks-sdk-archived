@@ -2,10 +2,10 @@ import nacl from "tweetnacl";
 import util from "tweetnacl-util";
 import { parseJSON } from "../../utilities";
 import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "../types";
-import { SignerCore } from "../SignerCore";
+import { CoreSigner } from "../CoreSigner";
 import { SignerErrors } from "../../errors/signer";
 
-export class Ed25519 extends SignerCore {
+export class Ed25519 extends CoreSigner {
   public async import(data: Record<string, any>): Promise<void> {
     await super.import(data);
     return Promise.resolve();

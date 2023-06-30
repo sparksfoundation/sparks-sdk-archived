@@ -7,30 +7,57 @@ import { assert } from 'console';
 import cuid from 'cuid';
 
 (async function() {
-    const spark = new Spark({
+    const alice = new Spark({
       cipher: X25519SalsaPolyPassword,
       controller: Basic,
       hasher: Blake3,
       signer: Ed25519Password,
     });
-  
-    const salt = cuid();
-    let keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
-      .catch(e => assert(false, 'password - keys generated'));
 
-    await spark.setKeyPairs(keyPairs)
-      .catch(e => assert(false, 'password - keys set'));
+    // you would never do this in production
+    // instead you should use import / export
+    // but to ensure consistent key generation
+    // we are using the same salt
 
-    const firstKeys = spark.keyPairs;
-    
-    keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
-      .catch(e => assert(false, 'password - keys generated'));
+    const firstKeys = await alice.incept({ 
+      signer: { password: 'test', salt: cuid() },
+      cipher: { password: 'test', salt: cuid() },
+    });
 
-    await spark.setKeyPairs(keyPairs)
-      .catch(e => assert(false, 'password - keys set'));
+    const aliceLater = new Spark({
+      cipher: X25519SalsaPolyPassword,
+      controller: Basic,
+      hasher: Blake3,
+      signer: Ed25519Password,
+    });
 
-    const secondKeys = spark.keyPairs;
+    const secondKeys = await aliceLater.incept({
+      signer: { password: 'test', salt: cuid() },
+      cipher: { password: 'test', salt: cuid() },
+    });
+
 
     assert(JSON.stringify(firstKeys) === JSON.stringify(secondKeys), 'password - first and second keys match');
+    
+  
+    // const salt = cuid();
+
+    // let keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
+    //   .catch(e => assert(false, 'password - keys generated'));
+
+    // await spark.setKeyPairs(keyPairs)
+    //   .catch(e => assert(false, 'password - keys set'));
+
+    // const firstKeys = spark.keyPairs;
+    
+    // keyPairs = await spark.generateKeyPairs({ password: 'password', salt })
+    //   .catch(e => assert(false, 'password - keys generated'));
+
+    // await spark.setKeyPairs(keyPairs)
+    //   .catch(e => assert(false, 'password - keys set'));
+
+    // const secondKeys = spark.keyPairs;
+
+    // assert(JSON.stringify(firstKeys) === JSON.stringify(secondKeys), 'password - first and second keys match');
 
 }())

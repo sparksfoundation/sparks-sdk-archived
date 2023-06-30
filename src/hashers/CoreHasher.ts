@@ -1,7 +1,7 @@
 import { HashDigest } from "./types";
 
 // abstract class used by classes that use Hasher
-export abstract class HasherCore {
+export abstract class CoreHasher {
   constructor() {
     this.hash = this.hash.bind(this);
   }

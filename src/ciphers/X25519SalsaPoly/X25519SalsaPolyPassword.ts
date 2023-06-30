@@ -1,6 +1,6 @@
 import util from "tweetnacl-util";
-import { CipherCore } from "../CipherCore";
-import { DecryptedData, EncryptedData, CipherKeyPair } from "../types";
+import { CoreCipher } from "../CoreCipher";
+import { DecryptedData, EncryptedData, CipherKeyPair, CipherPublicKey, CipherSecretKey } from "../types";
 import { X25519SalsaPoly } from "./X25519SalsaPoly";
 import nacl from "tweetnacl";
 import * as scrypt from "scrypt-pbkdf";
@@ -8,7 +8,7 @@ import { CipherErrors } from "../../errors/cipher";
 
 export type CipherKeyPairWithSalt = CipherKeyPair & { salt: string };
 
-export class X25519SalsaPolyPassword extends CipherCore {
+export class X25519SalsaPolyPassword extends CoreCipher {
   private X25519SalsaPoly: X25519SalsaPoly;
   private _salt: string;
   
@@ -33,7 +33,7 @@ export class X25519SalsaPolyPassword extends CipherCore {
     return Promise.resolve(data);
   }
 
-  public async generateKeyPair({ password, salt: nonce }: { password: string, salt: string }): Promise<CipherKeyPairWithSalt> {
+  public async generateKeyPair({ password, salt: nonce }: { password: string, salt?: string }): Promise<CipherKeyPairWithSalt> {
     try {
       const options = { N: 16384, r: 8, p: 1 };
       const salt = nonce || util.encodeBase64(nacl.randomBytes(16));
@@ -54,11 +54,11 @@ export class X25519SalsaPolyPassword extends CipherCore {
     }
   }
 
-  public getPublicKey(): CipherKeyPair['publicKey'] {
+  public getPublicKey(): CipherPublicKey {
     return this.X25519SalsaPoly.getPublicKey();
   }
 
-  public getSecretKey(): CipherKeyPair['secretKey'] {
+  public getSecretKey(): CipherSecretKey {
     return this.X25519SalsaPoly.getSecretKey();
   }
 

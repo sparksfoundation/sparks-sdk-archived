@@ -1,7 +1,7 @@
 import { Identifier } from "../controllers/types";
 import { PublicKeys } from "../types";
 import { SparkError } from "../errors/SparkError";
-import { ChannelCore } from "./ChannelCore";
+import { CoreChannel } from "./CoreChannel";
 
 // globals
 export type ChannelId = string;
@@ -25,16 +25,17 @@ export enum ChannelState {
 }
 
 export enum ChannelType {
-  CHANNEL_CORE = 'CHANNEL_CORE',
-  POSTMESSAGE = 'POSTMESSAGE',
-  WEBSOCKET = 'WEBSOCKET',
-  WEBRTC = 'WEBRTC',
-  RESTFUL = 'RESTFUL',
+  CORE_CHANNEL = 'CORE_CHANNEL',
+  POSTMESSAGE_CHANNEL = 'POSTMESSAGE_CHANNEL',
+  WEBSOCKET_CHANNEL = 'WEBSOCKET_CHANNEL',
+  WEBRTC_CHANNEL = 'WEBRTC_CHANNEL',
+  REST_API_CHANNEL = 'REST_API_CHANNEL',
+  FETCH_API_CHANNEL = 'FETCH_API_CHANNEL',
 }
 
 export type ResolveOpenPromise = (
-  params: ChannelOpenRejectionEvent | ChannelCore | SparkError
-) => ChannelOpenRejectionEvent | ChannelCore | SparkError
+  params: ChannelOpenRejectionEvent | CoreChannel | SparkError
+) => ChannelOpenRejectionEvent | CoreChannel | SparkError
 
 export type ResolveClosePromise = (
   params: ChannelCloseConfirmationEvent | SparkError

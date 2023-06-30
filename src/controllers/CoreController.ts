@@ -2,19 +2,25 @@ import { Identifier, KeyEventLog } from "./types";
 import { Spark } from "../Spark";
 import { ControllerErrors } from "../errors/controller";
 
-export abstract class ControllerCore {
+export abstract class CoreController {
   protected _identifier: Identifier;
   protected _keyEventLog: KeyEventLog;
   protected _spark: Spark<any, any, any, any, any>;
 
-  constructor(spark: Spark<any, any, any, any, any>) {
-    this._spark = spark;
+  constructor() {
     this._keyEventLog = [];
     this.getIdentifier = this.getIdentifier.bind(this);
     this.getKeyEventLog = this.getKeyEventLog.bind(this);
     this.incept = this.incept.bind(this);
     this.rotate = this.rotate.bind(this);
     this.destroy = this.destroy.bind(this);
+  }
+
+  public setSpark(spark: Spark<any, any, any, any, any>): void {
+    if (this._spark) {
+      throw ControllerErrors.SparkInstanceAlreadySet();
+    }
+    this._spark = spark;
   }
 
   public async import(data: Record<string, any>): Promise<void> {

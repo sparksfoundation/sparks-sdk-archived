@@ -1,8 +1,8 @@
 import { Spark } from "../../Spark";
-import { ChannelCore } from "../ChannelCore";
-import { AnyChannelEvent, ChannelEventType, ChannelId, HandleOpenRequested } from "../types";
+import { CoreChannel } from "../CoreChannel";
+import { ChannelId } from "../types";
 
-export class FetchAPI extends ChannelCore {
+export class FetchAPI extends CoreChannel {
   private url: string;
 
   constructor({ spark, url, cid }: { 

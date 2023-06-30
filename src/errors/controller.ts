@@ -7,6 +7,7 @@ export enum ControllerErrorName {
   ROTATION_ERROR = 'ROTATION_ERROR',
   DESTROY_ERROR = 'DESTROY_ERROR',
   KEY_EVENT_CREATION_ERROR = 'KEY_EVENT_CREATION_ERROR',
+  SPARK_INSTANCE_ALREADY_SET = 'SPARK_INSTANCE_ALREADY_SET',
 }
 
 export class ControllerErrors {
@@ -59,6 +60,15 @@ export class ControllerErrors {
     return new SparkError({
       name: ControllerErrorName.KEY_EVENT_CREATION_ERROR,
       message: `failed to create key event`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  public static SparkInstanceAlreadySet({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+    return new SparkError({
+      name: ControllerErrorName.SPARK_INSTANCE_ALREADY_SET,
+      message: `spark instance already set`,
       metadata: { ...metadata },
       stack
     });

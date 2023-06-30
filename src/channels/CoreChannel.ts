@@ -16,7 +16,7 @@ import { EncryptionSharedKey } from "../ciphers/types";
 import { ChannelErrors } from "../errors/channel";
 import { SparkError } from "../errors/SparkError";
 
-export abstract class ChannelCore {
+export abstract class CoreChannel {
   // opens and resolves/rejects on both sides
   private _openPromises: Map<ChannelId, { resolve: ResolveOpenPromise, reject: RejectPromise }> = new Map();
 
@@ -287,7 +287,7 @@ export abstract class ChannelCore {
    * @throws {OPEN_REQUEST_ERROR}
    * @returns {Promise<ChannelOpenConfirmationEvent>}
    */
-  public async open(): Promise<ChannelCore | ChannelOpenRejectionEvent | SparkError> {
+  public async open(): Promise<CoreChannel | ChannelOpenRejectionEvent | SparkError> {
     return new Promise(async (_resolve, _reject) => {
       try {
         if (this.status !== ChannelState.CLOSED) {
@@ -344,7 +344,7 @@ export abstract class ChannelCore {
    * @returns {Promise<void>}
    * @throws {CONFIRM_OPEN_ERROR}
    */
-  protected async acceptOpen(requestEvent: ChannelOpenRequestEvent): Promise<ChannelCore> {
+  protected async acceptOpen(requestEvent: ChannelOpenRequestEvent): Promise<CoreChannel> {
     return new Promise(async (_resolve, _reject) => {
       try {
         await this.setPeer(requestEvent);

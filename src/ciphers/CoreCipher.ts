@@ -1,9 +1,9 @@
 import { CipherErrors } from "../errors/cipher";
-import { DecryptedData, EncryptedData, CipherKeyPair, CipherPublicKey, EncryptionSecret, EncryptionSharedKey } from "./types";
+import { DecryptedData, EncryptedData, CipherKeyPair, CipherPublicKey, CipherSecretKey, EncryptionSharedKey } from "./types";
 
-export abstract class CipherCore {
+export abstract class CoreCipher {
   protected _publicKey: CipherPublicKey
-  protected _secretKey: EncryptionSecret;
+  protected _secretKey: CipherSecretKey;
 
   constructor() {
     this.getPublicKey = this.getPublicKey.bind(this);
@@ -33,10 +33,10 @@ export abstract class CipherCore {
     }
   }
 
-  public getSecretKey(): EncryptionSecret {
+  public getSecretKey(): CipherSecretKey {
     try {
       if (!this._secretKey) throw new Error('No secret key found.')
-      return this._secretKey as EncryptionSecret;
+      return this._secretKey as CipherSecretKey;
     } catch (error) {
       throw CipherErrors.GetCipherSecretKeyError(error);
     }
@@ -45,7 +45,7 @@ export abstract class CipherCore {
   public getKeyPair(): CipherKeyPair {
     try {
       const publicKey = this.getPublicKey() as CipherPublicKey;
-      const secretKey = this.getSecretKey() as EncryptionSecret;
+      const secretKey = this.getSecretKey() as CipherSecretKey;
       if (!publicKey || !secretKey) throw new Error('No key pair found.');
       return { publicKey, secretKey } as CipherKeyPair;
     } catch (error) {
@@ -58,7 +58,7 @@ export abstract class CipherCore {
       if (!publicKey) throw new Error('No public key found.')
       if (!secretKey) throw new Error('No secret key found.')
       this._publicKey = publicKey as CipherPublicKey;
-      this._secretKey = secretKey as EncryptionSecret;
+      this._secretKey = secretKey as CipherSecretKey;
     } catch (error) {
       throw CipherErrors.SetEncryptionKeypairError(error);
     }

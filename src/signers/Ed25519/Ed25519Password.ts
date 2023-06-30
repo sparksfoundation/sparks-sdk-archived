@@ -3,12 +3,12 @@ import { SigatureDetached, Signature, SignatureData, SignatureVerified, SignerKe
 import { Ed25519 } from "./Ed25519";
 import nacl from 'tweetnacl';
 import util from 'tweetnacl-util';
-import { SignerCore } from '../SignerCore';
+import { CoreSigner } from '../CoreSigner';
 import { SignerErrors } from '../../errors/signer';
 
 export type SignerKeyPairWithSalt = SignerKeyPair & { salt: string };
 
-export class Ed25519Password extends SignerCore {
+export class Ed25519Password extends CoreSigner {
   private Ed25519: Ed25519;
   private _salt: string;
 
@@ -72,7 +72,7 @@ export class Ed25519Password extends SignerCore {
     this.Ed25519.setKeyPair({ publicKey, secretKey });
   }
 
-  public async sign(args: Parameters<Ed25519['verify']>[0]): Promise<SigatureDetached> {
+  public async sign(args: Parameters<Ed25519['sign']>[0]): Promise<SigatureDetached> {
     return this.Ed25519.sign(args);
   }
 

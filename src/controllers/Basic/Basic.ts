@@ -1,10 +1,10 @@
-import { BaseKeyEventProps, CommonKeyEventProps, KeyDestructionEvent, KeyEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
+import { AnyKeyEvent, BaseKeyEventProps, KeyDestructionEvent, KeyInceptionEvent, KeyRotationEvent } from "../types";
 import { KeyEventType } from "../types";
-import { ControllerCore } from "../ControllerCore";
+import { CoreController } from "../CoreController";
 import { KeyPairs } from "../../types";
 import { ControllerErrors } from "../../errors/controller";
 
-export class Basic extends ControllerCore {
+export class Basic extends CoreController {
   public async import(data: Record<string, any>): Promise<void> {
     await super.import(data);
     return Promise.resolve();
@@ -15,7 +15,10 @@ export class Basic extends ControllerCore {
     return Promise.resolve(data);
   }
 
-  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<KeyEvent> {
+  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType.INCEPT }): Promise<KeyInceptionEvent>;
+  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType.ROTATE }): Promise<KeyRotationEvent>;
+  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType.DESTROY }): Promise<KeyDestructionEvent>;
+  private async keyEvent({ nextKeyPairs, type }: { nextKeyPairs?: KeyPairs, type: KeyEventType }): Promise<AnyKeyEvent> {
     const keyPairs = this._spark.keyPairs as KeyPairs;
     const previousKeyCommitment = this._keyEventLog[this._keyEventLog.length - 1]?.nextKeyCommitments;
     const keyCommitment = await this._spark.hash({ data: keyPairs.signer.publicKey });
@@ -62,7 +65,7 @@ export class Basic extends ControllerCore {
       const identifier = this._identifier || `B${selfAddressingIdentifier}`;
       const previousEventDigest: string = this._keyEventLog.length > 0 ? this._keyEventLog[this._keyEventLog.length - 1].selfAddressingIdentifier : undefined;
 
-      const commonEventProps: CommonKeyEventProps = {
+      const commonEventProps = {
         identifier,
         type,
         version,
@@ -75,15 +78,13 @@ export class Basic extends ControllerCore {
           return {
             ...commonEventProps,
             type: KeyEventType.INCEPT,
-          } as KeyInceptionEvent;
-
+          };
         case KeyEventType.ROTATE:
           return {
             ...commonEventProps,
             type: KeyEventType.ROTATE,
             previousEventDigest,
-          } as KeyRotationEvent;
-
+          };
         case KeyEventType.DESTROY:
           return {
             ...commonEventProps,
@@ -91,8 +92,7 @@ export class Basic extends ControllerCore {
             previousEventDigest,
             nextKeyCommitments: [],
             signingKeys: []
-          } as KeyDestructionEvent;
-
+          };
         default:
           throw new Error('Invalid key event type.');
       }

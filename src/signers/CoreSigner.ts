@@ -2,7 +2,7 @@ import { SignerErrors } from "../errors/signer";
 import { Signature, SignatureData, SignatureVerified, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./types";
 
 // abstract class used by classes that use Hasher
-export abstract class SignerCore {
+export abstract class CoreSigner {
   protected _publicKey: SignerPublicKey;
   protected _secretKey: SignerSecretKey;
 

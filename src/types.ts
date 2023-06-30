@@ -1,13 +1,10 @@
-// TODO - promote error factories to class with type of extended class
-
-import { AgentCore } from "./agents/AgentCore";
-import { CipherCore } from "./ciphers/CipherCore";
+import { CoreAgent } from "./agents/CoreAgent";
+import { CoreCipher } from "./ciphers/CoreCipher";
 import { CipherKeyPair, CipherPublicKey, CipherSecretKey } from "./ciphers/types";
-import { ControllerCore } from "./controllers";
-import { HasherCore } from "./hashers/HasherCore";
-import { SignerCore } from "./signers/SignerCore";
+import { CoreController } from "./controllers";
+import { CoreHasher } from "./hashers/CoreHasher";
+import { CoreSigner } from "./signers/CoreSigner";
 import { SignedEncryptedData, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./signers/types";
-import { Constructable, UnwrapPromise } from "./utilities/types";
 
 // spark
 export interface KeyPairs {
@@ -25,90 +22,84 @@ export interface SecretKeys {
   signer: SignerSecretKey;
 }
 
-export type SparkParams<
-  A extends AgentCore[],
-  X extends CipherCore,
-  C extends ControllerCore,
-  H extends HasherCore,
-  S extends SignerCore,
-> = {
-  agents?: Constructable<A[number]>[];
-  cipher: Constructable<X>;
-  controller: Constructable<C>;
-  hasher: Constructable<H>;
-  signer: Constructable<S>;
-};
-
-export type SparkImportAgentParam<A extends AgentCore[]> = {
-  [K in keyof A]: Parameters<A[K]['import']>[0];
-};
+export type ExtractReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
 
 export interface SparkInterface<
-  A extends AgentCore[],
-  X extends CipherCore,
-  C extends ControllerCore,
-  H extends HasherCore,
-  S extends SignerCore,
+  A extends CoreAgent[],
+  X extends CoreCipher,
+  C extends CoreController,
+  H extends CoreHasher,
+  S extends CoreSigner,
 > {
 
-  // spark
-  publicKeys: PublicKeys;
-  secretKeys: SecretKeys;
-  keyPairs: KeyPairs;
+  // cores can be accessed for advanced functionality
+  agents: { [key: string]: A[number] };
+  cipher: X;
+  controller: C;
+  hasher: H;
+  signer: S;
 
-  generateKeyPairs: (params?: {
+  // helpers to get keys
+  identifier: ReturnType<C['getIdentifier']>;
+  
+  publicKeys: {
+    cipher: ReturnType<X['getPublicKey']>,
+    signer: ReturnType<S['getPublicKey']>,
+  };
+
+  secretKeys: {
+    cipher: ReturnType<X['getSecretKey']>,
+    signer: ReturnType<S['getSecretKey']>,
+  };
+
+  keyPairs: {
+    signer: ReturnType<S['getKeyPair']>,
+    cipher: ReturnType<X['getKeyPair']>,
+  };
+
+  incept(params: {
     cipher: Parameters<X['generateKeyPair']>[0],
     signer: Parameters<S['generateKeyPair']>[0],
-  }) => Promise<{
-    cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
-    signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>,
-  }>;
+  } & Parameters<C['incept']>[0]): Promise<void>;
 
-  setKeyPairs: (params?: {
-    cipher: Parameters<X['setKeyPair']>[0],
-    signer: Parameters<S['setKeyPair']>[0],
-  }) => void;
+  incept(params:
+    Parameters<X['generateKeyPair']>[0] &
+    Parameters<S['generateKeyPair']>[0] &
+    Parameters<C['incept']>[0]
+  ): Promise<void>;
 
-  import: (data: SignedEncryptedData) => Promise<void>;
+  rotate(params: {
+    cipher: Parameters<X['generateKeyPair']>[0],
+    signer: Parameters<S['generateKeyPair']>[0],
+  } & Parameters<C['rotate']>[0]): Promise<void>;
 
-  export: () => Promise<SignedEncryptedData>;
+  rotate(params:
+    Parameters<X['generateKeyPair']>[0] &
+    Parameters<S['generateKeyPair']>[0] &
+    Parameters<C['rotate']>[0]
+  ): Promise<void>;
 
-  // agent
-  agents?: { [key: string]: InstanceType<Constructable<A[number]>> };
+  destroy(params?:
+    Parameters<C['destroy']>[0]
+  ): Promise<void>;
 
-  // cipher
-  generateCipherSharedKey: X['generateSharedKey'];
-  setCipherKeyPair: X['setKeyPair'];
+  // cipher facade
   encrypt: X['encrypt'];
   decrypt: X['decrypt'];
 
-  // controller
-  identifier: ReturnType<C['getIdentifier']>;
-  
-  keyEventLog: C['getKeyEventLog'];
-  incept: (params?: {
-    cipher: Parameters<X['generateKeyPair']>[0],
-    signer: Parameters<S['generateKeyPair']>[0],
-  }) => Promise<void>;
-
-  rotate: (params?: {
-    cipher: Parameters<X['generateKeyPair']>[0],
-    signer: Parameters<S['generateKeyPair']>[0],
-  }) => Promise<void>;
-
-  destroy: (params?: {
-    cipher: Parameters<X['generateKeyPair']>[0],
-    signer: Parameters<S['generateKeyPair']>[0],
-  }) => Promise<void>;
-
-  // hasher
+  // hasher facade
   hash: H['hash'];
 
-  // signer
-  generateSignerKeyPair: S['generateKeyPair'];
-  setSignerKeyPair: S['setKeyPair'];
+  // signer facade
   sign: S['sign'];
   seal: S['seal'];
   verify: S['verify'];
   open: S['open'];
+
+  // imports exports evertything
+  import: (data: SignedEncryptedData) => Promise<void>;
+  export: () => Promise<SignedEncryptedData>;
+
+  // controller facade, uses cipher and signer to automate key generation
+  keyEventLog: C['getKeyEventLog'];
 }
