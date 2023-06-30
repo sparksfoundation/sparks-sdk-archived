@@ -562,7 +562,7 @@ export abstract class CoreChannel {
     this.sharedKey = null;
   }
 
-  public message(data) {
+  public message(data): Promise<ChannelMessageConfirmationEvent> {
     return new Promise(async (_resolve, _reject) => {
       try {
         if (this.status !== ChannelState.OPENED) {
@@ -578,6 +578,7 @@ export abstract class CoreChannel {
       }
     })
   }
+
   private async onMessage(messageEvent: ChannelMessageEvent) {
     try {
       const message = await this.openMessageDigest(messageEvent.data);
@@ -590,6 +591,7 @@ export abstract class CoreChannel {
       return Promise.reject(sparkError);
     }
   }
+
   private async onMessageConfirmed(confirmEvent: ChannelMessageConfirmationEvent) {
     const promise = this._messagePromises.get(confirmEvent.metadata.mid);
     try {
@@ -623,7 +625,6 @@ export abstract class CoreChannel {
 
   protected handleResponse(event: AnyChannelEvent): Promise<any> {
     const { type } = event;
-
     const isEvent = Object.values(ChannelEventType).includes(type);
     if (isEvent) this.eventLog.push({ response: true, ...event });
     switch (type) {
