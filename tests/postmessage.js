@@ -15,8 +15,8 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
         signer: Ed25519,
     });
     const websiteKeys = await website.generateKeyPairs()
-    website.setKeyPairs({ keyPairs: websiteKeys })
-    await website.incept()
+    website.setKeyPairs(websiteKeys)
+    await website.incept(websiteKeys)
 
     const alice = new Spark({
         cipher: X25519SalsaPoly,
@@ -25,9 +25,7 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
         signer: Ed25519,
     });
     const aliceKeys = await alice.generateKeyPairs()
-    alice.setKeyPairs({ keyPairs: aliceKeys })
-    await alice.incept()
-
+    await alice.incept(aliceKeys)
 
     PostMessage.handleOpenRequests(async ({ event, resolve, reject }) => {
         const channel = await resolve()
@@ -42,13 +40,27 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
     }, { spark: website, _window: _1111 });
 
     const channel = new PostMessage({
-        source: _1111,
         origin: 'http://localhost:1111',
         _window: _0000,
         spark: alice,
     });
 
-    const test = await channel.open()
+    await channel.open();
+    await channel.message('hey');
+    const cid = channel.cid;
+    await channel.close();
 
-    const receipt = await channel.message('hey')
+    const eventLog = [ ...channel.eventLog ];
+
+    const test = new PostMessage({
+        origin: 'http://localhost:1111',
+        source: _1111,
+        _window: _0000,
+        spark: alice,
+        cid: cid,
+        eventLog: [ ...eventLog ],
+    });
+
+    await test.open();
+    await test.message('hey');
 }())

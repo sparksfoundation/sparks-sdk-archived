@@ -3,6 +3,8 @@ import { Blake3 } from '../dist/hashers/Blake3/Blake3.mjs';
 import { Ed25519Password } from '../dist/signers/Ed25519/index.mjs';
 import { X25519SalsaPolyPassword } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
 import { Basic } from '../dist/controllers/Basic/index.mjs';
+import { randomSalt } from '../dist/utilities/index.mjs';
+import { assert } from 'console';
 
 (async function () {
   const spark = new Spark({
@@ -12,15 +14,10 @@ import { Basic } from '../dist/controllers/Basic/index.mjs';
     signer: Ed25519Password,
   });
 
-  const password = 'password';
-  let keyPairs = await spark.generateKeyPairs({ password })
-  await spark.setKeyPairs(keyPairs);
-  const data = await spark.export();
+  const salt = randomSalt();
+  await spark.incept({ password: 'password', salt })
 
-  let newKeys = await spark.generateKeyPairs({
-    signer: { password, salt: keyPairs.signer.salt },
-    cipher: { password, salt: keyPairs.cipher.salt },
-  });
+  const data = await spark.export();
 
   const test = new Spark({
     cipher: X25519SalsaPolyPassword,
@@ -29,12 +26,14 @@ import { Basic } from '../dist/controllers/Basic/index.mjs';
     signer: Ed25519Password,
   });
 
-  const keys = await test.generateKeyPairs({
-    signer: { password, salt: keyPairs.signer.salt },
-    cipher: { password, salt: keyPairs.cipher.salt },
+  
+  await test.import({
+    password: 'password',
+    salt,
+    data,
   });
 
-  await test.setKeyPairs(keys);
-  await test.import(data);
-
+  assert(spark.identifier === test.identifier, 'identifiers match');
+  assert(spark.publicKeys.signer === test.publicKeys.signer, 'signer public keys match');
+  assert(spark.publicKeys.cipher === test.publicKeys.cipher, 'cipher public keys match');
 }())

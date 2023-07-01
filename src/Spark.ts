@@ -61,7 +61,7 @@ export class Spark<
   // Private helper methods not exposed in the interface
 
   // generateKeyPairs can be called with either same or separate params for both or cipher and signer
-  private generateKeyPairs: {
+  private _generateKeyPairs: {
     (params: Parameters<X['generateKeyPair']>[0] & Parameters<S['generateKeyPair']>[0]): Promise<{
       cipher: UnwrapPromise<ReturnType<X['generateKeyPair']>>,
       signer: UnwrapPromise<ReturnType<S['generateKeyPair']>>
@@ -83,7 +83,7 @@ export class Spark<
   };
 
   // sets the key pairs for both cipher and signer
-  private setKeyPairs = async (params: {
+  private _setKeyPairs = async (params: {
     cipher: Parameters<X['setKeyPair']>[0],
     signer: Parameters<S['setKeyPair']>[0]
   }) => {
@@ -125,8 +125,8 @@ export class Spark<
     (params: { cipher: Parameters<X['generateKeyPair']>[0], signer: Parameters<S['generateKeyPair']>[0], data: SignedEncryptedData }): Promise<void>;
   } = async (params?: any) => {
     const { data, ...keyPairParams } = params;
-    const keyPairs = await this.generateKeyPairs(keyPairParams);
-    this.setKeyPairs(keyPairs);
+    const keyPairs = await this._generateKeyPairs(keyPairParams);
+    this._setKeyPairs(keyPairs);
 
     const opened = await this.signer.open({ signature: data, publicKey: this.publicKeys.signer });
     const decrypted = await this.cipher.decrypt({ data: opened }) as Record<string, any>;
@@ -186,8 +186,8 @@ export class Spark<
     (params: { cipher: Parameters<X['generateKeyPair']>[0], signer: Parameters<S['generateKeyPair']>[0] }): Promise<void>;
     (): Promise<void>;
   } = async (params?: any) => {
-    const keyPairs = await this.generateKeyPairs(params);
-    this.setKeyPairs(keyPairs);
+    const keyPairs = await this._generateKeyPairs(params);
+    this._setKeyPairs(keyPairs);
     await this.controller.incept();
   };
 
@@ -195,9 +195,9 @@ export class Spark<
     (params: Parameters<X['generateKeyPair']>[0] & Parameters<S['generateKeyPair']>[0]): Promise<void>;
     (params: { cipher: Parameters<X['generateKeyPair']>[0], signer: Parameters<S['generateKeyPair']>[0] }): Promise<void>;
   } = async (params) => {
-    const nextKeyPairs = await this.generateKeyPairs(params);
+    const nextKeyPairs = await this._generateKeyPairs(params);
     await this.controller.rotate({ nextKeyPairs });
-    this.setKeyPairs(nextKeyPairs);
+    this._setKeyPairs(nextKeyPairs);
   }
 
   public destroy: SparkInterface<A, X, C, H, S>['destroy'] = async (params) => {

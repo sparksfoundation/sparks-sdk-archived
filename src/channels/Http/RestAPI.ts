@@ -1,21 +1,24 @@
 import { Spark } from "../../Spark";
 import { CoreChannel } from "../CoreChannel";
-import { AnyChannelEvent, ChannelEventType, ChannelId, HandleOpenRequested } from "../types";
+import { AnyChannelEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelType, HandleOpenRequested } from "../types";
 
 export class RestAPI extends CoreChannel {
-    static promises: Map<string, any> = new Map();
-    static receives: Map<string, any> = new Map();
-    static requestHandler: Function;
+    private static promises: Map<string, any> = new Map();
+    private static receives: Map<string, any> = new Map();
+    public static requestHandler: Function;
 
-    constructor({ spark, cid }: {
+    constructor({ spark, cid, eventLog }: {
         spark: Spark<any, any, any, any, any>,
         cid?: ChannelId,
+        eventLog?: ChannelEventLog,
     }) {
-        super({ spark, cid });
+        super({ spark, cid, eventLog });
         this.sendRequest = this.sendRequest.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
         RestAPI.receives.set(this.cid, this.handleResponse);
     }
+
+    public get type() { return ChannelType.REST_API_CHANNEL; }
 
     protected async handleResponse(response) {
         await super.handleResponse(response);
@@ -60,6 +63,5 @@ export class RestAPI extends CoreChannel {
 
             })
         };
-
     }
 }
