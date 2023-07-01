@@ -64,7 +64,7 @@ export class WebRTC extends CoreChannel {
     this._connection.on('data', this.handleResponse);
   }
 
-  public get type() { return ChannelType.REST_API_CHANNEL; }
+  public static type: ChannelType = ChannelType.WEBRTC_CHANNEL;
   public get address() { return this._address; }
   public get peerAddress() { return this._peerAddress; }
   public get connection() { return this._connection; }

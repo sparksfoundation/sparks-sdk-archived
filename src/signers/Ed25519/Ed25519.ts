@@ -21,6 +21,7 @@ export class Ed25519 extends CoreSigner {
       const keyPair = params?.secretKey ? nacl.sign.keyPair.fromSecretKey(util.decodeBase64(params?.secretKey)) : nacl.sign.keyPair();
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
+
       if (!publicKey || !secretKey) throw new Error('Failed to generate key pair.');
       return { publicKey, secretKey } as SignerKeyPair;
     } catch (error) {

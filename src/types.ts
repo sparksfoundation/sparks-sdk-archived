@@ -1,4 +1,6 @@
 import { CoreAgent } from "./agents/CoreAgent";
+import { CoreChannel } from "./channels/CoreChannel";
+import { ChannelId, ChannelType } from "./channels/types";
 import { CoreCipher } from "./ciphers/CoreCipher";
 import { CipherKeyPair, CipherPublicKey, CipherSecretKey } from "./ciphers/types";
 import { CoreController } from "./controllers";
@@ -6,6 +8,8 @@ import { CoreHasher } from "./hashers/CoreHasher";
 import { CoreSigner } from "./signers/CoreSigner";
 import { SignedEncryptedData, SignerKeyPair, SignerPublicKey, SignerSecretKey } from "./signers/types";
 import { Constructable } from "./utilities/types";
+
+export type ConstructableChannel = Constructable<CoreChannel> & { type: ChannelType };
 
 // spark
 export interface KeyPairs {
@@ -116,4 +120,9 @@ export interface SparkInterface<
   }): Promise<void>;
 
   export: () => Promise<SignedEncryptedData>;
+
+  addChannel: (channel: CoreChannel) => void;
+  removeChannel: (cid: ChannelId) => void;
+  getChannel: (cid: ChannelId) => CoreChannel;
+  getChannels: () => CoreChannel[];
 }

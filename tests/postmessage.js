@@ -8,15 +8,19 @@ import { assert } from 'console';
 import { _0000, _1111 } from './utilities/MockWindow.js';
 
 (async function () {
+    global.window = _0000;
+
+    Spark.availableChannels = [PostMessage];
+
     const website = new Spark({
         cipher: X25519SalsaPoly,
         controller: Basic,
         hasher: Blake3,
         signer: Ed25519,
     });
-    const websiteKeys = await website.generateKeyPairs()
-    website.setKeyPairs(websiteKeys)
-    await website.incept(websiteKeys)
+    
+    const keyPairs = await website._generateKeyPairs();
+    await website.incept(keyPairs)
 
     const alice = new Spark({
         cipher: X25519SalsaPoly,
@@ -24,9 +28,8 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
         hasher: Blake3,
         signer: Ed25519,
     });
-    const aliceKeys = await alice.generateKeyPairs()
-    await alice.incept(aliceKeys)
 
+    await alice.incept()
     PostMessage.handleOpenRequests(async ({ event, resolve, reject }) => {
         const channel = await resolve()
 
@@ -47,20 +50,21 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
 
     await channel.open();
     await channel.message('hey');
-    const cid = channel.cid;
     await channel.close();
 
-    const eventLog = [ ...channel.eventLog ];
+    const test = await website.export();
 
-    const test = new PostMessage({
-        origin: 'http://localhost:1111',
-        source: _1111,
-        _window: _0000,
-        spark: alice,
-        cid: cid,
-        eventLog: [ ...eventLog ],
+    const newLogin = new Spark({
+        cipher: X25519SalsaPoly,
+        controller: Basic,
+        hasher: Blake3,
+        signer: Ed25519,
     });
 
-    await test.open();
-    await test.message('hey');
+    await newLogin.import({
+        data: test,
+        ...keyPairs,
+    });
+
+    console.log(newLogin.getChannels())
 }())

@@ -18,7 +18,7 @@ export class RestAPI extends CoreChannel {
         RestAPI.receives.set(this.cid, this.handleResponse);
     }
 
-    public get type() { return ChannelType.REST_API_CHANNEL; }
+    public static type: ChannelType = ChannelType.REST_API_CHANNEL;
 
     protected async handleResponse(response) {
         await super.handleResponse(response);

@@ -19,8 +19,6 @@ export class PostMessage extends CoreChannel {
         super({ cid, spark, eventLog });
 
         this._window = _window || window || null;
-        if (!this._window) throw new Error('PostMessage: missing window');
-
         this._origin = origin;
         this._source = source;
 
@@ -33,7 +31,7 @@ export class PostMessage extends CoreChannel {
         });
     }
 
-    public get type() { return ChannelType.POSTMESSAGE_CHANNEL; }
+    public static type: ChannelType = ChannelType.POSTMESSAGE_CHANNEL;
     public get origin() { return this._origin; }
     public get source() { return this._source; }
 

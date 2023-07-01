@@ -1,4 +1,4 @@
-import { KeyPairs, PublicKeys } from "./types";
+import { ConstructableChannel, KeyPairs } from "./types";
 import { SparkInterface } from "./types";
 import { CoreAgent } from "./agents/CoreAgent";
 import { CoreCipher } from "./ciphers/CoreCipher";
@@ -7,13 +7,16 @@ import { CoreSigner } from "./signers/CoreSigner";
 import { CoreController } from "./controllers";
 import { Constructable, UnwrapPromise } from "./utilities/types";
 import { SignedEncryptedData } from "./signers/types";
+import { CoreChannel } from "./channels/CoreChannel";
+import { ChannelId } from "./channels/types";
+import { ChannelType } from "./channels/types";
 
 export class Spark<
   A extends CoreAgent[],
   X extends CoreCipher,
   C extends CoreController,
   H extends CoreHasher,
-  S extends CoreSigner
+  S extends CoreSigner,
 > implements SparkInterface<A, X, C, H, S> {
 
   public readonly cipher: X;
@@ -21,13 +24,15 @@ export class Spark<
   public readonly hasher: H;
   public readonly signer: S;
   public readonly agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
+  private _channels: Map<ChannelId, CoreChannel> = new Map();
+  private static availableChannels: ConstructableChannel[] = [];
 
   constructor({
     agents,
     cipher,
     controller,
     hasher,
-    signer
+    signer,
   }: {
     agents?: Array<new (spark: Spark<A, X, C, H, S>) => A[number]>;
     cipher: Constructable<X>;
@@ -35,7 +40,6 @@ export class Spark<
     hasher: Constructable<H>;
     signer: Constructable<S>;
   }) {
-
     this.cipher = new cipher(this);
     this.hasher = new hasher(this);
     this.signer = new signer(this);
@@ -137,6 +141,18 @@ export class Spark<
       })
     );
 
+    await Promise.all(
+      Object.entries(decrypted.channels).map(async ([type, channels]: [ChannelType, CoreChannel[]]) => {
+        const Clazz = Spark.availableChannels.find((channel) => channel.type === type);
+        if (!Clazz) throw new Error(`Channel type ${type} not supported.`);
+        await Promise.all(channels.map(async (channel) => {
+          const _channel = new Clazz({ spark: this, ...channel });
+          await _channel.import(channel);
+          this.addChannel(_channel);
+        }));
+      })
+    );
+
     await Promise.all([
       this.cipher.import(decrypted.cipher),
       this.hasher.import(decrypted.hasher),
@@ -148,11 +164,19 @@ export class Spark<
   public export: SparkInterface<A, X, C, H, S>['export'] = async () => {
     const data = {
       agents: {},
+      channels: {},
     };
 
     await Promise.all(
       Object.entries(this.agents).map(async ([key, agent]) => {
         data.agents[key] = await agent.export();
+      })
+    );
+
+    await Promise.all(
+      this.getChannels().map(async (channel) => {
+        data.channels[channel.constructor['type']] = data.channels[channel.constructor['type']] || [];
+        data.channels[channel.constructor['type']].push(await channel.export());
       })
     );
 
@@ -166,6 +190,24 @@ export class Spark<
     const encrypted = await this.cipher.encrypt({ data });
     const signed = await this.signer.seal({ data: encrypted });
     return signed;
+  }
+
+  public addChannel(channel: CoreChannel): void {
+    if (!this._channels.has(channel.cid)) {
+      this._channels.set(channel.cid, channel);
+    }
+  }
+
+  public getChannel(cid: ChannelId): CoreChannel {
+    return this._channels.get(cid);
+  }
+
+  public getChannels(): CoreChannel[] {
+    return Array.from(this._channels.values());
+  }
+
+  public removeChannel(cid: ChannelId): void {
+    this._channels.delete(cid);
   }
 
   // controller facade

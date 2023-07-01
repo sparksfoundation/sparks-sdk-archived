@@ -18,7 +18,7 @@ export class FetchAPI extends CoreChannel {
     this.sendRequest = this.sendRequest.bind(this);
   }
 
-  public get type() { return ChannelType.FETCH_API_CHANNEL; }
+  public static type: ChannelType = ChannelType.FETCH_API_CHANNEL;
   public get url() { return this._url; }
   public get origin() { return this._origin; }
 

@@ -1,4 +1,9 @@
-
+/**
+ * TODO 
+ * - add _messageQueue logic to handle messages that come in before the channel is opened
+ * - add timeouts for open, close and message promises
+ * - add max retries for open, close and message attempts
+ */
 import { Spark } from "../Spark";
 import cuid from "cuid";
 import { utcEpochTimestamp } from "../utilities";
@@ -43,14 +48,14 @@ export abstract class CoreChannel {
   public onerror: (data: any) => void | never;
 
   // PUBLIC GETTERS
-  public get type(): ChannelType { return ChannelType.CORE_CHANNEL; }
+  public static type: ChannelType = ChannelType.CORE_CHANNEL;
   public get cid(): ChannelId { return this._cid; }
   public get peer(): ChannelPeer { return this._peer; }
   public get sharedKey(): EncryptionSharedKey { return this._sharedKey; }
   public get status(): ChannelState { return this._status; }
   public get eventLog(): ChannelEventLog { return this._eventLog; }
 
-  constructor({ cid, spark, eventLog }: { cid: ChannelId, spark: Spark<any, any, any, any, any>, eventLog?: ChannelEventLog }) {
+  constructor({ cid, spark, eventLog }: { cid: ChannelId, spark: Spark<any, any, any, any, any>, save?: boolean, eventLog?: ChannelEventLog }) {
     this._spark = spark;
     this._cid = cid || cuid();
     this._eventLog = eventLog || [];
@@ -60,6 +65,7 @@ export abstract class CoreChannel {
     this.close = this.close.bind(this);
     this.message = this.message.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
+    this._spark.addChannel(this);
   }
 
   /**
@@ -718,7 +724,7 @@ export abstract class CoreChannel {
   protected abstract sendRequest(event: AnyChannelEvent): Promise<void>;
 
   public async import(data: Record<string, any>): Promise<void> {
-    const { type: _, cid, eventLog } = data;
+    const { cid, eventLog } = data;
     this._cid = cid;
     this._eventLog = eventLog;
     return Promise.resolve();
@@ -726,7 +732,7 @@ export abstract class CoreChannel {
   
   public async export(): Promise<Record<string, any>> {
     return Promise.resolve({
-      type: this.type,
+      type: this.constructor['type'],
       cid: this._cid,
       eventLog: this._eventLog,
     });
