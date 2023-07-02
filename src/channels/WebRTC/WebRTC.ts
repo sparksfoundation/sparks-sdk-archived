@@ -3,7 +3,7 @@ import { blake3 } from "@noble/hashes/blake3";
 import { Spark } from "../../Spark";
 import { Identifier } from "../../controllers/types";
 import { CoreChannel } from "../CoreChannel";
-import { AnyChannelEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelType, HandleOpenRequested } from "../types";
+import { AnyChannelEvent, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelOpenRejectionEvent, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
 import Peer, { DataConnection } from "peerjs";
 import util from 'tweetnacl-util';
 
@@ -38,37 +38,60 @@ export class WebRTC extends CoreChannel {
   private _connection: DataConnection;
   private _address: string;
   private _peerAddress: string;
+  private _peerIdentifier: string;
 
   constructor({
     spark,
     connection,
     cid,
-    peerAddress,
+    peerIdentifier,
     eventLog,
+    peer,
   }: {
     spark: Spark<any, any, any, any, any>,
     connection?: DataConnection,
     cid?: ChannelId,
-    peerAddress: string,
+    peerIdentifier: string,
     eventLog?: ChannelEventLog,
+    peer?: ChannelPeer,
   }) {
-    super({ spark, cid, eventLog });
-    console.log(spark.identifier, 'peer', peerAddress)
+    super({ spark, cid, eventLog, peer });
     this._address = WebRTC.idFromIdentifier(spark.identifier);
-    this._peerAddress = WebRTC.idFromIdentifier(peerAddress);
+    const _peerIdentifier = peer ? peer.identifier || peerIdentifier : peerIdentifier;
+    this._peerAddress = WebRTC.idFromIdentifier(_peerIdentifier);
+
     WebRTC.peerjs = WebRTC.peerjs || new Peer(this._address, { config: { iceServers } });
 
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
 
-    this._connection = connection || WebRTC.peerjs.connect(this._peerAddress);
-    this._connection.on('data', this.handleResponse);
+    if (connection) {
+      this._connection = connection;
+      this._connection.on('data', this.handleResponse);
+    }
+
+    window.addEventListener('beforeunload', () => {
+      this.close()
+    }, { capture: true });
   }
 
   public static type: ChannelType = ChannelType.WEBRTC_CHANNEL;
   public get address() { return this._address; }
   public get peerAddress() { return this._peerAddress; }
   public get connection() { return this._connection; }
+
+  public async open() {
+    if (this._connection) return super.open();
+    this._connection = WebRTC.peerjs.connect(this._peerAddress);
+    this._connection.on('data', this.handleResponse);
+    return super.open();
+  }
+
+  protected async handleClosed(event: ChannelCloseEvent | ChannelCloseConfirmationEvent) {
+    this._connection.off('data', this.handleResponse);
+    this._connection.close();
+    return super.handleClosed(event);
+  }
 
   public async handleResponse(response) {
     if (this._connection.open) {
@@ -96,27 +119,11 @@ export class WebRTC extends CoreChannel {
 
   protected static idFromIdentifier(identifier: Identifier) {
     // hash identifier then remove illegal character
-    console.log(identifier)
     const id = util.encodeBase64(blake3(identifier));
     return id.replace(/[^a-zA-Z\-\_]/g, '');
   }
 
-  public async import(data: Record<string, any>) {
-    this._address = data.address;
-    this._peerAddress = data.peerAddress;
-    await super.import(data);
-    return Promise.resolve();
-  }
-
-  public async export(): Promise<Record<string, any>> {
-    const data = await super.export();
-    const address = this._address;
-    const peerAddress = this._peerAddress;
-    return Promise.resolve({ ...data, peerAddress, address });
-  }
-
   public static handleOpenRequests(callback: HandleOpenRequested, { spark }: { spark: Spark<any, any, any, any, any> }) {
-
     const ourAddress = WebRTC.idFromIdentifier(spark.identifier);
     WebRTC.peerjs = WebRTC.peerjs || new Peer(ourAddress, { config: { iceServers } });
     WebRTC.peerjs.on('open', () => {
@@ -130,7 +137,7 @@ export class WebRTC extends CoreChannel {
             spark,
             cid,
             connection,
-            peerAddress: data.identifier,
+            peerIdentifier: data.identifier,
           });
 
           channel.handleOpenRequested = callback;
@@ -139,6 +146,11 @@ export class WebRTC extends CoreChannel {
       }, { once: true })
     })
     window.addEventListener('unload', () => WebRTC.peerjs.destroy());
-    window.addEventListener('beforeunload', () => WebRTC.peerjs.destroy());
+  }
+
+  public async export(): Promise<Record<string, any>> {
+    const data = await super.export();
+    const peerIdentifier = this._peerIdentifier;
+    return Promise.resolve({ peerIdentifier, ...data });
   }
 }

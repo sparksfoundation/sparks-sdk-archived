@@ -1,22 +1,23 @@
 import { Spark } from "../../Spark";
 import { ChannelErrors } from "../../errors/channel";
 import { CoreChannel } from "../CoreChannel";
-import { AnyChannelEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelType, HandleOpenRequested } from "../types";
+import { AnyChannelEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
 
 export class PostMessage extends CoreChannel {
     private _source: Window;
     private _origin: Window['origin'];
     private _window?: Window;
 
-    constructor({ _window, cid, source, origin, spark, eventLog }: {
+    constructor({ _window, cid, source, origin, spark, eventLog, peer }: {
         _window?: Window,
         cid?: ChannelId,
         source?: Window,
         origin: Window['origin'],
         spark: Spark<any, any, any, any, any>,
         eventLog?: ChannelEventLog,
+        peer?: ChannelPeer
     }) {
-        super({ cid, spark, eventLog });
+        super({ cid, spark, eventLog, peer });
 
         this._window = _window || window || null;
         this._origin = origin;
@@ -77,15 +78,15 @@ export class PostMessage extends CoreChannel {
         });
     }
 
-    public async import(data: Record<string, any>) {
-        this._origin = data.origin;
-        await super.import(data);
-        return Promise.resolve();
-    }
-
     public async export(): Promise<Record<string, any>> {
         const data = await super.export();
         const origin = this._origin
         return Promise.resolve({ ...data, origin });
+    }
+
+    public async import(data) {
+        const { origin } = data;
+        if (origin !== this._origin) throw new Error('origin mismatch');
+        return super.import(data);
     }
 }

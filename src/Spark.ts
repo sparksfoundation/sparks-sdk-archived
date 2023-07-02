@@ -7,9 +7,6 @@ import { CoreSigner } from "./signers/CoreSigner";
 import { CoreController } from "./controllers";
 import { Constructable, UnwrapPromise } from "./utilities/types";
 import { SignedEncryptedData } from "./signers/types";
-import { CoreChannel } from "./channels/CoreChannel";
-import { ChannelId } from "./channels/types";
-import { ChannelType } from "./channels/types";
 
 export class Spark<
   A extends CoreAgent[],
@@ -24,7 +21,6 @@ export class Spark<
   public readonly hasher: H;
   public readonly signer: S;
   public readonly agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
-  private _channels: Map<ChannelId, CoreChannel> = new Map();
 
   public static availableChannels: ConstructableChannel[] = [];
 
@@ -148,18 +144,6 @@ export class Spark<
       this.signer.import(decrypted.signer),
       this.controller.import(decrypted.controller),
     ]);
-
-    console.log('hey', this.identifier);
-
-    await Promise.all(
-      decrypted.channels.map(async ({ type, ...data }) => {
-        const Clazz = Spark.availableChannels.find((channel) => channel.type === type);
-        if (!Clazz) throw new Error(`Channel type ${type} not supported.`);
-        const _channel = new Clazz({ spark: this, cid: data.cid });
-        await _channel.import(data);
-        this.addChannel(_channel);
-      })
-    );
   }
 
   public export: SparkInterface<A, X, C, H, S>['export'] = async () => {
@@ -174,10 +158,6 @@ export class Spark<
       })
     );
 
-    await Promise.all(
-      this.getChannels().map(async (channel) => data.channels.push(await channel.export()))
-    );
-
     Object.assign(data, {
       cipher: await this.cipher.export(),
       hasher: await this.hasher.export(),
@@ -190,27 +170,6 @@ export class Spark<
     return signed;
   }
 
-  public addChannel(channel: CoreChannel): void {
-    if (!this._channels.has(channel.cid)) {
-      this._channels.set(channel.cid, channel);
-    }
-  }
-
-  public getChannel(cid: ChannelId): CoreChannel {
-    return this._channels.get(cid);
-  }
-
-  public getChannelsByType(type: ChannelType): CoreChannel[] {
-    return this.getChannels().filter((channel) => channel.constructor['type'] === type);
-  }
-
-  public getChannels(): CoreChannel[] {
-    return Array.from(this._channels.values());
-  }
-
-  public removeChannel(cid: ChannelId): void {
-    this._channels.delete(cid);
-  }
 
   // controller facade
   get identifier(): ReturnType<C['getIdentifier']> {

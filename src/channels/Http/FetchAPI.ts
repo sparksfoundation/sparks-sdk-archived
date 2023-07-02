@@ -1,20 +1,22 @@
 import { Spark } from "../../Spark";
 import { CoreChannel } from "../CoreChannel";
-import { ChannelEventLog, ChannelId, ChannelType } from "../types";
+import { ChannelEventLog, ChannelId, ChannelPeer, ChannelType } from "../types";
 
 export class FetchAPI extends CoreChannel {
   private _url: string;
   private _origin: string;
 
-  constructor({ spark, url, cid, eventLog }: {
+  constructor({ spark, url, cid, eventLog, peer }: {
     spark: Spark<any, any, any, any, any>,
     url: string,
     cid?: ChannelId,
-    eventLog?: ChannelEventLog
+    origin?: string,
+    eventLog?: ChannelEventLog,
+    peer?: ChannelPeer,
   }) {
-    super({ spark, cid, eventLog });
+    super({ spark, cid, eventLog, peer });
     this._url = url;
-    this._origin = new URL(url).origin;
+    this._origin = origin || new URL(url).origin;
     this.sendRequest = this.sendRequest.bind(this);
   }
 
@@ -36,17 +38,16 @@ export class FetchAPI extends CoreChannel {
     throw new Error("Fetch channels are outgoing only");
   }
 
-  public async import(data: Record<string, any>) {
-    this._origin = data.origin;
-    this._url = data.url;
-    await super.import(data);
-    return Promise.resolve();
-  }
-
   public async export(): Promise<Record<string, any>> {
     const data = await super.export();
     const url = this._url;
     const origin = this._origin;
     return Promise.resolve({ ...data, url, origin });
+  }
+
+  public async import(data) {
+    await super.import(data);
+    this._url = data.url;
+    this._origin = data.origin;
   }
 }

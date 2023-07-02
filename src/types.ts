@@ -120,9 +120,4 @@ export interface SparkInterface<
   }): Promise<void>;
 
   export: () => Promise<SignedEncryptedData>;
-
-  addChannel: (channel: CoreChannel) => void;
-  removeChannel: (cid: ChannelId) => void;
-  getChannel: (cid: ChannelId) => CoreChannel;
-  getChannels: () => CoreChannel[];
 }

@@ -55,17 +55,17 @@ export abstract class CoreChannel {
   public get status(): ChannelState { return this._status; }
   public get eventLog(): ChannelEventLog { return this._eventLog; }
 
-  constructor({ cid, spark, eventLog }: { cid: ChannelId, spark: Spark<any, any, any, any, any>, save?: boolean, eventLog?: ChannelEventLog }) {
+  constructor({ cid, spark, eventLog, peer }: { cid: ChannelId, spark: Spark<any, any, any, any, any>, save?: boolean, eventLog?: ChannelEventLog, peer?: ChannelPeer }) {
     this._spark = spark;
     this._cid = cid || cuid();
     this._eventLog = eventLog || [];
     this._status = ChannelState.CLOSED;
+    this._peer = peer || null;
 
     this.open = this.open.bind(this);
     this.close = this.close.bind(this);
     this.message = this.message.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
-    this._spark.addChannel(this);
   }
 
   /**
@@ -635,6 +635,7 @@ export abstract class CoreChannel {
   }
 
   private _sendRequest(event: AnyChannelEvent): Promise<void> {
+    console.log('_sendRequest', event);
     try {
       if (!this.sendRequest) throw new Error("sendRequest method not implemented");
       const result = this.sendRequest(event);
@@ -647,6 +648,7 @@ export abstract class CoreChannel {
   }
 
   private _handleResponse(event: AnyChannelEvent): Promise<any> {
+    console.log('_handleResponse', event);
     const { type } = event;
     const isEvent = Object.values(ChannelEventType).includes(type);
     if (isEvent) this._eventLog.push({ response: true, ...event });
@@ -722,19 +724,24 @@ export abstract class CoreChannel {
   }
 
   protected abstract sendRequest(event: AnyChannelEvent): Promise<void>;
-
-  public async import(data: Record<string, any>): Promise<void> {
-    const { cid, eventLog } = data;
-    this._cid = cid;
-    this._eventLog = eventLog;
-    return Promise.resolve();
-  }
   
   public async export(): Promise<Record<string, any>> {
     return Promise.resolve({
       type: this.constructor['type'],
       cid: this._cid,
+      peer: {
+        identifier: this._peer?.identifier,
+        publicKeys: this._peer?.publicKeys,
+      },
       eventLog: this._eventLog,
     });
+  }
+
+  public async import(data: Record<string, any>): Promise<void> {
+    const { cid, peer, eventLog } = data;
+    this._cid = cid;
+    this._peer = peer;
+    this._eventLog = eventLog;
+    return Promise.resolve();
   }
 }
