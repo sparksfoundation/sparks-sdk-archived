@@ -361,6 +361,28 @@ export abstract class CoreChannel {
     })
   }
 
+  public async getEventMessage(event: ChannelMessageEvent | ChannelMessageConfirmationEvent): Promise<ChannelMessageData> {
+    try {
+      switch (event.type) {
+        case ChannelEventType.MESSAGE:
+          console.log('here', this._peer.publicKeys.signer, event.data)
+          const opened = await this._spark.open({ signature: event.data, publicKey: this._peer.publicKeys.signer });
+          const decrypted = await this._spark.decrypt({ data: opened, sharedKey: this._sharedKey });
+          return Promise.resolve(decrypted);
+        case ChannelEventType.MESSAGE_CONFIRMATION:
+          console.log('there', this._peer.publicKeys.signer, event.data.receipt)
+          const openedReceipt = await this._spark.open({ signature: event.data.receipt, publicKey: this._peer.publicKeys.signer });
+          const decryptedReceipt = await this._spark.decrypt({ data: openedReceipt, sharedKey: this._sharedKey });
+          const openedMsg = await this._spark.open({ signature: decryptedReceipt.messageDigest, publicKey: this._peer.publicKeys.signer });
+          const decryptedMsg = await this._spark.decrypt({ data: openedMsg, sharedKey: this._sharedKey });
+          return Promise.resolve(decryptedMsg);
+      }
+    } catch (error) {
+      error.metadata = { event: event.type, message: error.message };
+      const sparkError = ChannelErrors.GetEventMessageError(error);
+      return Promise.reject(sparkError);
+    }
+  }
   /**
    * PRIVATE CHANNEL METHODS
    * - should not be extended by child classes
@@ -635,7 +657,6 @@ export abstract class CoreChannel {
   }
 
   private _sendRequest(event: AnyChannelEvent): Promise<void> {
-    console.log('_sendRequest', event);
     try {
       if (!this.sendRequest) throw new Error("sendRequest method not implemented");
       const result = this.sendRequest(event);
@@ -648,7 +669,6 @@ export abstract class CoreChannel {
   }
 
   private _handleResponse(event: AnyChannelEvent): Promise<any> {
-    console.log('_handleResponse', event);
     const { type } = event;
     const isEvent = Object.values(ChannelEventType).includes(type);
     if (isEvent) this._eventLog.push({ response: true, ...event });

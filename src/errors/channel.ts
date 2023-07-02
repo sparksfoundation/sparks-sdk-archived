@@ -29,7 +29,7 @@ export enum ChannelErrorName {
   ON_MESSAGE_ERROR = 'ON_MESSAGE_ERROR',
   ON_CLOSE_ERROR = 'ON_CLOSE_ERROR',
   ON_ERROR_ERROR = 'ON_ERROR_ERROR',
-
+  GET_EVENT_MESSAGE_ERROR = 'GET_EVENT_MESSAGE_ERROR',
 }
 
 export class ChannelErrors {
@@ -226,6 +226,15 @@ export class ChannelErrors {
     return new SparkError({
       name: ChannelErrorName.CONFIRM_MESSAGE_ERROR,
       message: `failed to confirm message`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  public static GetEventMessageError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+    return new SparkError({
+      name: ChannelErrorName.GET_EVENT_MESSAGE_ERROR,
+      message: `failed to get event message`,
       metadata: { ...metadata },
       stack
     });
