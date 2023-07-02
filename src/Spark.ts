@@ -25,7 +25,8 @@ export class Spark<
   public readonly signer: S;
   public readonly agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
   private _channels: Map<ChannelId, CoreChannel> = new Map();
-  private static availableChannels: ConstructableChannel[] = [];
+
+  public static availableChannels: ConstructableChannel[] = [];
 
   constructor({
     agents,
