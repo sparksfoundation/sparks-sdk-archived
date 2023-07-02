@@ -1,3 +1,4 @@
+// todo - fix import / export and id generation
 import { blake3 } from "@noble/hashes/blake3";
 import { Spark } from "../../Spark";
 import { Identifier } from "../../controllers/types";
@@ -52,6 +53,7 @@ export class WebRTC extends CoreChannel {
     eventLog?: ChannelEventLog,
   }) {
     super({ spark, cid, eventLog });
+    console.log(spark.identifier, 'peer', peerAddress)
     this._address = WebRTC.idFromIdentifier(spark.identifier);
     this._peerAddress = WebRTC.idFromIdentifier(peerAddress);
     WebRTC.peerjs = WebRTC.peerjs || new Peer(this._address, { config: { iceServers } });
@@ -60,7 +62,6 @@ export class WebRTC extends CoreChannel {
     this.sendRequest = this.sendRequest.bind(this);
 
     this._connection = connection || WebRTC.peerjs.connect(this._peerAddress);
-    this._connection.on('error', console.log)
     this._connection.on('data', this.handleResponse);
   }
 
@@ -74,7 +75,6 @@ export class WebRTC extends CoreChannel {
       super.handleResponse(response);
     } else {
       this._connection.on('open', () => {
-        this._connection.on('data', console.log);
         super.handleResponse(response)
       }, { once: true });
     }
@@ -96,6 +96,7 @@ export class WebRTC extends CoreChannel {
 
   protected static idFromIdentifier(identifier: Identifier) {
     // hash identifier then remove illegal character
+    console.log(identifier)
     const id = util.encodeBase64(blake3(identifier));
     return id.replace(/[^a-zA-Z\-\_]/g, '');
   }
@@ -118,7 +119,6 @@ export class WebRTC extends CoreChannel {
 
     const ourAddress = WebRTC.idFromIdentifier(spark.identifier);
     WebRTC.peerjs = WebRTC.peerjs || new Peer(ourAddress, { config: { iceServers } });
-    WebRTC.peerjs.on('error', err => console.error(err));
     WebRTC.peerjs.on('open', () => {
       WebRTC.peerjs.on('connection', connection => {
         connection.on('data', (request: AnyChannelEvent) => {
@@ -128,6 +128,7 @@ export class WebRTC extends CoreChannel {
 
           const channel = new WebRTC({
             spark,
+            cid,
             connection,
             peerAddress: data.identifier,
           });

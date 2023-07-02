@@ -141,31 +141,31 @@ export class Spark<
         await agent.import(decrypted.agents[key]);
       })
     );
-
-    await Promise.all(
-      Object.entries(decrypted.channels).map(async ([type, channels]: [ChannelType, CoreChannel[]]) => {
-        const Clazz = Spark.availableChannels.find((channel) => channel.type === type);
-        if (!Clazz) throw new Error(`Channel type ${type} not supported.`);
-        await Promise.all(channels.map(async (channel) => {
-          const _channel = new Clazz({ spark: this, ...channel });
-          await _channel.import(channel);
-          this.addChannel(_channel);
-        }));
-      })
-    );
-
+    
     await Promise.all([
       this.cipher.import(decrypted.cipher),
       this.hasher.import(decrypted.hasher),
       this.signer.import(decrypted.signer),
       this.controller.import(decrypted.controller),
     ]);
+
+    console.log('hey', this.identifier);
+
+    await Promise.all(
+      decrypted.channels.map(async ({ type, ...data }) => {
+        const Clazz = Spark.availableChannels.find((channel) => channel.type === type);
+        if (!Clazz) throw new Error(`Channel type ${type} not supported.`);
+        const _channel = new Clazz({ spark: this, cid: data.cid });
+        await _channel.import(data);
+        this.addChannel(_channel);
+      })
+    );
   }
 
   public export: SparkInterface<A, X, C, H, S>['export'] = async () => {
     const data = {
       agents: {},
-      channels: {},
+      channels: [],
     };
 
     await Promise.all(
@@ -175,10 +175,7 @@ export class Spark<
     );
 
     await Promise.all(
-      this.getChannels().map(async (channel) => {
-        data.channels[channel.constructor['type']] = data.channels[channel.constructor['type']] || [];
-        data.channels[channel.constructor['type']].push(await channel.export());
-      })
+      this.getChannels().map(async (channel) => data.channels.push(await channel.export()))
     );
 
     Object.assign(data, {
@@ -201,6 +198,10 @@ export class Spark<
 
   public getChannel(cid: ChannelId): CoreChannel {
     return this._channels.get(cid);
+  }
+
+  public getChannelsByType(type: ChannelType): CoreChannel[] {
+    return this.getChannels().filter((channel) => channel.constructor['type'] === type);
   }
 
   public getChannels(): CoreChannel[] {

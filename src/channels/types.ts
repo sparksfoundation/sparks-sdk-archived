@@ -33,21 +33,26 @@ export enum ChannelType {
   FETCH_API_CHANNEL = 'FETCH_API_CHANNEL',
 }
 
-export type ResolveOpenPromise = (
-  params: ChannelOpenRejectionEvent | CoreChannel | SparkError
-) => ChannelOpenRejectionEvent | CoreChannel | SparkError
+export type ResolveOpenPromise = {
+  (params: ChannelOpenRejectionEvent): ChannelOpenRejectionEvent;
+  (params: CoreChannel): CoreChannel;
+  (params: SparkError): SparkError;
+};
 
-export type ResolveClosePromise = (
-  params: ChannelCloseConfirmationEvent | SparkError
-) => ChannelCloseConfirmationEvent | SparkError
+export type ResolveClosePromise = {
+  (params: ChannelCloseConfirmationEvent): ChannelCloseConfirmationEvent;
+  (params: SparkError): SparkError;
+};
 
-export type ResolveMessagePromise = (
-  params: ChannelMessageConfirmationEvent | SparkError
-) => ChannelMessageEvent | SparkError
+export type ResolveMessagePromise = {
+  (params: ChannelMessageConfirmationEvent): ChannelMessageConfirmationEvent;
+  (params: SparkError): SparkError;
+};
 
-export type RejectPromise = (
-  params: ChannelOpenRejectionEvent | SparkError
-) => ChannelOpenRejectionEvent | SparkError
+export type RejectPromise = {
+  (params: ChannelOpenRejectionEvent): ChannelOpenRejectionEvent;
+  (params: SparkError): SparkError;
+};
 
 export type HandleOpenRequested = ({ 
   event, 
