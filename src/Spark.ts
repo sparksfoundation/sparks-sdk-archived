@@ -1,4 +1,4 @@
-import { ConstructableChannel, KeyPairs } from "./types";
+import { KeyPairs } from "./types";
 import { SparkInterface } from "./types";
 import { CoreAgent } from "./agents/CoreAgent";
 import { CoreCipher } from "./ciphers/CoreCipher";
@@ -21,8 +21,6 @@ export class Spark<
   public readonly hasher: H;
   public readonly signer: S;
   public readonly agents: { [key: string]: InstanceType<Constructable<A[number]>> } = {};
-
-  public static availableChannels: ConstructableChannel[] = [];
 
   constructor({
     agents,

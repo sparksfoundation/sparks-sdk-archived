@@ -54,14 +54,14 @@ export type RejectPromise = {
   (params: SparkError): SparkError;
 };
 
-export type HandleOpenRequested = ({ 
-  event, 
-  resolve, 
-  reject 
-}: { 
-  event: ChannelOpenRequestEvent, 
-  resolve: () => void, 
-  reject: () => void 
+export type HandleOpenRequested = ({
+  event,
+  resolve,
+  reject
+}: {
+  event: ChannelOpenRequestEvent,
+  resolve: () => void,
+  reject: () => void
 }) => void;
 
 export type HandleOpenAccepted = ({
@@ -84,7 +84,7 @@ export enum ChannelEventType {
   CLOSE_CONFIRMATION = 'CLOSE_CONFIRMATION',
   MESSAGE = 'MESSAGE',
   MESSAGE_CONFIRMATION = 'MESSAGE_CONFIRMATION',
-  CHANNEL_ERROR = 'CHANNEL_ERROR',
+  ERROR = 'ERROR',
 }
 
 export interface ChannelOpenRequestEvent {
@@ -203,7 +203,7 @@ export interface ChannelMessageConfirmationEvent {
 }
 
 export interface ChannelErrorEvent {
-  type: ChannelEventType.CHANNEL_ERROR;
+  type: ChannelEventType.ERROR;
   timestamp: ChannelEventTimestamp;
   data: SparkError;
   metadata: {
@@ -271,3 +271,14 @@ export type AnyChannelReceipt =
   | ChannelOpenConfirmationReceipt
   | ChannelCloseConfirmationReceipt
   | ChannelMessageReceivedReceipt;
+
+
+export type ChannelListenerOff = (
+  callback?: (event: AnyChannelEvent) => void
+) => void;
+
+export type ChannelListenerOn = (
+  event: ChannelEventType | ChannelEventType[],
+  callback: (event: AnyChannelEvent) => void,
+  options?: { once?: boolean },
+) => () => void;

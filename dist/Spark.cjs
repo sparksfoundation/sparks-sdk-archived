@@ -186,4 +186,3 @@ class Spark {
   }
 }
 exports.Spark = Spark;
-Spark.availableChannels = [];

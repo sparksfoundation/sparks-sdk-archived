@@ -14,6 +14,61 @@ export class CoreChannel {
     // opens and resolves/rejects only on initiator side
     this._closePromises = /* @__PURE__ */ new Map();
     this._messagePromises = /* @__PURE__ */ new Map();
+    // PUBLIC EVENT HANDLING
+    this._listeners = /* @__PURE__ */ new Map();
+    /**
+     * PUBLIC CHANNEL METHODS
+     * - can be be extended by child classes if needed
+     * - should be exposed to user and called directly
+     */
+    /**
+     * @description Sets event listeners for close, message or error events
+     * @returns {Function} - a function to remove the listener
+     * @throws {INVALID_CALLBACK_EVENT_TYPE}
+     */
+    this.on = (events, callback, options) => {
+      const _events = Array.isArray(events) ? events : [events];
+      const subscriptions = /* @__PURE__ */ new Map();
+      const removeListeners = () => {
+        _events.forEach((event) => {
+          const unsubscribe = subscriptions.get(event);
+          if (unsubscribe)
+            unsubscribe();
+        });
+      };
+      _events.forEach((event) => {
+        if (!Object.values(ChannelEventType).includes(event)) {
+          throw new Error("Invalid callback event type");
+        }
+        const _callback = options?.once ? (event2) => {
+          callback(event2);
+          removeListeners();
+        } : callback;
+        if (!this._listeners.has(event))
+          this._listeners.set(event, /* @__PURE__ */ new Map());
+        this._listeners.get(event).set(_callback, _callback);
+        const unsubscribe = () => {
+          const eventCallbacks = this._listeners.get(event);
+          eventCallbacks.delete(_callback);
+        };
+        subscriptions.set(event, unsubscribe);
+      });
+      return removeListeners;
+    };
+    this.off = (callback) => {
+      if (!callback) {
+        this._listeners.forEach((eventCallbacks) => {
+          eventCallbacks.clear();
+        });
+        return;
+      } else {
+        this._listeners.forEach((eventCallbacks) => {
+          if (!eventCallbacks.has(callback))
+            return;
+          eventCallbacks.delete(callback);
+        });
+      }
+    };
     /**
      * PROTECTED METHODS
      * - handleOpenRequested - to be set by extending class (does not call super)
@@ -53,6 +108,10 @@ export class CoreChannel {
     this.close = this.close.bind(this);
     this.message = this.message.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
+  }
+  get type() {
+    const prototype = Object.getPrototypeOf(this);
+    return prototype.constructor.type;
   }
   get cid() {
     return this._cid;
@@ -237,9 +296,9 @@ export class CoreChannel {
             },
             metadata: { eid, cid, nid, mid }
           };
-        case ChannelEventType.CHANNEL_ERROR:
+        case ChannelEventType.ERROR:
           return {
-            type: ChannelEventType.CHANNEL_ERROR,
+            type: ChannelEventType.ERROR,
             timestamp,
             data,
             metadata: { eid, cid, nid }
@@ -272,11 +331,6 @@ export class CoreChannel {
       return Promise.reject(sparkError);
     }
   }
-  /**
-   * PUBLIC CHANNEL METHODS
-   * - can be be extended by child classes if needed
-   * - should be exposed to user and called directly
-   */
   /**
    * @description Initiates opening a channel
    * - sets a promise to be 
@@ -338,6 +392,7 @@ export class CoreChannel {
     try {
       const publicKey = event.request ? this._spark.publicKeys.signer : this._peer.publicKeys.signer;
       const sharedKey = this._sharedKey;
+      console.log(publicKey, sharedKey);
       switch (event.type) {
         case ChannelEventType.MESSAGE:
           const opened = await this._spark.open({ signature: event.data, publicKey });
@@ -572,11 +627,7 @@ export class CoreChannel {
         throw new Error("Close promise not found");
       promise.resolve(closeOrConfirmEvent);
       this._closePromises.delete(this.cid);
-    } else if (closeOrConfirmEvent.type === ChannelEventType.CLOSE) {
-      if (this.onclose) {
-        this.onclose(closeOrConfirmEvent);
-      }
-    } else {
+    } else if (closeOrConfirmEvent.type !== ChannelEventType.CLOSE) {
       throw new Error("Invalid close event type");
     }
     this._status = ChannelState.CLOSED;
@@ -590,8 +641,6 @@ export class CoreChannel {
       const message = await this._openMessageDigest(messageEvent.data);
       const decryptedEvent = { ...messageEvent, data: message };
       const event = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
-      if (this.onmessage)
-        this.onmessage(decryptedEvent);
       this._sendRequest(event);
     } catch (error) {
       const sparkError = ChannelErrors.OnMessageError(error);
@@ -632,8 +681,15 @@ export class CoreChannel {
   _handleResponse(event) {
     const { type } = event;
     const isEvent = Object.values(ChannelEventType).includes(type);
-    if (isEvent)
+    if (isEvent) {
       this._eventLog.push({ response: true, ...event });
+      const listeners = this._listeners.get(type);
+      if (listeners) {
+        listeners.forEach((callback) => {
+          callback(event);
+        });
+      }
+    }
     switch (type) {
       case ChannelEventType.OPEN_REQUEST:
         return this._onOpenRequested(event);
@@ -651,12 +707,6 @@ export class CoreChannel {
         return this._onMessage(event);
       case ChannelEventType.MESSAGE_CONFIRMATION:
         return this._onMessageConfirmed(event);
-      case ChannelEventType.CHANNEL_ERROR:
-        if (this.onerror) {
-          this.onerror(event);
-        }
-      default:
-        break;
     }
   }
   handleResponse(event) {

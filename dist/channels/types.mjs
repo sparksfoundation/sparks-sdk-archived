@@ -22,7 +22,7 @@ export var ChannelEventType = /* @__PURE__ */ ((ChannelEventType2) => {
   ChannelEventType2["CLOSE_CONFIRMATION"] = "CLOSE_CONFIRMATION";
   ChannelEventType2["MESSAGE"] = "MESSAGE";
   ChannelEventType2["MESSAGE_CONFIRMATION"] = "MESSAGE_CONFIRMATION";
-  ChannelEventType2["CHANNEL_ERROR"] = "CHANNEL_ERROR";
+  ChannelEventType2["ERROR"] = "ERROR";
   return ChannelEventType2;
 })(ChannelEventType || {});
 export var ChannelReceiptType = /* @__PURE__ */ ((ChannelReceiptType2) => {

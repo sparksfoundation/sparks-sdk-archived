@@ -50,7 +50,6 @@ export class Ed25519 extends CoreSigner {
         throw new Error("invalid utf8 encoding");
       return data;
     } catch (error) {
-      console.log(error, "reason");
       return Promise.reject(SignerErrors.SignatureOpeningError(error));
     }
   }

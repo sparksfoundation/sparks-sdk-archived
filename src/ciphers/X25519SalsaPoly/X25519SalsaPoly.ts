@@ -79,7 +79,6 @@ export class X25519SalsaPoly extends CoreCipher {
       const uintDataAndNonce = util.decodeBase64(data);
       const nonce = uintDataAndNonce.slice(0, nacl.secretbox.nonceLength);
       const uintData = uintDataAndNonce.slice(nacl.secretbox.nonceLength, uintDataAndNonce.length);
-  
       let decrypted;
       switch (true) {
         case publicKey !== undefined:

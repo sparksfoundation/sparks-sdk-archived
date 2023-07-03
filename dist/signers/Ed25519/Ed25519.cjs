@@ -61,7 +61,6 @@ class Ed25519 extends _CoreSigner.CoreSigner {
       if (!data) throw new Error("invalid utf8 encoding");
       return data;
     } catch (error) {
-      console.log(error, "reason");
       return Promise.reject(_signer.SignerErrors.SignatureOpeningError(error));
     }
   }

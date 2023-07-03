@@ -14,3 +14,14 @@ Object.keys(_CoreAgent).forEach(function (key) {
     }
   });
 });
+var _Profile = require("./Profile/index.cjs");
+Object.keys(_Profile).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  if (key in exports && exports[key] === _Profile[key]) return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function () {
+      return _Profile[key];
+    }
+  });
+});

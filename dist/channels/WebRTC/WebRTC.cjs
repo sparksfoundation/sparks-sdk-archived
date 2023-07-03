@@ -47,13 +47,15 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
     this._address = _WebRTC.idFromIdentifier(spark.identifier);
     const _peerIdentifier = peer ? peer.identifier || peerIdentifier : peerIdentifier;
     this._peerAddress = _WebRTC.idFromIdentifier(_peerIdentifier);
+    this.handleResponse = this.handleResponse.bind(this);
+    this.sendRequest = this.sendRequest.bind(this);
+    this._handleCalls = this._handleCalls.bind(this);
     _WebRTC.peerjs = _WebRTC.peerjs || new _peerjs.default(this._address, {
       config: {
         iceServers
       }
     });
-    this.handleResponse = this.handleResponse.bind(this);
-    this.sendRequest = this.sendRequest.bind(this);
+    _WebRTC.peerjs.on("call", this._handleCalls);
     if (connection) {
       this._connection = connection;
       this._connection.on("data", this.handleResponse);
@@ -74,13 +76,16 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
     return this._connection;
   }
   async open() {
-    if (this._connection) return super.open();
+    if (this._connection && this._connection.open) {
+      return super.open();
+    }
     this._connection = _WebRTC.peerjs.connect(this._peerAddress);
     this._connection.on("data", this.handleResponse);
     return super.open();
   }
   async handleClosed(event) {
     this._connection.off("data", this.handleResponse);
+    this.hangup();
     this._connection.close();
     return super.handleClosed(event);
   }
@@ -150,6 +155,108 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
       });
     });
     window.addEventListener("unload", () => _WebRTC.peerjs.destroy());
+  }
+  _handleCalls(call) {
+    if (this._call || !this.handleCalls) {
+      return;
+    }
+    const accept = async () => {
+      return new Promise(async (_resolve, _reject) => {
+        this._call = call;
+        await this.setLocalStream();
+        call.answer(this._streams.local);
+        call.on("close", () => {
+          this.hangup();
+        });
+        call.on("error", error => {
+          this.hangup();
+        });
+        call.on("stream", stream => {
+          this._streams.remote = stream;
+          _resolve(this._streams);
+        });
+      });
+    };
+    const reject = () => {
+      call.close();
+      this._call = null;
+      return Promise.resolve();
+    };
+    this.handleCalls({
+      accept,
+      reject
+    });
+  }
+  async setLocalStream() {
+    if (this._streams?.local) {
+      return Promise.resolve();
+    }
+    this._streams = {
+      local: null,
+      remote: null
+    };
+    this._streams.local = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true
+    });
+    if (!this._streams.local) {
+      throw new Error("Failed to get local stream");
+    }
+    return Promise.resolve();
+  }
+  async call() {
+    return new Promise(async (resolve, reject) => {
+      if (!this._connection.open) {
+        return reject("connection not open");
+      }
+      await this.setLocalStream().catch(reject);
+      const call = _WebRTC.peerjs.call(this._peerAddress, this._streams.local);
+      call.on("stream", stream => {
+        this._streams.remote = stream;
+        this._call = call;
+        clearTimeout(timer);
+        resolve(this._streams);
+      });
+      call.on("close", () => {
+        this.hangup();
+      });
+      call.on("error", error => {
+        clearTimeout(timer);
+        reject(error);
+      });
+      const timer = setTimeout(() => {
+        if (!this._streams.remote) {
+          this.hangup();
+          reject("timeout");
+        }
+      }, 1e4);
+    });
+  }
+  hangup() {
+    if (this.handleHangup) {
+      this.handleHangup();
+    }
+    if (this._streams) {
+      Object.values(this._streams).forEach(stream => {
+        stream.getTracks().forEach(track => {
+          track.enabled = false;
+          track.stop();
+        });
+      });
+      this._streams = null;
+    }
+    if (this._call) {
+      this._call.close();
+      this._call = null;
+    }
+  }
+  async import(data) {
+    await super.import(data);
+    const {
+      peerIdentifier
+    } = data;
+    this._peerIdentifier = peerIdentifier;
+    return Promise.resolve();
   }
   async export() {
     const data = await super.export();

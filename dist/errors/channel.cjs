@@ -35,6 +35,7 @@ var ChannelErrorName = /* @__PURE__ */(ChannelErrorName2 => {
   ChannelErrorName2["ON_CLOSE_ERROR"] = "ON_CLOSE_ERROR";
   ChannelErrorName2["ON_ERROR_ERROR"] = "ON_ERROR_ERROR";
   ChannelErrorName2["GET_EVENT_MESSAGE_ERROR"] = "GET_EVENT_MESSAGE_ERROR";
+  ChannelErrorName2["INVALID_CALLBACK_EVENT_TYPE"] = "INVALID_CALLBACK_EVENT_TYPE";
   return ChannelErrorName2;
 })(ChannelErrorName || {});
 exports.ChannelErrorName = ChannelErrorName;
@@ -410,6 +411,19 @@ class ChannelErrors {
     return new _SparkError.SparkError({
       name: "ON_ERROR_ERROR" /* ON_ERROR_ERROR */,
       message: `failed to on error`,
+      metadata: {
+        ...metadata
+      },
+      stack
+    });
+  }
+  static InvalidCallbackEventType({
+    metadata = {},
+    stack
+  } = {}) {
+    return new _SparkError.SparkError({
+      name: "INVALID_CALLBACK_EVENT_TYPE" /* INVALID_CALLBACK_EVENT_TYPE */,
+      message: `invalid callback event type`,
       metadata: {
         ...metadata
       },
