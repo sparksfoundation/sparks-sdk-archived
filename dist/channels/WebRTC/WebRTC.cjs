@@ -1,34 +1,35 @@
-import { blake3 } from "@noble/hashes/blake3";
-import { CoreChannel } from "../CoreChannel.mjs";
-import { ChannelEventType, ChannelType } from "../types.mjs";
-import Peer from "peerjs";
-import util from "tweetnacl-util";
-const iceServers = [
-  {
-    urls: "stun:stun.relay.metered.ca:80"
-  },
-  {
-    urls: "turn:a.relay.metered.ca:80",
-    username: "6512f3d9d3dcedc7d4f2fc2f",
-    credential: "PqVetG0J+Kn//OUc"
-  },
-  {
-    urls: "turn:a.relay.metered.ca:80?transport=tcp",
-    username: "6512f3d9d3dcedc7d4f2fc2f",
-    credential: "PqVetG0J+Kn//OUc"
-  },
-  {
-    urls: "turn:a.relay.metered.ca:443",
-    username: "6512f3d9d3dcedc7d4f2fc2f",
-    credential: "PqVetG0J+Kn//OUc"
-  },
-  {
-    urls: "turn:a.relay.metered.ca:443?transport=tcp",
-    username: "6512f3d9d3dcedc7d4f2fc2f",
-    credential: "PqVetG0J+Kn//OUc"
-  }
-];
-const _WebRTC = class extends CoreChannel {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.WebRTC = void 0;
+var _blake = require("@noble/hashes/blake3");
+var _CoreChannel = require("../CoreChannel.cjs");
+var _types = require("../types.cjs");
+var _peerjs = _interopRequireDefault(require("peerjs"));
+var _tweetnaclUtil = _interopRequireDefault(require("tweetnacl-util"));
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+const iceServers = [{
+  urls: "stun:stun.relay.metered.ca:80"
+}, {
+  urls: "turn:a.relay.metered.ca:80",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}, {
+  urls: "turn:a.relay.metered.ca:80?transport=tcp",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}, {
+  urls: "turn:a.relay.metered.ca:443",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}, {
+  urls: "turn:a.relay.metered.ca:443?transport=tcp",
+  username: "6512f3d9d3dcedc7d4f2fc2f",
+  credential: "PqVetG0J+Kn//OUc"
+}];
+const _WebRTC = class extends _CoreChannel.CoreChannel {
   constructor({
     spark,
     connection,
@@ -37,14 +38,23 @@ const _WebRTC = class extends CoreChannel {
     eventLog,
     peer
   }) {
-    super({ spark, cid, eventLog, peer });
+    super({
+      spark,
+      cid,
+      eventLog,
+      peer
+    });
     this._address = _WebRTC.idFromIdentifier(spark.identifier);
     const _peerIdentifier = peer ? peer.identifier || peerIdentifier : peerIdentifier;
     this._peerAddress = _WebRTC.idFromIdentifier(_peerIdentifier);
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
     this._handleCalls = this._handleCalls.bind(this);
-    _WebRTC.peerjs = _WebRTC.peerjs || new Peer(this._address, { config: { iceServers } });
+    _WebRTC.peerjs = _WebRTC.peerjs || new _peerjs.default(this._address, {
+      config: {
+        iceServers
+      }
+    });
     _WebRTC.peerjs.on("call", this._handleCalls);
     if (connection) {
       this._connection = connection;
@@ -52,7 +62,9 @@ const _WebRTC = class extends CoreChannel {
     }
     window.addEventListener("beforeunload", () => {
       this.close();
-    }, { capture: true });
+    }, {
+      capture: true
+    });
   }
   get address() {
     return this._address;
@@ -83,7 +95,9 @@ const _WebRTC = class extends CoreChannel {
     } else {
       this._connection.on("open", () => {
         super.handleResponse(response);
-      }, { once: true });
+      }, {
+        once: true
+      });
     }
   }
   async sendRequest(request) {
@@ -95,24 +109,38 @@ const _WebRTC = class extends CoreChannel {
         this._connection.on("open", () => {
           this._connection.send(request);
           return resolve();
-        }, { once: true });
+        }, {
+          once: true
+        });
       }
     });
   }
   static idFromIdentifier(identifier) {
-    const id = util.encodeBase64(blake3(identifier));
+    const id = _tweetnaclUtil.default.encodeBase64((0, _blake.blake3)(identifier));
     return id.replace(/[^a-zA-Z\-\_]/g, "");
   }
-  static handleOpenRequests(callback, { spark }) {
+  static handleOpenRequests(callback, {
+    spark
+  }) {
     const ourAddress = _WebRTC.idFromIdentifier(spark.identifier);
-    _WebRTC.peerjs = _WebRTC.peerjs || new Peer(ourAddress, { config: { iceServers } });
+    _WebRTC.peerjs = _WebRTC.peerjs || new _peerjs.default(ourAddress, {
+      config: {
+        iceServers
+      }
+    });
     _WebRTC.peerjs.on("open", () => {
-      _WebRTC.peerjs.on("connection", (connection) => {
-        connection.on("data", (request) => {
-          const { type, metadata, data } = request;
-          const { eid, cid } = metadata;
-          if (type !== ChannelEventType.OPEN_REQUEST)
-            return;
+      _WebRTC.peerjs.on("connection", connection => {
+        connection.on("data", request => {
+          const {
+            type,
+            metadata,
+            data
+          } = request;
+          const {
+            eid,
+            cid
+          } = metadata;
+          if (type !== _types.ChannelEventType.OPEN_REQUEST) return;
           const channel = new _WebRTC({
             spark,
             cid,
@@ -122,7 +150,9 @@ const _WebRTC = class extends CoreChannel {
           channel.handleOpenRequested = callback;
           channel.handleResponse(request);
         });
-      }, { once: true });
+      }, {
+        once: true
+      });
     });
     window.addEventListener("unload", () => _WebRTC.peerjs.destroy());
   }
@@ -138,10 +168,10 @@ const _WebRTC = class extends CoreChannel {
         call.on("close", () => {
           this.hangup();
         });
-        call.on("error", (error) => {
+        call.on("error", error => {
           this.hangup();
         });
-        call.on("stream", (stream) => {
+        call.on("stream", stream => {
           this._streams.remote = stream;
           _resolve(this._streams);
         });
@@ -152,13 +182,19 @@ const _WebRTC = class extends CoreChannel {
       this._call = null;
       return Promise.resolve();
     };
-    this.handleCalls({ accept, reject });
+    this.handleCalls({
+      accept,
+      reject
+    });
   }
   async setLocalStream() {
     if (this._streams?.local) {
       return Promise.resolve();
     }
-    this._streams = { local: null, remote: null };
+    this._streams = {
+      local: null,
+      remote: null
+    };
     this._streams.local = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true
@@ -175,7 +211,7 @@ const _WebRTC = class extends CoreChannel {
       }
       await this.setLocalStream().catch(reject);
       const call = _WebRTC.peerjs.call(this._peerAddress, this._streams.local);
-      call.on("stream", (stream) => {
+      call.on("stream", stream => {
         this._streams.remote = stream;
         this._call = call;
         clearTimeout(timer);
@@ -184,7 +220,7 @@ const _WebRTC = class extends CoreChannel {
       call.on("close", () => {
         this.hangup();
       });
-      call.on("error", (error) => {
+      call.on("error", error => {
         clearTimeout(timer);
         reject(error);
       });
@@ -201,8 +237,8 @@ const _WebRTC = class extends CoreChannel {
       this.handleHangup();
     }
     if (this._streams) {
-      Object.values(this._streams).forEach((stream) => {
-        stream.getTracks().forEach((track) => {
+      Object.values(this._streams).forEach(stream => {
+        stream.getTracks().forEach(track => {
           track.enabled = false;
           track.stop();
         });
@@ -216,15 +252,21 @@ const _WebRTC = class extends CoreChannel {
   }
   async import(data) {
     await super.import(data);
-    const { peerIdentifier } = data;
+    const {
+      peerIdentifier
+    } = data;
     this._peerIdentifier = peerIdentifier;
     return Promise.resolve();
   }
   async export() {
     const data = await super.export();
     const peerIdentifier = this._peerIdentifier;
-    return Promise.resolve({ peerIdentifier, ...data });
+    return Promise.resolve({
+      peerIdentifier,
+      ...data
+    });
   }
 };
-export let WebRTC = _WebRTC;
-WebRTC.type = ChannelType.WEBRTC_CHANNEL;
+let WebRTC = _WebRTC;
+exports.WebRTC = WebRTC;
+WebRTC.type = _types.ChannelType.WEBRTC_CHANNEL;

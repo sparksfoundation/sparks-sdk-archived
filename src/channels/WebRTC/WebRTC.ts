@@ -3,9 +3,14 @@ import { blake3 } from "@noble/hashes/blake3";
 import { Spark } from "../../Spark";
 import { Identifier } from "../../controllers/types";
 import { CoreChannel } from "../CoreChannel";
-import { AnyChannelEvent, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelOpenRejectionEvent, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
+import { AnyChannelEvent, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelListenerOn, ChannelOpenRejectionEvent, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
 import Peer, { DataConnection } from "peerjs";
 import util from 'tweetnacl-util';
+
+export type WebRTCMediaStreams = {
+  local: MediaStream,
+  remote: MediaStream,
+}
 
 const iceServers = [
   {
@@ -35,8 +40,10 @@ const iceServers = [
 
 export class WebRTC extends CoreChannel {
   protected static peerjs: Peer;
+  private _call;
   private _connection: DataConnection;
   private _address: string;
+  private _streams: WebRTCMediaStreams;
   private _peerAddress: string;
   private _peerIdentifier: string;
 
@@ -60,10 +67,12 @@ export class WebRTC extends CoreChannel {
     const _peerIdentifier = peer ? peer.identifier || peerIdentifier : peerIdentifier;
     this._peerAddress = WebRTC.idFromIdentifier(_peerIdentifier);
 
-    WebRTC.peerjs = WebRTC.peerjs || new Peer(this._address, { config: { iceServers } });
-
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
+    this._handleCalls = this._handleCalls.bind(this);
+
+    WebRTC.peerjs = WebRTC.peerjs || new Peer(this._address, { config: { iceServers } });
+    WebRTC.peerjs.on('call', this._handleCalls);
 
     if (connection) {
       this._connection = connection;
@@ -81,7 +90,9 @@ export class WebRTC extends CoreChannel {
   public get connection() { return this._connection; }
 
   public async open() {
-    if (this._connection) return super.open();
+    if (this._connection && this._connection.open) {
+      return super.open();
+    }
     this._connection = WebRTC.peerjs.connect(this._peerAddress);
     this._connection.on('data', this.handleResponse);
     return super.open();
@@ -89,6 +100,7 @@ export class WebRTC extends CoreChannel {
 
   protected async handleClosed(event: ChannelCloseEvent | ChannelCloseConfirmationEvent) {
     this._connection.off('data', this.handleResponse);
+    this.hangup();
     this._connection.close();
     return super.handleClosed(event);
   }
@@ -146,6 +158,123 @@ export class WebRTC extends CoreChannel {
       }, { once: true })
     })
     window.addEventListener('unload', () => WebRTC.peerjs.destroy());
+  }
+
+
+  public handleCalls: ({ accept, reject }: { accept: () => Promise<WebRTCMediaStreams>, reject: () => Promise<void> }) => void;
+  private _handleCalls(call) {
+    if (this._call || !this.handleCalls) {
+      return;
+    }
+
+    const accept = async (): Promise<WebRTCMediaStreams> => {
+      return new Promise(async ( _resolve, _reject ) => {
+        this._call = call;
+        await this.setLocalStream();
+        call.answer(this._streams.local);
+        call.on('close', () => {
+          this.hangup();
+        });
+        call.on('error', (error) => {
+          this.hangup();
+        });
+        call.on('stream', (stream) => {
+          this._streams.remote = stream;
+          _resolve(this._streams);
+        });
+      })
+    }
+
+    const reject = () => {
+      call.close();
+      this._call = null;
+      return Promise.resolve();
+    }
+
+    this.handleCalls({ accept, reject });
+  }
+
+  private async setLocalStream() {
+    if (this._streams?.local) {
+      return Promise.resolve();
+    }
+
+    this._streams = { local: null, remote: null }
+    this._streams.local = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+
+    if (!this._streams.local) {
+      throw new Error('Failed to get local stream');
+    }
+
+    return Promise.resolve();
+  }
+
+  public async call(): Promise<{ local: MediaStream, remote: MediaStream }> {
+
+    return new Promise(async (resolve, reject) => {
+      if (!this._connection.open) {
+        return reject('connection not open');
+      }
+
+      await this.setLocalStream()
+        .catch(reject);
+
+      const call = WebRTC.peerjs.call(this._peerAddress, this._streams.local);
+      call.on('stream', (stream) => {
+        this._streams.remote = stream;
+        this._call = call;
+        clearTimeout(timer);
+        resolve(this._streams);
+      });
+
+      call.on('close', () => {
+        this.hangup();
+      });
+
+      call.on('error', (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+
+      const timer = setTimeout(() => {
+        if (!this._streams.remote) {
+          this.hangup();
+          reject('timeout');
+        }
+      }, 10000);
+    });
+  }
+
+  public handleHangup; 
+  public hangup() {
+    if (this.handleHangup) {
+      this.handleHangup();
+    }
+
+    if (this._streams) {
+      Object.values(this._streams).forEach(stream => {
+        stream.getTracks().forEach(track => {
+          track.enabled = false;
+          track.stop()
+        });
+      });
+      this._streams = null;
+    }
+
+    if (this._call) {
+      this._call.close();
+      this._call = null;
+    }
+  }
+
+  public async import(data: Record<string, any>): Promise<void> {
+    await super.import(data);
+    const { peerIdentifier } = data;
+    this._peerIdentifier = peerIdentifier;
+    return Promise.resolve();
   }
 
   public async export(): Promise<Record<string, any>> {

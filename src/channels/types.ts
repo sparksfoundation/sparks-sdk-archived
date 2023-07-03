@@ -84,7 +84,7 @@ export enum ChannelEventType {
   CLOSE_CONFIRMATION = 'CLOSE_CONFIRMATION',
   MESSAGE = 'MESSAGE',
   MESSAGE_CONFIRMATION = 'MESSAGE_CONFIRMATION',
-  CHANNEL_ERROR = 'CHANNEL_ERROR',
+  ERROR = 'ERROR',
 }
 
 export interface ChannelOpenRequestEvent {
@@ -203,7 +203,7 @@ export interface ChannelMessageConfirmationEvent {
 }
 
 export interface ChannelErrorEvent {
-  type: ChannelEventType.CHANNEL_ERROR;
+  type: ChannelEventType.ERROR;
   timestamp: ChannelEventTimestamp;
   data: SparkError;
   metadata: {
@@ -273,17 +273,12 @@ export type AnyChannelReceipt =
   | ChannelMessageReceivedReceipt;
 
 
-export enum ChannelCallBackType {
-  ERROR = 'error',
-  MESSAGE = 'message',
-  CLOSE = 'close',
-}
+export type ChannelListenerOff = (
+  callback?: (event: AnyChannelEvent) => void
+) => void;
 
-export type ChannelCallBackEvents = ChannelDecryptedMessageEvent | ChannelCloseConfirmationEvent | ChannelErrorEvent;
-
-export type ChannelCallBackOff = () => void;
-
-export type ChannelCallBackOn = (
-  event: ChannelCallBackType,
-  callback: (event: AnyChannelEvent) => void
-) => ChannelCallBackOff;
+export type ChannelListenerOn = (
+  event: ChannelEventType | ChannelEventType[],
+  callback: (event: AnyChannelEvent) => void,
+  options?: { once?: boolean },
+) => () => void;

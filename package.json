@@ -44,6 +44,11 @@
       "import": "./dist/agents/index.mjs",
       "require": "./dist/agents/index.cjs"
     },
+    "./agents/Profile": {
+      "types": "./dist/agents/Profile/index.d.ts",
+      "import": "./dist/agents/Profile/index.mjs",
+      "require": "./dist/agents/Profile/index.cjs"
+    },
     "./channels": {
       "types": "./dist/channels/index.d.ts",
       "import": "./dist/channels/index.mjs",
