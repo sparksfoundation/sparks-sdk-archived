@@ -1,57 +1,92 @@
 import { Spark } from "../../Spark";
-import { Channel } from "../Channel/Channel";
-import { ChannelTypes } from "../Channel/types";
+import { ChannelErrors } from "../../errors/channel";
+import { CoreChannel } from "../CoreChannel";
+import { AnyChannelEvent, ChannelEventLog, ChannelEventType, ChannelId, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
 
-export class PostMessage extends Channel {
-  private source: Window;
-  private origin: string;
-  private _window?: Window;
+export class PostMessage extends CoreChannel {
+    private _source: Window;
+    private _origin: Window['origin'];
+    private _window?: Window;
 
-  constructor({
-    _window,
-    source,
-    origin,
-    spark,
-    ...args
-  }: {
-    _window?: Window,
-    source: Window,
-    origin: string,
-    spark: Spark,
-    args?: any
-  }) {
-    super({ channelType: ChannelTypes.POST_MESSAGE, spark, ...args });
-    this._window = _window || window || null;
-    if (!this._window) throw new Error('PostMessage: missing window');
-    this.origin = origin;
-    this.source = source;
-    this._window.addEventListener('message', this.receiveMessage);
-  }
+    constructor({ _window, cid, source, origin, spark, eventLog, peer }: {
+        _window?: Window,
+        cid?: ChannelId,
+        source?: Window,
+        origin: Window['origin'],
+        spark: Spark<any, any, any, any, any>,
+        eventLog?: ChannelEventLog,
+        peer?: ChannelPeer
+    }) {
+        super({ cid, spark, eventLog, peer });
 
-  protected sendMessage(event: any) {
-    // how do we send messages out
-    this.source.postMessage(event, this.origin);
-  }
+        this._window = _window || window || null;
+        this._origin = origin;
+        this._source = source;
 
-  protected receiveMessage(payload: any) {
-    // how do we receive messages
-    super.receiveMessage(payload.data);
-  }
+        this.sendRequest = this.sendRequest.bind(this);
+        this.handleResponse = this.handleResponse.bind(this);
 
-  static receive(callback, { spark, _window }) {
-    // how do we receive messages as a recipient
-    const win = _window || window;
-    win.addEventListener('message', (event) => {
-      // todo normalize payload
-      const source = event.source as Window;
-      const origin = event.origin;
-      const options = { _window: win, source, origin, spark };
-      const request = Channel.channelRequest({
-        payload: event.data,
-        options,
-        Channel: PostMessage,
-      })
-      if (request) callback(request);
-    });
-  }
+        this._window.addEventListener('message', this.handleResponse);
+        this._window.addEventListener('beforeunload', async () => {
+            await this.close();
+        });
+    }
+
+    public static type: ChannelType = ChannelType.POSTMESSAGE_CHANNEL;
+    public get origin() { return this._origin; }
+    public get source() { return this._source; }
+
+    public async open() {
+        this._source = this._source || this._window.open(this._origin, '_blank');
+        if (!this._source) throw ChannelErrors.OpenRequestError();
+        return super.open();
+    }
+
+    protected handleClosed(event) {
+        this._window.removeEventListener('message', this.handleResponse);
+        return super.handleClosed(event);
+    }
+
+    protected async handleResponse(event) {
+        return super.handleResponse(event.data);
+    }
+
+    protected async sendRequest(event: AnyChannelEvent): Promise<void> {
+        this._source.postMessage(event, this._origin);
+        return Promise.resolve();
+    }
+
+    public static handleOpenRequests(callback: HandleOpenRequested, { spark, _window }: { spark: Spark<any, any, any, any, any>, _window?: Window }) {
+        const win = _window || window;
+        if (!win || !spark || !callback) {
+            throw new Error('missing required arguments: spark, callback');
+        }
+
+        win.addEventListener('message', async (event) => {
+            const { type, cid } = event.data;
+            const isRequest = type === ChannelEventType.OPEN_REQUEST;
+            if (!isRequest) return;
+            const channel = new PostMessage({
+                _window: win,
+                cid,
+                source: event.source as Window,
+                origin: event.origin,
+                spark,
+            });
+            channel.handleOpenRequested = callback;
+            channel.handleResponse(event);
+        });
+    }
+
+    public async export(): Promise<Record<string, any>> {
+        const data = await super.export();
+        const origin = this._origin
+        return Promise.resolve({ ...data, origin });
+    }
+
+    public async import(data) {
+        const { origin } = data;
+        if (origin !== this._origin) throw new Error('origin mismatch');
+        return super.import(data);
+    }
 }

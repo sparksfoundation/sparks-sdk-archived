@@ -1,2 +1,2 @@
-export * from './FetchAPI'
-export * from './RestAPI'
+export * from './FetchAPI';
+export * from './RestAPI';

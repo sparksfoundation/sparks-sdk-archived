@@ -1,20 +1,30 @@
 import { Spark } from "../../Spark";
-import { Channel } from "../Channel/Channel";
-export declare class PostMessage extends Channel {
-    private source;
-    private origin;
+import { CoreChannel } from "../CoreChannel";
+import { AnyChannelEvent, ChannelEventLog, ChannelId, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
+export declare class PostMessage extends CoreChannel {
+    private _source;
+    private _origin;
     private _window?;
-    constructor({ _window, source, origin, spark, ...args }: {
+    constructor({ _window, cid, source, origin, spark, eventLog, peer }: {
         _window?: Window;
-        source: Window;
-        origin: string;
-        spark: Spark;
-        args?: any;
+        cid?: ChannelId;
+        source?: Window;
+        origin: Window['origin'];
+        spark: Spark<any, any, any, any, any>;
+        eventLog?: ChannelEventLog;
+        peer?: ChannelPeer;
     });
-    protected sendMessage(event: any): void;
-    protected receiveMessage(payload: any): void;
-    static receive(callback: any, { spark, _window }: {
-        spark: any;
-        _window: any;
+    static type: ChannelType;
+    get origin(): string;
+    get source(): Window;
+    open(): Promise<import("../../errors/SparkError").SparkError | import("../types").ChannelOpenRejectionEvent | CoreChannel>;
+    protected handleClosed(event: any): void;
+    protected handleResponse(event: any): Promise<any>;
+    protected sendRequest(event: AnyChannelEvent): Promise<void>;
+    static handleOpenRequests(callback: HandleOpenRequested, { spark, _window }: {
+        spark: Spark<any, any, any, any, any>;
+        _window?: Window;
     }): void;
+    export(): Promise<Record<string, any>>;
+    import(data: any): Promise<void>;
 }

@@ -1,3 +1,2 @@
-export * from "./Controller/index.mjs";
-export * from "./Random/index.mjs";
-export * from "./Password/index.mjs";
+export * from "./CoreController.mjs";
+export * from "./Basic/index.mjs";

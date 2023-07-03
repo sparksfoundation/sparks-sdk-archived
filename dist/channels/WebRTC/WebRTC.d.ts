@@ -1,24 +1,33 @@
-import { Spark } from '../../Spark';
-import { Channel } from '../Channel/Channel';
-import { ChannelActions, ChannelError } from '../Channel/types';
+import { Spark } from "../../Spark";
+import { Identifier } from "../../controllers/types";
+import { CoreChannel } from "../CoreChannel";
+import { ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelEventLog, ChannelId, ChannelOpenRejectionEvent, ChannelPeer, ChannelType, HandleOpenRequested } from "../types";
 import Peer, { DataConnection } from "peerjs";
-export declare class WebRTC extends Channel {
+export declare class WebRTC extends CoreChannel {
     protected static peerjs: Peer;
-    protected peerId: string;
-    protected connection: DataConnection;
-    constructor({ spark, peerId, connection, oncall, ...args }: {
-        spark: Spark;
-        peerId: string;
-        oncall?: (args: any) => void;
+    private _connection;
+    private _address;
+    private _peerAddress;
+    private _peerIdentifier;
+    constructor({ spark, connection, cid, peerIdentifier, eventLog, peer, }: {
+        spark: Spark<any, any, any, any, any>;
         connection?: DataConnection;
-        args?: any;
+        cid?: ChannelId;
+        peerIdentifier: string;
+        eventLog?: ChannelEventLog;
+        peer?: ChannelPeer;
     });
-    open(payload?: any, action?: ChannelActions): Promise<Channel | ChannelError>;
-    call(): Promise<unknown>;
-    protected receiveMessage(payload: any): void;
-    protected sendMessage(payload: any): void;
-    static receive(callback: any, { spark, oncall }: {
-        spark: Spark;
-        oncall?: (args: any) => void;
+    static type: ChannelType;
+    get address(): string;
+    get peerAddress(): string;
+    get connection(): DataConnection;
+    open(): Promise<import("../../errors/SparkError").SparkError | ChannelOpenRejectionEvent | CoreChannel>;
+    protected handleClosed(event: ChannelCloseEvent | ChannelCloseConfirmationEvent): Promise<void>;
+    handleResponse(response: any): Promise<void>;
+    protected sendRequest(request: any): Promise<void>;
+    protected static idFromIdentifier(identifier: Identifier): any;
+    static handleOpenRequests(callback: HandleOpenRequested, { spark }: {
+        spark: Spark<any, any, any, any, any>;
     }): void;
+    export(): Promise<Record<string, any>>;
 }

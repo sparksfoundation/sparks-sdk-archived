@@ -5,7 +5,7 @@ import util from "tweetnacl-util";
  * 
  * @returns a timestamp in milliseconds since epoch in terms of UTC
  */
-export function getTimestamp() {
+export function utcEpochTimestamp() {
     const now = new Date()
     return now.getTime() + now.getTimezoneOffset() * 60 * 1000;
 }
@@ -21,6 +21,6 @@ export function parseJSON(data) {
     }
 }
 
-export function randomNonce(len) {
-    return util.encodeBase64(nacl.randomBytes(nacl.secretbox.nonceLength));
+export function randomSalt() {
+    return util.encodeBase64(nacl.randomBytes(32));
 }

@@ -14,14 +14,3 @@ Object.keys(_X25519SalsaPoly).forEach(function (key) {
     }
   });
 });
-var _Cipher = require("./Cipher/index.cjs");
-Object.keys(_Cipher).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  if (key in exports && exports[key] === _Cipher[key]) return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function () {
-      return _Cipher[key];
-    }
-  });
-});

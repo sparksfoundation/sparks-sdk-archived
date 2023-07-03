@@ -1,2 +1,1 @@
-export * from './Hasher';
-export * from './Blake3';
+export * from './Blake3'

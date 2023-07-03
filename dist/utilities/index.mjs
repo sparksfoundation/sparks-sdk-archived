@@ -1,6 +1,6 @@
 import nacl from "tweetnacl";
 import util from "tweetnacl-util";
-export function getTimestamp() {
+export function utcEpochTimestamp() {
   const now = /* @__PURE__ */ new Date();
   return now.getTime() + now.getTimezoneOffset() * 60 * 1e3;
 }
@@ -11,6 +11,6 @@ export function parseJSON(data) {
     return data;
   }
 }
-export function randomNonce(len) {
-  return util.encodeBase64(nacl.randomBytes(nacl.secretbox.nonceLength));
+export function randomSalt() {
+  return util.encodeBase64(nacl.randomBytes(32));
 }
