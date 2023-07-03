@@ -392,7 +392,6 @@ export class CoreChannel {
     try {
       const publicKey = event.request ? this._spark.publicKeys.signer : this._peer.publicKeys.signer;
       const sharedKey = this._sharedKey;
-      console.log(publicKey, sharedKey);
       switch (event.type) {
         case ChannelEventType.MESSAGE:
           const opened = await this._spark.open({ signature: event.data, publicKey });
@@ -642,6 +641,9 @@ export class CoreChannel {
       const decryptedEvent = { ...messageEvent, data: message };
       const event = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
       this._sendRequest(event);
+      this._listeners.get(ChannelEventType.MESSAGE_RECEIVED).forEach((callback) => {
+        callback(decryptedEvent);
+      });
     } catch (error) {
       const sparkError = ChannelErrors.OnMessageError(error);
       return Promise.reject(sparkError);
