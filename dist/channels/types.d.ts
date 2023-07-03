@@ -216,3 +216,11 @@ export interface ChannelMessageReceivedReceipt {
     eventDigest: ChannelEventDigest;
 }
 export type AnyChannelReceipt = ChannelOpenAcceptanceReceipt | ChannelOpenConfirmationReceipt | ChannelCloseConfirmationReceipt | ChannelMessageReceivedReceipt;
+export declare enum ChannelCallBackType {
+    ERROR = "error",
+    MESSAGE = "message",
+    CLOSE = "close"
+}
+export type ChannelCallBackEvents = ChannelDecryptedMessageEvent | ChannelCloseConfirmationEvent | ChannelErrorEvent;
+export type ChannelCallBackOff = () => void;
+export type ChannelCallBackOn = (event: ChannelCallBackType, callback: (event: AnyChannelEvent) => void) => ChannelCallBackOff;

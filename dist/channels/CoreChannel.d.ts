@@ -5,7 +5,7 @@
  * - add max retries for open, close and message attempts
  */
 import { Spark } from "../Spark";
-import { AnyChannelEvent, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelEventLog, ChannelId, ChannelMessageConfirmationEvent, ChannelMessageData, ChannelOpenAcceptanceEvent, ChannelOpenConfirmationEvent, ChannelOpenRejectionEvent, ChannelPeer, ChannelState, HandleOpenAccepted, HandleOpenRequested, ChannelType } from "./types";
+import { AnyChannelEvent, ChannelCloseConfirmationEvent, ChannelCloseEvent, ChannelEventLog, ChannelId, ChannelMessageConfirmationEvent, ChannelMessageData, ChannelOpenAcceptanceEvent, ChannelOpenConfirmationEvent, ChannelOpenRejectionEvent, ChannelPeer, ChannelState, HandleOpenAccepted, HandleOpenRequested, ChannelType, ChannelCallBackOn } from "./types";
 import { EncryptionSharedKey } from "../ciphers/types";
 import { SparkError } from "../errors/SparkError";
 import { AnyChannelEventWithSource } from "./types";
@@ -20,9 +20,9 @@ export declare abstract class CoreChannel {
     private _sharedKey;
     private _status;
     private _eventLog;
-    onmessage: (data: any) => void | never;
-    onclose: (data: any) => void | never;
-    onerror: (data: any) => void | never;
+    _onCloseCallbacks: Map<Function, Function>;
+    _onMessageCallbacks: Map<Function, Function>;
+    _onErrorCallbacks: Map<Function, Function>;
     static type: ChannelType;
     get cid(): ChannelId;
     get peer(): ChannelPeer;
@@ -50,6 +50,12 @@ export declare abstract class CoreChannel {
      * - can be be extended by child classes if needed
      * - should be exposed to user and called directly
      */
+    /**
+     * @description Sets event listeners for close, message or error events
+     * @returns {Function} - a function to remove the listener
+     * @throws {INVALID_CALLBACK_EVENT_TYPE}
+     */
+    on: ChannelCallBackOn;
     /**
      * @description Initiates opening a channel
      * - sets a promise to be

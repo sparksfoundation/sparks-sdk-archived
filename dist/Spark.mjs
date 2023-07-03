@@ -150,4 +150,3 @@ export class Spark {
     return this.signer.open;
   }
 }
-Spark.availableChannels = [];

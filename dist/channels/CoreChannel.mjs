@@ -4,7 +4,8 @@ import {
   ChannelEventType,
   ChannelReceiptType,
   ChannelState,
-  ChannelType
+  ChannelType,
+  ChannelCallBackType
 } from "./types.mjs";
 import { ChannelErrors } from "../errors/channel.mjs";
 export class CoreChannel {
@@ -14,6 +15,35 @@ export class CoreChannel {
     // opens and resolves/rejects only on initiator side
     this._closePromises = /* @__PURE__ */ new Map();
     this._messagePromises = /* @__PURE__ */ new Map();
+    // PUBLIC EVENT HANDLING
+    this._onCloseCallbacks = /* @__PURE__ */ new Map();
+    this._onMessageCallbacks = /* @__PURE__ */ new Map();
+    this._onErrorCallbacks = /* @__PURE__ */ new Map();
+    /**
+     * PUBLIC CHANNEL METHODS
+     * - can be be extended by child classes if needed
+     * - should be exposed to user and called directly
+     */
+    /**
+     * @description Sets event listeners for close, message or error events
+     * @returns {Function} - a function to remove the listener
+     * @throws {INVALID_CALLBACK_EVENT_TYPE}
+     */
+    this.on = (event, callback) => {
+      switch (event) {
+        case ChannelCallBackType.MESSAGE:
+          this._onMessageCallbacks.set(callback, callback);
+          return () => this._onMessageCallbacks.delete(callback);
+        case ChannelCallBackType.CLOSE:
+          this._onCloseCallbacks.set(callback, callback);
+          return () => this._onCloseCallbacks.delete(callback);
+        case ChannelCallBackType.ERROR:
+          this._onErrorCallbacks.set(callback, callback);
+          return () => this._onErrorCallbacks.delete(callback);
+        default:
+          throw ChannelErrors.InvalidCallbackEventType(event);
+      }
+    };
     /**
      * PROTECTED METHODS
      * - handleOpenRequested - to be set by extending class (does not call super)
@@ -272,11 +302,6 @@ export class CoreChannel {
       return Promise.reject(sparkError);
     }
   }
-  /**
-   * PUBLIC CHANNEL METHODS
-   * - can be be extended by child classes if needed
-   * - should be exposed to user and called directly
-   */
   /**
    * @description Initiates opening a channel
    * - sets a promise to be 
@@ -573,9 +598,9 @@ export class CoreChannel {
       promise.resolve(closeOrConfirmEvent);
       this._closePromises.delete(this.cid);
     } else if (closeOrConfirmEvent.type === ChannelEventType.CLOSE) {
-      if (this.onclose) {
-        this.onclose(closeOrConfirmEvent);
-      }
+      this._onCloseCallbacks.forEach((callback) => {
+        callback(closeOrConfirmEvent);
+      });
     } else {
       throw new Error("Invalid close event type");
     }
@@ -590,8 +615,9 @@ export class CoreChannel {
       const message = await this._openMessageDigest(messageEvent.data);
       const decryptedEvent = { ...messageEvent, data: message };
       const event = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
-      if (this.onmessage)
-        this.onmessage(decryptedEvent);
+      this._onMessageCallbacks.forEach((callback) => {
+        callback(decryptedEvent);
+      });
       this._sendRequest(event);
     } catch (error) {
       const sparkError = ChannelErrors.OnMessageError(error);
@@ -652,9 +678,9 @@ export class CoreChannel {
       case ChannelEventType.MESSAGE_CONFIRMATION:
         return this._onMessageConfirmed(event);
       case ChannelEventType.CHANNEL_ERROR:
-        if (this.onerror) {
-          this.onerror(event);
-        }
+        this._onErrorCallbacks.forEach((callback) => {
+          callback(event);
+        });
       default:
         break;
     }

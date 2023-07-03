@@ -32,3 +32,9 @@ export var ChannelReceiptType = /* @__PURE__ */ ((ChannelReceiptType2) => {
   ChannelReceiptType2["MESSAGE_RECEIVED"] = "MESSAGE_RECEIVED";
   return ChannelReceiptType2;
 })(ChannelReceiptType || {});
+export var ChannelCallBackType = /* @__PURE__ */ ((ChannelCallBackType2) => {
+  ChannelCallBackType2["ERROR"] = "error";
+  ChannelCallBackType2["MESSAGE"] = "message";
+  ChannelCallBackType2["CLOSE"] = "close";
+  return ChannelCallBackType2;
+})(ChannelCallBackType || {});

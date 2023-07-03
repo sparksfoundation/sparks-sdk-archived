@@ -1,4 +1,3 @@
-import { ConstructableChannel } from "./types";
 import { SparkInterface } from "./types";
 import { CoreAgent } from "./agents/CoreAgent";
 import { CoreCipher } from "./ciphers/CoreCipher";
@@ -15,7 +14,6 @@ export declare class Spark<A extends CoreAgent[], X extends CoreCipher, C extend
     readonly agents: {
         [key: string]: InstanceType<Constructable<A[number]>>;
     };
-    static availableChannels: ConstructableChannel[];
     constructor({ agents, cipher, controller, hasher, signer, }: {
         agents?: Array<new (spark: Spark<A, X, C, H, S>) => A[number]>;
         cipher: Constructable<X>;

@@ -28,7 +28,8 @@ export declare enum ChannelErrorName {
     ON_MESSAGE_ERROR = "ON_MESSAGE_ERROR",
     ON_CLOSE_ERROR = "ON_CLOSE_ERROR",
     ON_ERROR_ERROR = "ON_ERROR_ERROR",
-    GET_EVENT_MESSAGE_ERROR = "GET_EVENT_MESSAGE_ERROR"
+    GET_EVENT_MESSAGE_ERROR = "GET_EVENT_MESSAGE_ERROR",
+    INVALID_CALLBACK_EVENT_TYPE = "INVALID_CALLBACK_EVENT_TYPE"
 }
 export declare class ChannelErrors {
     static CreateReceiptDigestError({ metadata, stack }?: SparkErrorParams): SparkError;
@@ -60,4 +61,5 @@ export declare class ChannelErrors {
     static OnMessageError({ metadata, stack }?: SparkErrorParams): SparkError;
     static OnCloseError({ metadata, stack }?: SparkErrorParams): SparkError;
     static OnErrorError({ metadata, stack }?: SparkErrorParams): SparkError;
+    static InvalidCallbackEventType({ metadata, stack }?: SparkErrorParams): SparkError;
 }
