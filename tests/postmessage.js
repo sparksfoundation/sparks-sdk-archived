@@ -33,13 +33,14 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
     PostMessage.handleOpenRequests(async ({ event, resolve, reject }) => {
         const channel = await resolve()
 
-        channel.onclose = event => {
+        const close = channel.on('close', () => {
             console.log('closed');
-        }
+        })
 
-        channel.onmessage = event => {
+        const msg = channel.on('message', event => {
             console.log('message:', event.data);
-        }
+        })
+
     }, { spark: website, _window: _1111 });
 
     const channel = new PostMessage({
@@ -49,6 +50,8 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
     });
 
     await channel.open();
+    await channel.message('hey');
+    await channel.message('hey');
     await channel.message('hey');
     await channel.close();
 
@@ -66,5 +69,4 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
         ...keyPairs,
     });
 
-    console.log(newLogin.getChannels())
 }())

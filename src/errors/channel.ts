@@ -30,6 +30,7 @@ export enum ChannelErrorName {
   ON_CLOSE_ERROR = 'ON_CLOSE_ERROR',
   ON_ERROR_ERROR = 'ON_ERROR_ERROR',
   GET_EVENT_MESSAGE_ERROR = 'GET_EVENT_MESSAGE_ERROR',
+  INVALID_CALLBACK_EVENT_TYPE = 'INVALID_CALLBACK_EVENT_TYPE',
 }
 
 export class ChannelErrors {
@@ -289,6 +290,15 @@ export class ChannelErrors {
     return new SparkError({
       name: ChannelErrorName.ON_ERROR_ERROR,
       message: `failed to on error`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  public static InvalidCallbackEventType({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
+    return new SparkError({
+      name: ChannelErrorName.INVALID_CALLBACK_EVENT_TYPE,
+      message: `invalid callback event type`,
       metadata: { ...metadata },
       stack
     });

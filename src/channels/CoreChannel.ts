@@ -15,7 +15,7 @@ import {
   ChannelOpenAcceptanceEvent, ChannelOpenAcceptanceReceipt, ChannelOpenConfirmationEvent,
   ChannelOpenConfirmationReceipt, ChannelOpenRejectionEvent, ChannelOpenRequestEvent,
   ChannelPeer, ChannelReceiptDigest, ChannelReceiptType, ChannelState, HandleOpenAccepted, HandleOpenRequested, RejectPromise,
-  ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise, ChannelType
+  ResolveClosePromise, ResolveMessagePromise, ResolveOpenPromise, ChannelType, ChannelCallBackOn, ChannelCallBackEvents, ChannelCallBackType
 } from "./types";
 import { EncryptionSharedKey } from "../ciphers/types";
 import { ChannelErrors } from "../errors/channel";
@@ -43,10 +43,10 @@ export abstract class CoreChannel {
   private _status: ChannelState;
   private _eventLog: ChannelEventLog;
 
-  // PUBLIC EVENT HANDLERS
-  public onmessage: (data: any) => void | never;
-  public onclose: (data: any) => void | never;
-  public onerror: (data: any) => void | never;
+  // PUBLIC EVENT HANDLING
+  public _onCloseCallbacks: Map<Function, Function> = new Map();
+  public _onMessageCallbacks: Map<Function, Function> = new Map();
+  public _onErrorCallbacks: Map<Function, Function> = new Map();
 
   // PUBLIC GETTERS
   public static type: ChannelType = ChannelType.CORE_CHANNEL;
@@ -302,6 +302,28 @@ export abstract class CoreChannel {
    * - can be be extended by child classes if needed
    * - should be exposed to user and called directly
    */
+
+  /**
+   * @description Sets event listeners for close, message or error events
+   * @returns {Function} - a function to remove the listener
+   * @throws {INVALID_CALLBACK_EVENT_TYPE}
+   */
+  public on: ChannelCallBackOn = (event, callback) => {
+    switch (event) {
+      case ChannelCallBackType.MESSAGE:
+        this._onMessageCallbacks.set(callback, callback);
+        return () => this._onMessageCallbacks.delete(callback);
+      case ChannelCallBackType.CLOSE:
+        this._onCloseCallbacks.set(callback, callback);
+        return () => this._onCloseCallbacks.delete(callback);
+      case ChannelCallBackType.ERROR:
+        this._onErrorCallbacks.set(callback, callback);
+        return () => this._onErrorCallbacks.delete(callback);
+      default:
+        throw ChannelErrors.InvalidCallbackEventType(event);
+    }
+  }
+
   /**
    * @description Initiates opening a channel
    * - sets a promise to be 
@@ -365,7 +387,7 @@ export abstract class CoreChannel {
   public async getLoggedEventMessage(event: AnyChannelEventWithSource): Promise<ChannelMessageData> {
     try {
       const publicKey = event.request ? this._spark.publicKeys.signer : this._peer.publicKeys.signer;
-      const sharedKey = this._sharedKey; 
+      const sharedKey = this._sharedKey;
       switch (event.type) {
         case ChannelEventType.MESSAGE:
           const opened = await this._spark.open({ signature: event.data, publicKey })
@@ -609,9 +631,10 @@ export abstract class CoreChannel {
       promise.resolve(closeOrConfirmEvent as ChannelCloseConfirmationEvent);
       this._closePromises.delete(this.cid);
     } else if (closeOrConfirmEvent.type === ChannelEventType.CLOSE) {
-      if (this.onclose) {
-        this.onclose(closeOrConfirmEvent);
-      }
+      // call all of the onclose callbacks
+      this._onCloseCallbacks.forEach((callback) => {
+        callback(closeOrConfirmEvent);
+      });
     } else {
       throw new Error("Invalid close event type");
     }
@@ -628,7 +651,9 @@ export abstract class CoreChannel {
       const message = await this._openMessageDigest(messageEvent.data);
       const decryptedEvent: ChannelDecryptedMessageEvent = { ...messageEvent, data: message }
       const event: ChannelMessageConfirmationEvent = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
-      if (this.onmessage) this.onmessage(decryptedEvent);
+      this._onMessageCallbacks.forEach((callback) => {
+        callback(decryptedEvent);
+      });
       this._sendRequest(event);
     } catch (error) {
       const sparkError = ChannelErrors.OnMessageError(error);
@@ -688,9 +713,9 @@ export abstract class CoreChannel {
       case ChannelEventType.MESSAGE_CONFIRMATION:
         return this._onMessageConfirmed(event as ChannelMessageConfirmationEvent);
       case ChannelEventType.CHANNEL_ERROR:
-        if (this.onerror) {
-          this.onerror(event as ChannelErrorEvent);
-        }
+        this._onErrorCallbacks.forEach((callback) => {
+          callback(event);
+        });
       default:
         break;
     }
