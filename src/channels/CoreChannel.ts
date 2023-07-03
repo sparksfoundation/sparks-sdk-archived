@@ -20,6 +20,7 @@ import {
 import { EncryptionSharedKey } from "../ciphers/types";
 import { ChannelErrors } from "../errors/channel";
 import { SparkError } from "../errors/SparkError";
+import { AnyChannelEventWithSource } from "./types";
 
 export abstract class CoreChannel {
   // opens and resolves/rejects on both sides
@@ -361,20 +362,20 @@ export abstract class CoreChannel {
     })
   }
 
-  public async getEventMessage(event: ChannelMessageEvent | ChannelMessageConfirmationEvent): Promise<ChannelMessageData> {
+  public async getLoggedEventMessage(event: AnyChannelEventWithSource): Promise<ChannelMessageData> {
     try {
+      const publicKey = event.request ? this._spark.publicKeys.signer : this._peer.publicKeys.signer;
+      const sharedKey = this._sharedKey; 
       switch (event.type) {
         case ChannelEventType.MESSAGE:
-          console.log('here', this._peer.publicKeys.signer, event.data)
-          const opened = await this._spark.open({ signature: event.data, publicKey: this._peer.publicKeys.signer });
-          const decrypted = await this._spark.decrypt({ data: opened, sharedKey: this._sharedKey });
+          const opened = await this._spark.open({ signature: event.data, publicKey })
+          const decrypted = await this._spark.decrypt({ data: opened, sharedKey });
           return Promise.resolve(decrypted);
         case ChannelEventType.MESSAGE_CONFIRMATION:
-          console.log('there', this._peer.publicKeys.signer, event.data.receipt)
-          const openedReceipt = await this._spark.open({ signature: event.data.receipt, publicKey: this._peer.publicKeys.signer });
-          const decryptedReceipt = await this._spark.decrypt({ data: openedReceipt, sharedKey: this._sharedKey });
-          const openedMsg = await this._spark.open({ signature: decryptedReceipt.messageDigest, publicKey: this._peer.publicKeys.signer });
-          const decryptedMsg = await this._spark.decrypt({ data: openedMsg, sharedKey: this._sharedKey });
+          const openedReceipt = await this._spark.open({ signature: event.data.receipt, publicKey });
+          const decryptedReceipt = await this._spark.decrypt({ data: openedReceipt, sharedKey });
+          const openedMsg = await this._spark.open({ signature: decryptedReceipt.messageDigest, publicKey });
+          const decryptedMsg = await this._spark.decrypt({ data: openedMsg, sharedKey });
           return Promise.resolve(decryptedMsg);
       }
     } catch (error) {
@@ -421,7 +422,6 @@ export abstract class CoreChannel {
     return new Promise(async (_resolve, _reject) => {
       try {
         await this._setPeer(requestEvent);
-
         const resolve = _resolve as ResolveOpenPromise;
         const reject = _reject as RejectPromise;
         this._openPromises.set(this.cid, { resolve, reject });
@@ -565,7 +565,7 @@ export abstract class CoreChannel {
   private _handleOpened(openEvent: ChannelOpenConfirmationEvent | ChannelOpenAcceptanceEvent) {
     // if it's not an accept or confirm event throw
     const promise = this._openPromises.get(this.cid);
-    const validEventTypes = [ ChannelEventType.OPEN_ACCEPTANCE, ChannelEventType.OPEN_CONFIRMATION ];
+    const validEventTypes = [ChannelEventType.OPEN_ACCEPTANCE, ChannelEventType.OPEN_CONFIRMATION];
 
     if (!validEventTypes.includes(openEvent.type)) throw new Error("Invalid open event type");
     if (!promise) throw new Error("Open promise not found");
@@ -620,8 +620,6 @@ export abstract class CoreChannel {
     this._openPromises.delete(this.cid);
     this._closePromises.delete(this.cid);
     this._messagePromises.clear();
-    this._messageQueue = null;
-    this._peer = null;
     this._sharedKey = null;
   }
 
@@ -744,7 +742,7 @@ export abstract class CoreChannel {
   }
 
   protected abstract sendRequest(event: AnyChannelEvent): Promise<void>;
-  
+
   public async export(): Promise<Record<string, any>> {
     return Promise.resolve({
       type: this.constructor['type'],
