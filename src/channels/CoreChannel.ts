@@ -683,7 +683,7 @@ export abstract class CoreChannel {
   private async _onMessage(messageEvent: ChannelMessageEvent) {
     try {
       const message = await this._openMessageDigest(messageEvent.data);
-      const decryptedEvent: ChannelDecryptedMessageEvent = { ...messageEvent, data: message }
+      const decryptedEvent: ChannelDecryptedMessageEvent = { ...messageEvent, type: ChannelEventType.MESSAGE_RECEIVED, data: message }
       const event: ChannelMessageConfirmationEvent = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
       this._sendRequest(event);
       this._listeners.get(ChannelEventType.MESSAGE_RECEIVED).forEach((callback) => {
