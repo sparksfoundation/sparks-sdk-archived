@@ -161,7 +161,7 @@ export class CoreChannel {
             eventDigest: eventSealed
           };
           break;
-        case ChannelEventType.MESSAGE:
+        case ChannelEventType.MESSAGE_RECEIVED:
           receipt = {
             type: ChannelReceiptType.MESSAGE_RECEIVED,
             messageDigest: await this._createMessageDigest(data),
@@ -288,6 +288,7 @@ export class CoreChannel {
             metadata: { eid, cid, nid, mid }
           };
         case ChannelEventType.MESSAGE_CONFIRMATION:
+          console.log(type, event, "here");
           return {
             type: ChannelEventType.MESSAGE_CONFIRMATION,
             timestamp,
@@ -640,10 +641,11 @@ export class CoreChannel {
       const message = await this._openMessageDigest(messageEvent.data);
       const decryptedEvent = { ...messageEvent, type: ChannelEventType.MESSAGE_RECEIVED, data: message };
       const event = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
-      this._sendRequest(event);
+      console.log(event);
       this._listeners.get(ChannelEventType.MESSAGE_RECEIVED).forEach((callback) => {
         callback(decryptedEvent);
       });
+      this._sendRequest(event);
     } catch (error) {
       const sparkError = ChannelErrors.OnMessageError(error);
       return Promise.reject(sparkError);
