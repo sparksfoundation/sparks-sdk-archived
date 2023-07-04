@@ -25,10 +25,10 @@ class X25519SalsaPoly extends _CoreCipher.CoreCipher {
       const publicKey = _tweetnaclUtil.default.encodeBase64(keyPair.publicKey);
       const secretKey = _tweetnaclUtil.default.encodeBase64(keyPair.secretKey);
       if (!publicKey || !secretKey) throw new Error("keyPair");
-      return {
+      return Promise.resolve({
         publicKey,
         secretKey
-      };
+      });
     } catch (error) {
       return Promise.reject(_cipher.CipherErrors.GetEncryptionKeypairError(error));
     }
@@ -42,7 +42,7 @@ class X25519SalsaPoly extends _CoreCipher.CoreCipher {
       const uintSharedKey = _tweetnacl.default.box.before(baseCipherPublicKey, baseCipherSecretKey);
       const baseSharedKey = _tweetnaclUtil.default.encodeBase64(uintSharedKey);
       if (!baseSharedKey) throw new Error();
-      return baseSharedKey;
+      return Promise.resolve(baseSharedKey);
     } catch (error) {
       return Promise.reject(_cipher.CipherErrors.GenerateEncryptionSharedKeyError(error));
     }
@@ -76,7 +76,7 @@ class X25519SalsaPoly extends _CoreCipher.CoreCipher {
       encrypted.set(box, nonce.length);
       const ciphertext = _tweetnaclUtil.default.encodeBase64(encrypted);
       if (!ciphertext) throw new Error("faild to encrypt");
-      return ciphertext;
+      return Promise.resolve(ciphertext);
     } catch (error) {
       return Promise.reject(_cipher.CipherErrors.EncryptError(error));
     }
@@ -108,7 +108,7 @@ class X25519SalsaPoly extends _CoreCipher.CoreCipher {
       const utf8Result = _tweetnaclUtil.default.encodeUTF8(decrypted);
       const parsed = (0, _utilities.parseJSON)(utf8Result) || utf8Result;
       if (!parsed) throw new Error("faild to decrypt");
-      return parsed;
+      return Promise.resolve(parsed);
     } catch (error) {
       return Promise.reject(_cipher.CipherErrors.DecryptError(error));
     }

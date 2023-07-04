@@ -60,8 +60,9 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
       this._connection = connection;
       this._connection.on("data", this.handleResponse);
     }
-    window.addEventListener("beforeunload", () => {
-      this.close();
+    window.addEventListener("beforeunload", async () => {
+      await this.close();
+      _WebRTC.peerjs.destroy();
     }, {
       capture: true
     });
@@ -84,34 +85,42 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
     return super.open();
   }
   async handleClosed(event) {
-    this._connection.off("data", this.handleResponse);
     this.hangup();
     this._connection.close();
-    return super.handleClosed(event);
+    this._connection.off("data", this.handleResponse);
   }
   async handleResponse(response) {
-    if (this._connection.open) {
-      super.handleResponse(response);
-    } else {
-      this._connection.on("open", () => {
+    return new Promise((resolve, reject) => {
+      if (response?.type === "hangup") {
+        this.hangup();
+        return resolve(void 0);
+      }
+      if (this._connection.open) {
         super.handleResponse(response);
-      }, {
-        once: true
-      });
-    }
+        return resolve(void 0);
+      } else {
+        this._connection.on("open", () => {
+          super.handleResponse(response);
+          return resolve(void 0);
+        }, {
+          once: true
+        });
+      }
+    });
   }
   async sendRequest(request) {
     return new Promise((resolve, reject) => {
+      if (!this._connection) return reject("no connection");
       if (this._connection.open) {
         this._connection.send(request);
         return resolve();
       } else {
-        this._connection.on("open", () => {
+        const listener = () => {
           this._connection.send(request);
+          this._connection.off("open", listener);
           return resolve();
-        }, {
-          once: true
-        });
+        };
+        this._connection.on("open", listener);
       }
     });
   }
@@ -129,17 +138,17 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
       }
     });
     _WebRTC.peerjs.on("open", () => {
-      _WebRTC.peerjs.on("connection", connection => {
-        connection.on("data", request => {
+      const connectionListener = connection => {
+        const dataListener = request => {
           const {
             type,
             metadata,
             data
-          } = request;
+          } = request || {};
           const {
             eid,
             cid
-          } = metadata;
+          } = metadata || {};
           if (type !== _types.ChannelEventType.OPEN_REQUEST) return;
           const channel = new _WebRTC({
             spark,
@@ -149,12 +158,13 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
           });
           channel.handleOpenRequested = callback;
           channel.handleResponse(request);
-        });
-      }, {
-        once: true
-      });
+          _WebRTC.peerjs.off("connection", connectionListener);
+          connection.off("data", dataListener);
+        };
+        connection.on("data", dataListener);
+      };
+      _WebRTC.peerjs.on("connection", connectionListener);
     });
-    window.addEventListener("unload", () => _WebRTC.peerjs.destroy());
   }
   _handleCalls(call) {
     if (this._call || !this.handleCalls) {
@@ -237,6 +247,9 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
       this.handleHangup();
     }
     if (this._streams) {
+      this._connection.send({
+        type: "hangup"
+      });
       Object.values(this._streams).forEach(stream => {
         stream.getTracks().forEach(track => {
           track.enabled = false;

@@ -29,7 +29,7 @@ export declare class WebRTC extends CoreChannel {
     get connection(): DataConnection;
     open(): Promise<import("../../errors/SparkError").SparkError | ChannelOpenRejectionEvent | CoreChannel>;
     protected handleClosed(event: ChannelCloseEvent | ChannelCloseConfirmationEvent): Promise<void>;
-    handleResponse(response: any): Promise<void>;
+    handleResponse(response: any): Promise<unknown>;
     protected sendRequest(request: any): Promise<void>;
     protected static idFromIdentifier(identifier: Identifier): any;
     static handleOpenRequests(callback: HandleOpenRequested, { spark }: {
