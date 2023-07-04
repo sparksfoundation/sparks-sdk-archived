@@ -79,8 +79,9 @@ export class WebRTC extends CoreChannel {
       this._connection.on('data', this.handleResponse);
     }
 
-    window.addEventListener('beforeunload', () => {
-      this.close()
+    window.addEventListener('beforeunload', async () => {
+      await this.close();
+      WebRTC.peerjs.destroy();
     }, { capture: true });
   }
 
@@ -117,6 +118,7 @@ export class WebRTC extends CoreChannel {
 
   protected async sendRequest(request): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!this._connection) return;
       if (this._connection.open) {
         this._connection.send(request);
         return resolve();
@@ -157,7 +159,6 @@ export class WebRTC extends CoreChannel {
         });
       }, { once: true })
     })
-    window.addEventListener('unload', () => WebRTC.peerjs.destroy());
   }
 
 

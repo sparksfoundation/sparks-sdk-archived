@@ -252,7 +252,6 @@ export abstract class CoreChannel {
             metadata: { eid, cid, nid, mid },
           };
         case ChannelEventType.MESSAGE_CONFIRMATION:
-          console.log(type, event, 'here');
           return {
             type: ChannelEventType.MESSAGE_CONFIRMATION,
             timestamp,
@@ -686,10 +685,12 @@ export abstract class CoreChannel {
       const message = await this._openMessageDigest(messageEvent.data);
       const decryptedEvent: ChannelDecryptedMessageEvent = { ...messageEvent, type: ChannelEventType.MESSAGE_RECEIVED, data: message }
       const event: ChannelMessageConfirmationEvent = await this._createEvent(ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
-      console.log(event);
-      this._listeners.get(ChannelEventType.MESSAGE_RECEIVED).forEach((callback) => {
-        callback(decryptedEvent);
-      });
+      const listeners = this._listeners.get(ChannelEventType.MESSAGE_RECEIVED);
+      if (listeners) {
+        listeners.forEach((callback) => {
+          callback(decryptedEvent);
+        });
+      }
       this._sendRequest(event);
     } catch (error) {
       const sparkError = ChannelErrors.OnMessageError(error);
@@ -730,16 +731,10 @@ export abstract class CoreChannel {
   private _handleResponse(event: AnyChannelEvent): Promise<any> {
     const { type } = event;
     const isEvent = Object.values(ChannelEventType).includes(type);
+    if (isEvent) this._eventLog.push({ response: true, ...event });
 
-    if (isEvent) {
-      this._eventLog.push({ response: true, ...event });
-      const listeners = this._listeners.get(type);
-      if (listeners) {
-        listeners.forEach((callback) => {
-          callback(event);
-        });
-      }
-    }
+    const listeners = this._listeners.get(type);
+    if (listeners) listeners.forEach((callback) => callback(event));
 
     switch (type) {
       case ChannelEventType.OPEN_REQUEST:

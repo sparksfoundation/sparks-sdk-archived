@@ -22,7 +22,7 @@ export class X25519SalsaPoly extends CoreCipher {
       const publicKey = util.encodeBase64(keyPair.publicKey);
       const secretKey = util.encodeBase64(keyPair.secretKey);
       if (!publicKey || !secretKey) throw new Error('keyPair');
-      return { publicKey, secretKey } as CipherKeyPair;
+      return Promise.resolve({ publicKey, secretKey } as CipherKeyPair);
     } catch (error) {
       return Promise.reject(CipherErrors.GetEncryptionKeypairError(error));
     }
@@ -35,7 +35,7 @@ export class X25519SalsaPoly extends CoreCipher {
       const uintSharedKey = nacl.box.before(baseCipherPublicKey, baseCipherSecretKey);
       const baseSharedKey = util.encodeBase64(uintSharedKey);
       if (!baseSharedKey) throw new Error();
-      return baseSharedKey as EncryptionSharedKey;
+      return Promise.resolve(baseSharedKey as EncryptionSharedKey);
     } catch (error) {
       return Promise.reject(CipherErrors.GenerateEncryptionSharedKeyError(error));
     }
@@ -68,7 +68,7 @@ export class X25519SalsaPoly extends CoreCipher {
       encrypted.set(box, nonce.length);
       const ciphertext = util.encodeBase64(encrypted);
       if (!ciphertext) throw new Error('faild to encrypt')
-      return ciphertext as EncryptedData;
+      return Promise.resolve(ciphertext as EncryptedData);
     } catch (error) {
       return Promise.reject(CipherErrors.EncryptError(error));
     }
@@ -98,7 +98,7 @@ export class X25519SalsaPoly extends CoreCipher {
       const utf8Result = util.encodeUTF8(decrypted);
       const parsed = parseJSON(utf8Result) || utf8Result;
       if (!parsed) throw new Error('faild to decrypt');
-      return parsed as DecryptedData;
+      return Promise.resolve(parsed as DecryptedData);
     } catch(error) {
       return Promise.reject(CipherErrors.DecryptError(error));
     }

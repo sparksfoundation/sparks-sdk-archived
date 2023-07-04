@@ -50,8 +50,9 @@ const _WebRTC = class extends CoreChannel {
       this._connection = connection;
       this._connection.on("data", this.handleResponse);
     }
-    window.addEventListener("beforeunload", () => {
-      this.close();
+    window.addEventListener("beforeunload", async () => {
+      await this.close();
+      _WebRTC.peerjs.destroy();
     }, { capture: true });
   }
   get address() {
@@ -88,6 +89,8 @@ const _WebRTC = class extends CoreChannel {
   }
   async sendRequest(request) {
     return new Promise((resolve, reject) => {
+      if (!this._connection)
+        return;
       if (this._connection.open) {
         this._connection.send(request);
         return resolve();
@@ -124,7 +127,6 @@ const _WebRTC = class extends CoreChannel {
         });
       }, { once: true });
     });
-    window.addEventListener("unload", () => _WebRTC.peerjs.destroy());
   }
   _handleCalls(call) {
     if (this._call || !this.handleCalls) {
