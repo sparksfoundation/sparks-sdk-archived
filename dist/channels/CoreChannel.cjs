@@ -775,6 +775,7 @@ class CoreChannel {
       const message = await this._openMessageDigest(messageEvent.data);
       const decryptedEvent = {
         ...messageEvent,
+        type: _types.ChannelEventType.MESSAGE_RECEIVED,
         data: message
       };
       const event = await this._createEvent(_types.ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);

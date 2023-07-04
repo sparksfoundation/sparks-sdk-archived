@@ -178,7 +178,7 @@ export interface ChannelMessageEvent {
 }
 
 export interface ChannelDecryptedMessageEvent {
-  type: ChannelEventType.MESSAGE;
+  type: ChannelEventType.MESSAGE_RECEIVED;
   timestamp: ChannelEventTimestamp;
   data: ChannelMessageData;
   metadata: {
