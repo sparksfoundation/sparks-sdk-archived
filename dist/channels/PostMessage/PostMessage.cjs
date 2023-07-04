@@ -44,9 +44,8 @@ const _PostMessage = class extends _CoreChannel.CoreChannel {
     if (!this._source) throw _channel.ChannelErrors.OpenRequestError();
     return super.open();
   }
-  handleClosed(event) {
+  handleClosed() {
     this._window.removeEventListener("message", this.handleResponse);
-    return super.handleClosed(event);
   }
   async handleResponse(event) {
     return super.handleResponse(event.data);

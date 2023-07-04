@@ -73,32 +73,41 @@ const _WebRTC = class extends CoreChannel {
     return super.open();
   }
   async handleClosed(event) {
-    this._connection.off("data", this.handleResponse);
     this.hangup();
     this._connection.close();
-    return super.handleClosed(event);
+    this._connection.off("data", this.handleResponse);
   }
   async handleResponse(response) {
-    if (this._connection.open) {
-      super.handleResponse(response);
-    } else {
-      this._connection.on("open", () => {
+    return new Promise((resolve, reject) => {
+      if (response?.type === "hangup") {
+        this.hangup();
+        return resolve(void 0);
+      }
+      if (this._connection.open) {
         super.handleResponse(response);
-      }, { once: true });
-    }
+        return resolve(void 0);
+      } else {
+        this._connection.on("open", () => {
+          super.handleResponse(response);
+          return resolve(void 0);
+        }, { once: true });
+      }
+    });
   }
   async sendRequest(request) {
     return new Promise((resolve, reject) => {
       if (!this._connection)
-        return;
+        return reject("no connection");
       if (this._connection.open) {
         this._connection.send(request);
         return resolve();
       } else {
-        this._connection.on("open", () => {
+        const listener = () => {
           this._connection.send(request);
+          this._connection.off("open", listener);
           return resolve();
-        }, { once: true });
+        };
+        this._connection.on("open", listener);
       }
     });
   }
@@ -110,10 +119,10 @@ const _WebRTC = class extends CoreChannel {
     const ourAddress = _WebRTC.idFromIdentifier(spark.identifier);
     _WebRTC.peerjs = _WebRTC.peerjs || new Peer(ourAddress, { config: { iceServers } });
     _WebRTC.peerjs.on("open", () => {
-      _WebRTC.peerjs.on("connection", (connection) => {
-        connection.on("data", (request) => {
-          const { type, metadata, data } = request;
-          const { eid, cid } = metadata;
+      const connectionListener = (connection) => {
+        const dataListener = (request) => {
+          const { type, metadata, data } = request || {};
+          const { eid, cid } = metadata || {};
           if (type !== ChannelEventType.OPEN_REQUEST)
             return;
           const channel = new _WebRTC({
@@ -124,8 +133,12 @@ const _WebRTC = class extends CoreChannel {
           });
           channel.handleOpenRequested = callback;
           channel.handleResponse(request);
-        });
-      }, { once: true });
+          _WebRTC.peerjs.off("connection", connectionListener);
+          connection.off("data", dataListener);
+        };
+        connection.on("data", dataListener);
+      };
+      _WebRTC.peerjs.on("connection", connectionListener);
     });
   }
   _handleCalls(call) {
@@ -203,6 +216,9 @@ const _WebRTC = class extends CoreChannel {
       this.handleHangup();
     }
     if (this._streams) {
+      this._connection.send({
+        type: "hangup"
+      });
       Object.values(this._streams).forEach((stream) => {
         stream.getTracks().forEach((track) => {
           track.enabled = false;

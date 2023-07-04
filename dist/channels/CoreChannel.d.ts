@@ -56,6 +56,7 @@ export declare abstract class CoreChannel {
      */
     on: ChannelListenerOn;
     off: ChannelListenerOff;
+    private _trigger;
     /**
      * @description Initiates opening a channel
      * - sets a promise to be

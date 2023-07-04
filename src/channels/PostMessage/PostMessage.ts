@@ -42,9 +42,8 @@ export class PostMessage extends CoreChannel {
         return super.open();
     }
 
-    protected handleClosed(event) {
+    protected handleClosed() {
         this._window.removeEventListener('message', this.handleResponse);
-        return super.handleClosed(event);
     }
 
     protected async handleResponse(event) {

@@ -100,33 +100,43 @@ export class WebRTC extends CoreChannel {
   }
 
   protected async handleClosed(event: ChannelCloseEvent | ChannelCloseConfirmationEvent) {
-    this._connection.off('data', this.handleResponse);
     this.hangup();
+    // todo - figure out this issue, it's preventing the final close confirmation from being sent
     this._connection.close();
-    return super.handleClosed(event);
+    this._connection.off('data', this.handleResponse);
   }
 
   public async handleResponse(response) {
-    if (this._connection.open) {
-      super.handleResponse(response);
-    } else {
-      this._connection.on('open', () => {
-        super.handleResponse(response)
-      }, { once: true });
-    }
+    return new Promise((resolve, reject) => {
+      if (response?.type === 'hangup') {
+        this.hangup();
+        return resolve(void 0);
+      }
+      if (this._connection.open) {
+        super.handleResponse(response);
+        return resolve(void 0);
+      } else {
+        this._connection.on('open', () => {
+          super.handleResponse(response);
+          return resolve(void 0);
+        }, { once: true });
+      }
+    })
   }
 
   protected async sendRequest(request): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this._connection) return;
+      if (!this._connection) return reject('no connection');
       if (this._connection.open) {
         this._connection.send(request);
         return resolve();
       } else {
-        this._connection.on('open', () => {
+        const listener = () => {
           this._connection.send(request);
+          this._connection.off('open', listener);
           return resolve();
-        }, { once: true });
+        }
+        this._connection.on('open', listener);
       }
     });
   }
@@ -141,10 +151,10 @@ export class WebRTC extends CoreChannel {
     const ourAddress = WebRTC.idFromIdentifier(spark.identifier);
     WebRTC.peerjs = WebRTC.peerjs || new Peer(ourAddress, { config: { iceServers } });
     WebRTC.peerjs.on('open', () => {
-      WebRTC.peerjs.on('connection', connection => {
-        connection.on('data', (request: AnyChannelEvent) => {
-          const { type, metadata, data } = request;
-          const { eid, cid } = metadata;
+      const connectionListener = connection => {
+        const dataListener = (request: AnyChannelEvent) => {
+          const { type, metadata, data } = request || {};
+          const { eid, cid } = metadata || {};
           if (type !== ChannelEventType.OPEN_REQUEST) return;
 
           const channel = new WebRTC({
@@ -156,8 +166,13 @@ export class WebRTC extends CoreChannel {
 
           channel.handleOpenRequested = callback;
           channel.handleResponse(request);
-        });
-      }, { once: true })
+
+          WebRTC.peerjs.off('connection', connectionListener);
+          connection.off('data', dataListener);
+        }
+        connection.on('data', dataListener);
+      }
+      WebRTC.peerjs.on('connection', connectionListener)
     })
   }
 
@@ -224,6 +239,7 @@ export class WebRTC extends CoreChannel {
         .catch(reject);
 
       const call = WebRTC.peerjs.call(this._peerAddress, this._streams.local);
+
       call.on('stream', (stream) => {
         this._streams.remote = stream;
         this._call = call;
@@ -256,6 +272,9 @@ export class WebRTC extends CoreChannel {
     }
 
     if (this._streams) {
+      this._connection.send({
+        type: "hangup"
+      })
       Object.values(this._streams).forEach(stream => {
         stream.getTracks().forEach(track => {
           track.enabled = false;

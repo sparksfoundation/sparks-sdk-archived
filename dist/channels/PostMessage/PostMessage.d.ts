@@ -18,7 +18,7 @@ export declare class PostMessage extends CoreChannel {
     get origin(): string;
     get source(): Window;
     open(): Promise<import("../../errors/SparkError").SparkError | import("../types").ChannelOpenRejectionEvent | CoreChannel>;
-    protected handleClosed(event: any): void;
+    protected handleClosed(): void;
     protected handleResponse(event: any): Promise<any>;
     protected sendRequest(event: AnyChannelEvent): Promise<void>;
     static handleOpenRequests(callback: HandleOpenRequested, { spark, _window }: {

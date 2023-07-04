@@ -439,6 +439,13 @@ class CoreChannel {
       return Promise.reject(sparkError);
     }
   }
+  _trigger(type, event) {
+    const eventCallbacks = this._listeners.get(type);
+    if (!eventCallbacks) return;
+    eventCallbacks.forEach(callback => {
+      callback(event);
+    });
+  }
   /**
    * @description Initiates opening a channel
    * - sets a promise to be 
@@ -462,7 +469,7 @@ class CoreChannel {
           reject
         });
         const event = await this._createEvent(_types.ChannelEventType.OPEN_REQUEST, null);
-        this._sendRequest(event);
+        await this._sendRequest(event);
       } catch (error) {
         this._openPromises.delete(this.cid);
         return _reject(_channel.ChannelErrors.OpenRequestError(error));
@@ -479,7 +486,7 @@ class CoreChannel {
           reject
         });
         const event = await this._createEvent(_types.ChannelEventType.CLOSE, null);
-        this._sendRequest(event);
+        await this._sendRequest(event);
       } catch (error) {
         this._closePromises.delete(this.cid);
         return _reject(_channel.ChannelErrors.OpenRequestError(error));
@@ -501,7 +508,7 @@ class CoreChannel {
           resolve,
           reject
         });
-        this._sendRequest(event);
+        await this._sendRequest(event);
       } catch (error) {
         return _reject(_channel.ChannelErrors.MessageSendingError(error));
       }
@@ -569,6 +576,7 @@ class CoreChannel {
         resolve: this._acceptOpen.bind(this, requestEvent),
         reject: this._rejectOpen.bind(this, requestEvent)
       });
+      this._trigger(_types.ChannelEventType.OPEN_REQUEST, requestEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OnOpenRequestedError(error);
       return Promise.reject(sparkError);
@@ -593,7 +601,7 @@ class CoreChannel {
           reject
         });
         const event = await this._createEvent(_types.ChannelEventType.OPEN_ACCEPTANCE, requestEvent);
-        this._sendRequest(event);
+        await this._sendRequest(event);
       } catch (error) {
         const promise = this._openPromises.get(this.cid);
         const sparkError = _channel.ChannelErrors.OnOpenRequestedError(error);
@@ -614,7 +622,7 @@ class CoreChannel {
     const promise = this._openPromises.get(this.cid);
     try {
       const rejectEvent = await this._createEvent(_types.ChannelEventType.OPEN_REJECTION, requestOrAcceptEvent);
-      this._sendRequest(rejectEvent);
+      await this._sendRequest(rejectEvent);
       if (promise) {
         promise.resolve(rejectEvent);
         this._openPromises.delete(this.cid);
@@ -643,6 +651,7 @@ class CoreChannel {
         resolve: this._confirmOpen.bind(this, acceptanceEvent),
         reject: this._rejectOpen.bind(this, acceptanceEvent)
       });
+      this._trigger(_types.ChannelEventType.OPEN_ACCEPTANCE, acceptanceEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OnOpenAcceptedError(error);
       const promise = this._openPromises.get(this.cid);
@@ -666,8 +675,8 @@ class CoreChannel {
         const event = await this._createEvent(_types.ChannelEventType.OPEN_CONFIRMATION, acceptanceEvent);
         const validReciept = await this._openReceiptDigest(_types.ChannelReceiptType.OPEN_ACCEPTED, acceptanceEvent.data.receipt);
         if (!validReciept) throw new Error("Invalid acceptance receipt");
-        this._sendRequest(event);
-        this.handleOpened(acceptanceEvent);
+        await this._sendRequest(event);
+        this._handleOpened(acceptanceEvent);
         _resolve(this);
         this._openPromises.delete(this.cid);
       } catch (error) {
@@ -693,7 +702,8 @@ class CoreChannel {
     try {
       const validReciept = await this._openReceiptDigest(_types.ChannelReceiptType.OPEN_CONFIRMED, confirmEvent.data.receipt);
       if (!validReciept) throw new Error("Invalid confirmation receipt");
-      this.handleOpened(confirmEvent);
+      this._handleOpened(confirmEvent);
+      this._trigger(_types.ChannelEventType.OPEN_CONFIRMATION, confirmEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OpenConfirmedError(error);
       const promise = this._openPromises.get(this.cid);
@@ -716,6 +726,7 @@ class CoreChannel {
       if (!promise) throw new Error("Open promise not found");
       promise.reject(rejectEvent);
       this._openPromises.delete(this.cid);
+      this._trigger(_types.ChannelEventType.OPEN_REJECTION, rejectEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OpenRejectedError(error);
       return Promise.reject(sparkError);
@@ -729,12 +740,14 @@ class CoreChannel {
     this._status = _types.ChannelState.OPENED;
     promise.resolve(this);
     this._openPromises.delete(this.cid);
+    if (this.handleOpened) this.handleOpened(openEvent);
   }
   async _onClosed(closeEvent) {
     try {
       const event = await this._createEvent(_types.ChannelEventType.CLOSE_CONFIRMATION, closeEvent);
-      this._sendRequest(event);
-      this.handleClosed(closeEvent);
+      await this._sendRequest(event);
+      this._handleClosed(closeEvent);
+      this._trigger(_types.ChannelEventType.CLOSE, closeEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OnClosedError(error);
       return Promise.reject(sparkError);
@@ -744,7 +757,8 @@ class CoreChannel {
     try {
       const validReciept = await this._openReceiptDigest(_types.ChannelReceiptType.CLOSE_CONFIRMED, confirmEvent.data.receipt);
       if (!validReciept) throw new Error("Invalid confirmation receipt");
-      this.handleClosed(confirmEvent);
+      this._handleClosed(confirmEvent);
+      this._trigger(_types.ChannelEventType.CLOSE_CONFIRMATION, confirmEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OnCloseConfirmedError(error);
       const promise = this._closePromises.get(this.cid);
@@ -761,6 +775,7 @@ class CoreChannel {
       if (!promise) throw new Error("Close promise not found");
       promise.resolve(closeOrConfirmEvent);
       this._closePromises.delete(this.cid);
+      if (this.handleClosed) this.handleClosed(closeOrConfirmEvent);
     } else if (closeOrConfirmEvent.type !== _types.ChannelEventType.CLOSE) {
       throw new Error("Invalid close event type");
     }
@@ -768,7 +783,6 @@ class CoreChannel {
     this._openPromises.delete(this.cid);
     this._closePromises.delete(this.cid);
     this._messagePromises.clear();
-    this._sharedKey = null;
   }
   async _onMessage(messageEvent) {
     try {
@@ -779,13 +793,8 @@ class CoreChannel {
         data: message
       };
       const event = await this._createEvent(_types.ChannelEventType.MESSAGE_CONFIRMATION, decryptedEvent);
-      const listeners = this._listeners.get(_types.ChannelEventType.MESSAGE_RECEIVED);
-      if (listeners) {
-        listeners.forEach(callback => {
-          callback(decryptedEvent);
-        });
-      }
-      this._sendRequest(event);
+      await this._sendRequest(event);
+      this._trigger(_types.ChannelEventType.MESSAGE_RECEIVED, decryptedEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OnMessageError(error);
       return Promise.reject(sparkError);
@@ -799,6 +808,7 @@ class CoreChannel {
       if (!promise) throw new Error("Message promise not found");
       promise.resolve(confirmEvent);
       this._messagePromises.delete(confirmEvent.metadata.mid);
+      this._trigger(_types.ChannelEventType.MESSAGE_CONFIRMATION, confirmEvent);
     } catch (error) {
       const sparkError = _channel.ChannelErrors.OnMessageConfirmedError(error);
       if (promise) {
@@ -831,8 +841,6 @@ class CoreChannel {
       response: true,
       ...event
     });
-    const listeners = this._listeners.get(type);
-    if (listeners) listeners.forEach(callback => callback(event));
     switch (type) {
       case _types.ChannelEventType.OPEN_REQUEST:
         return this._onOpenRequested(event);
@@ -855,12 +863,8 @@ class CoreChannel {
   handleResponse(event) {
     return this._handleResponse(event);
   }
-  handleClosed(closeOrConfirmEvent) {
-    this._handleClosed(closeOrConfirmEvent);
-  }
-  handleOpened(openEvent) {
-    this._handleOpened(openEvent);
-  }
+  handleClosed(closeOrConfirmEvent) {}
+  handleOpened(openEvent) {}
   async export() {
     return Promise.resolve({
       type: this.constructor["type"],
@@ -869,6 +873,7 @@ class CoreChannel {
         identifier: this._peer?.identifier,
         publicKeys: this._peer?.publicKeys
       },
+      sharedKey: this._sharedKey,
       eventLog: this._eventLog
     });
   }
@@ -880,6 +885,7 @@ class CoreChannel {
     } = data;
     this._cid = cid;
     this._peer = peer;
+    this._sharedKey = data.sharedKey;
     this._eventLog = eventLog;
     return Promise.resolve();
   }
