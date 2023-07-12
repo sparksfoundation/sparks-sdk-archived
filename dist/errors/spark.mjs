@@ -1,2 +1,2 @@
-export var SparkErrorName = /* @__PURE__ */ ((SparkErrorName2) => {
-})(SparkErrorName || {});
+export var SparkErrorType = /* @__PURE__ */ ((SparkErrorType2) => {
+})(SparkErrorType || {});

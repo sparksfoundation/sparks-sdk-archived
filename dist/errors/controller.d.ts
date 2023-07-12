@@ -1,5 +1,5 @@
 import { SparkError, SparkErrorParams } from "./SparkError";
-export declare enum ControllerErrorName {
+export declare enum ControllerErrorType {
     GET_IDENTIFIER_ERROR = "GET_IDENTIFIER_ERROR",
     GET_KEY_EVENT_LOG_ERROR = "GET_KEY_EVENT_LOG_ERROR",
     INCEPTION_ERROR = "INCEPTION_ERROR",

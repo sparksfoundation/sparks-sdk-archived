@@ -1,2 +1,2 @@
-export var AgentErrorName = /* @__PURE__ */ ((AgentErrorName2) => {
-})(AgentErrorName || {});
+export var AgentErrorType = /* @__PURE__ */ ((AgentErrorType2) => {
+})(AgentErrorType || {});

@@ -1,5 +1,5 @@
 import { SparkError, SparkErrorParams } from "./SparkError";
-export declare enum CipherErrorName {
+export declare enum CipherErrorType {
     GET_ENCRYPTION_PUBLIC_KEY_ERROR = "GET_ENCRYPTION_PUBLIC_KEY_ERROR",
     GET_ENCRYPTION_SECRET_KEY_ERROR = "GET_ENCRYPTION_SECRET_KEY_ERROR",
     GET_ENCRYPTION_KEYPAIR_ERROR = "GET_ENCRYPTION_KEYPAIR_ERROR",

@@ -1,2 +1,2 @@
-export declare enum SparkErrorName {
+export declare enum SparkErrorType {
 }

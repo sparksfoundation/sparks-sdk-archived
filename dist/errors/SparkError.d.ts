@@ -1,22 +1,22 @@
-import { AgentErrorName } from "./agent";
-import { ChannelErrorName } from "./channel";
-import { CipherErrorName } from "./cipher";
-import { ControllerErrorName } from "./controller";
-import { HasherErrorName } from "./hasher";
-import { SignerErrorName } from "./signer";
+import { AgentErrorType } from "./agent";
+import { ChannelErrorType } from "./channel";
+import { CipherErrorType } from "./cipher";
+import { ControllerErrorType } from "./controller";
+import { HasherErrorType } from "./hasher";
+import { SignerErrorType } from "./signer";
 export type SparkErrorMessage = string;
 export type SparkErrorTimestampe = number;
 export type SparkErrorMetadata = Record<string, any>;
-export type SparkErrorName = AgentErrorName | SignerErrorName | CipherErrorName | ControllerErrorName | HasherErrorName | ChannelErrorName;
+export type SparkErrorType = AgentErrorType | SignerErrorType | CipherErrorType | ControllerErrorType | HasherErrorType | ChannelErrorType;
 export type SparkErrorStack = string;
 export type SparkErrorParams = {
-    name?: SparkErrorName;
+    type?: SparkErrorType;
     message?: SparkErrorMessage;
     metadata?: SparkErrorMetadata;
     stack?: SparkErrorStack;
 };
 export declare class SparkError {
-    name: SparkErrorName;
+    type: SparkErrorType;
     message: SparkErrorMessage;
     timestamp: SparkErrorTimestampe;
     metadata: SparkErrorMetadata;

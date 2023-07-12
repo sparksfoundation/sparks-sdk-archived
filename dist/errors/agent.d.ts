@@ -1,2 +1,2 @@
-export declare enum AgentErrorName {
+export declare enum AgentErrorType {
 }
