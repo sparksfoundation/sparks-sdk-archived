@@ -1,7 +1,7 @@
-import { CoreChannel } from "../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../types";
-import { OpenClose, Message } from "../ChannelActions";
-import { Spark } from "../../Spark";
+import { CoreChannel } from "../../CoreChannel";
+import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
+import { OpenClose, Message } from "../../ChannelActions";
+import { Spark } from "../../../Spark";
 
 export type HttpFetchPeer = ChannelPeer & {
     url: Window['location']['href'],

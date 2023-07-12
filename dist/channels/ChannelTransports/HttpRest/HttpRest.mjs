@@ -1,5 +1,5 @@
-import { CoreChannel } from "../CoreChannel.mjs";
-import { OpenClose, Message } from "../ChannelActions/index.mjs";
+import { CoreChannel } from "../../CoreChannel.mjs";
+import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 const _HttpRest = class extends CoreChannel {
   constructor({ peer, ...params }) {
     super({ ...params, peer, actions: [new OpenClose(), new Message()] });
@@ -17,7 +17,8 @@ const _HttpRest = class extends CoreChannel {
   }
   open(event) {
     const action = this.getAction("OPEN_CLOSE");
-    return action.OPEN_REQUEST(event);
+    const { eventId, ...meta } = event?.metadata || {};
+    return action.OPEN_REQUEST({ ...event, metadata: meta });
   }
   async sendRequest(request) {
     const promise = _HttpRest.promises.get(request.metadata.eventId);
@@ -33,11 +34,11 @@ HttpRest.receive = (callback, options) => {
   _HttpRest.requestHandler = async (event) => {
     return new Promise((resolve, reject) => {
       const { type, data, metadata } = event;
-      const { eventId, channelId } = metadata;
+      const { eventId, nextEventId, channelId } = metadata;
       if (!eventId || !channelId || !type) {
         return reject({ error: "Invalid request" });
       }
-      _HttpRest.promises.set(eventId, { resolve, reject });
+      _HttpRest.promises.set(nextEventId, { resolve, reject });
       const receivePromise = _HttpRest.receives.get(channelId);
       if (receivePromise)
         return receivePromise(event);
@@ -50,6 +51,9 @@ HttpRest.receive = (callback, options) => {
             peer: { ...data.peer },
             spark,
             channelId: metadata.channelId
+          });
+          channel.on(channel.eventTypes.ANY_ERROR, async (event2) => {
+            return reject2(event2);
           });
           await channel.open(event);
           await channel.handleResponse(event);

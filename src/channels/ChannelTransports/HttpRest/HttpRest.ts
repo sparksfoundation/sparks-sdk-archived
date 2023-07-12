@@ -1,7 +1,7 @@
-import { CoreChannel } from "../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../types";
-import { OpenClose, Message } from "../ChannelActions";
-import { ChannelRequestEvent } from "../ChannelEvent";
+import { CoreChannel } from "../../CoreChannel";
+import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
+import { OpenClose, Message } from "../../ChannelActions";
+import { ChannelRequestEvent } from "../../ChannelEvent";
 
 export type HttpRestPeer = ChannelPeer & {
     origin: Window['origin'],
@@ -31,7 +31,8 @@ export class HttpRest extends CoreChannel {
 
     protected open(event) {
         const action = this.getAction('OPEN_CLOSE') as OpenClose;
-        return action.OPEN_REQUEST(event);
+        const { eventId, ...meta } = event?.metadata || {}
+        return action.OPEN_REQUEST({ ...event, metadata: meta });
     }
 
     protected async sendRequest(request: ChannelRequestEvent<any>): Promise<void> {
@@ -46,12 +47,12 @@ export class HttpRest extends CoreChannel {
         HttpRest.requestHandler = async (event: ChannelRequestEvent<false>) => {
             return new Promise((resolve, reject) => {
                 const { type, data, metadata } = event;
-                const { eventId, channelId } = metadata;
+                const { eventId, nextEventId, channelId } = metadata;
                 if (!eventId || !channelId || !type) {
                     return reject({ error: 'Invalid request' });
                 }
 
-                HttpRest.promises.set(eventId, { resolve, reject });
+                HttpRest.promises.set(nextEventId, { resolve, reject });
                 
                 const receivePromise = HttpRest.receives.get(channelId);
                 if (receivePromise) return receivePromise(event);
@@ -65,6 +66,10 @@ export class HttpRest extends CoreChannel {
                             peer: { ...data.peer },
                             spark: spark,
                             channelId: metadata.channelId,
+                        });
+
+                        channel.on(channel.eventTypes.ANY_ERROR, async (event) => {
+                            return reject(event);
                         });
 
                         await channel.open(event);

@@ -33,7 +33,7 @@ import { Window } from './utilities/Window.js';
     PostMessage.receive(async ({ event, confirmOpen }) => {
         const channel = await confirmOpen();
         channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
-            console.log('receiver', event.type);
+            if (event.type.endsWith('ERROR')) { console.log(event) }
         });
 
         await channel.message('hey');
@@ -47,12 +47,10 @@ import { Window } from './utilities/Window.js';
     });
 
     channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
-        console.log('initiator', event.type);
+        if (event.type.endsWith('ERROR')) { console.log(event) }
     });
     
     await channel.open()
-    await channel.close();
-
     await channel.message('hey');
     await channel.message('hey');
     await channel.message('hey');

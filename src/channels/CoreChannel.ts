@@ -1,16 +1,21 @@
 import cuid from "cuid";
 import { ChannelEmitter } from "./ChannelEmitter";
 import { ChannelExport, ChannelPeer, ChannelId, ChannelLoggedEvent, CoreChannelParams } from "./types";
-import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent, eventFromResponse } from "./ChannelEvent";
+import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./ChannelEvent";
 import { ChannelError, ChannelErrorType, ChannelErrors } from "../errors/channel";
 import { ChannelEventConfirmType, ChannelEventRequestType, ChannelEventType } from "./ChannelEvent/types";
 import { ChannelAction } from "./ChannelActions";
+import { Spark } from "../Spark";
+import { Identifier } from "../controllers/types";
+import { PublicKeys } from "../types";
+import { CipherPublicKey, EncryptionSharedKey } from "../ciphers/types";
 
 export class CoreChannel extends ChannelEmitter {
     public readonly channelId: ChannelId;
     public readonly eventLog: ChannelLoggedEvent[] = [];
     public peer: ChannelPeer;
 
+    private _spark: Spark<any, any, any, any, any>;
     private _actions: ChannelAction<any>[]
     private _eventTypes: {
         [key: string]: ChannelEventRequestType | ChannelEventConfirmType | ChannelErrorType,
@@ -26,10 +31,11 @@ export class CoreChannel extends ChannelEmitter {
         this.peer = peer || {} as ChannelPeer;
         this.channelId = channelId || cuid();
         this.eventLog = [];
+        this._spark = spark;
         this._actions = actions || [];
 
         for (let action of this._actions) {
-            action.setContext({ spark, channel: this });
+            action.setContext({ channel: this });
             action.actions.forEach((actionType) => {
                 // provide event types
                 const requestType = `${actionType}_REQUEST` as ChannelEventRequestType;
@@ -59,6 +65,30 @@ export class CoreChannel extends ChannelEmitter {
         [key: string]: ChannelEventRequestType | ChannelEventConfirmType | ChannelErrorType,
     } {
         return this._eventTypes;
+    }
+
+    public get requestTypes(): {
+        [key: string]: ChannelEventRequestType,
+    } {
+        const requestTypes = {};
+        for (let eventType in this._eventTypes) {
+            if (eventType.endsWith('_REQUEST')) {
+                requestTypes[eventType] = eventType as ChannelEventRequestType;
+            }
+        }
+        return requestTypes;
+    }
+
+    public get confirmTypes(): {
+        [key: string]: ChannelEventConfirmType,
+    } {
+        const confirmTypes = {};
+        for (let eventType in this._eventTypes) {
+            if (eventType.endsWith('_CONFIRM')) {
+                confirmTypes[eventType] = eventType as ChannelEventConfirmType;
+            }
+        }
+        return confirmTypes;
     }
 
     public export(): ChannelExport {
@@ -119,18 +149,26 @@ export class CoreChannel extends ChannelEmitter {
                     .catch((error: Error) => { throw error });
 
             } catch (error) {
+                console.log(error)
                 const eventType = event?.type || 'unknown';
                 const sparkError = (error instanceof ChannelError) ? error : ChannelErrors.DispatchRequestError({ metadata: { eventType }, message: error.message });
                 this.emit(ChannelErrorType.DISPATCH_REQUEST_ERROR, sparkError);
+                reject(sparkError);
             }
         });
     }
 
     protected async handleResponse(event: ChannelEvent<ChannelEventType, boolean> | ChannelError): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            event = eventFromResponse(event);
-            
             try {
+                if (this.requestTypes[event.type]) {
+                    event = new ChannelRequestEvent({ ...event as ChannelRequestEvent<boolean> });
+                } else if (this.confirmTypes[event.type]) {
+                    event = new ChannelConfirmEvent({ ...event as ChannelConfirmEvent<boolean> });
+                } else {
+                    event = new ChannelError(event as ChannelError);
+                }
+                
                 switch (true) {
                     case event instanceof ChannelError:
                         throw event;
@@ -168,11 +206,50 @@ export class CoreChannel extends ChannelEmitter {
                         throw Error('invalid event');
                 }
             } catch (error) {
+                console.log(error)
                 const eventType = event?.type || 'unknown';
                 const sparkError = (error instanceof ChannelError) ? error : ChannelErrors.HandleResponseError({ metadata: { eventType }, message: error.message });
                 this.emit(ChannelErrorType.HANDLE_RESPONSE_ERROR, sparkError);
+                reject(sparkError);
             }
         });
+    }
+
+    public async sealEvent(event: ChannelEvent<ChannelEventType, false>): Promise<ChannelEvent<ChannelEventType, true>> {
+        const sealed = await event.seal({
+            cipher: this._spark.cipher,
+            signer: this._spark.signer,
+            sharedKey: this.peer.sharedKey
+        });
+        return sealed;
+    }
+
+    public async openEvent(event: ChannelEvent<ChannelEventType, true>): Promise<ChannelEvent<ChannelEventType, false>> {
+        const opened = await event.open({
+            cipher: this._spark.cipher,
+            signer: this._spark.signer,
+            sharedKey: this.peer.sharedKey,
+            publicKey: this.peer.publicKeys.signer,
+        });
+        return opened;
+    }
+
+    public get identifier(): Identifier {
+        return this._spark.identifier;
+    }
+
+    public get publicKeys(): PublicKeys {
+        return this._spark.publicKeys;
+    }
+
+    public get sharedKey(): EncryptionSharedKey {
+        return this.peer.sharedKey;
+    }
+
+    public async setSharedKey(publicKey: CipherPublicKey): Promise<void> {
+        const sharedKey = await this._spark.cipher.generateSharedKey({ publicKey });
+        this.peer.sharedKey = sharedKey;
+        return Promise.resolve();
     }
 
     protected sendRequest(event: ChannelEvent<ChannelEventType, boolean>): Promise<void> {

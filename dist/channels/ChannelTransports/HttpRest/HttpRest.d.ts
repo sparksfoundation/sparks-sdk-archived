@@ -1,6 +1,6 @@
-import { CoreChannel } from "../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelReceive } from "../types";
-import { ChannelRequestEvent } from "../ChannelEvent";
+import { CoreChannel } from "../../CoreChannel";
+import { CoreChannelParams, ChannelPeer, ChannelReceive } from "../../types";
+import { ChannelRequestEvent } from "../../ChannelEvent";
 export type HttpRestPeer = ChannelPeer & {
     origin: Window['origin'];
 };
@@ -12,7 +12,7 @@ export declare class HttpRest extends CoreChannel {
         peer: HttpRestPeer;
     });
     protected handleResponse(response: any): Promise<void>;
-    protected open(event: any): Promise<import("../ChannelEvent").ChannelConfirmEvent<boolean>>;
+    protected open(event: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent<boolean>>;
     protected sendRequest(request: ChannelRequestEvent<any>): Promise<void>;
     static receive: ChannelReceive;
 }

@@ -28,6 +28,7 @@
   "dependencies": {
     "@noble/hashes": "^1.3.1",
     "cuid": "^3.0.0",
+    "eventemitter3": "^5.0.1",
     "lodash.merge": "^4.6.2",
     "peerjs": "^1.4.7",
     "scrypt-pbkdf": "^1.1.1",
@@ -39,31 +40,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
-    },
-    "./__channels": {
-      "types": "./dist/__channels/index.d.ts",
-      "import": "./dist/__channels/index.mjs",
-      "require": "./dist/__channels/index.cjs"
-    },
-    "./__channels/ChannelEvent": {
-      "types": "./dist/__channels/ChannelEvent/index.d.ts",
-      "import": "./dist/__channels/ChannelEvent/index.mjs",
-      "require": "./dist/__channels/ChannelEvent/index.cjs"
-    },
-    "./__channels/actions": {
-      "types": "./dist/__channels/actions/index.d.ts",
-      "import": "./dist/__channels/actions/index.mjs",
-      "require": "./dist/__channels/actions/index.cjs"
-    },
-    "./__channels/core": {
-      "types": "./dist/__channels/core/index.d.ts",
-      "import": "./dist/__channels/core/index.mjs",
-      "require": "./dist/__channels/core/index.cjs"
-    },
-    "./__channels/transports": {
-      "types": "./dist/__channels/transports/index.d.ts",
-      "import": "./dist/__channels/transports/index.mjs",
-      "require": "./dist/__channels/transports/index.cjs"
     },
     "./_channels": {
       "types": "./dist/_channels/index.d.ts",
@@ -119,6 +95,26 @@
       "types": "./dist/channels/ChannelTransports/index.d.ts",
       "import": "./dist/channels/ChannelTransports/index.mjs",
       "require": "./dist/channels/ChannelTransports/index.cjs"
+    },
+    "./channels/ChannelTransports/HttpFetch": {
+      "types": "./dist/channels/ChannelTransports/HttpFetch/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/HttpFetch/index.mjs",
+      "require": "./dist/channels/ChannelTransports/HttpFetch/index.cjs"
+    },
+    "./channels/ChannelTransports/HttpRest": {
+      "types": "./dist/channels/ChannelTransports/HttpRest/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/HttpRest/index.mjs",
+      "require": "./dist/channels/ChannelTransports/HttpRest/index.cjs"
+    },
+    "./channels/ChannelTransports/PostMessage": {
+      "types": "./dist/channels/ChannelTransports/PostMessage/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/PostMessage/index.mjs",
+      "require": "./dist/channels/ChannelTransports/PostMessage/index.cjs"
+    },
+    "./channels/ChannelTransports/WebRTC": {
+      "types": "./dist/channels/ChannelTransports/WebRTC/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/WebRTC/index.mjs",
+      "require": "./dist/channels/ChannelTransports/WebRTC/index.cjs"
     },
     "./ciphers": {
       "types": "./dist/ciphers/index.d.ts",

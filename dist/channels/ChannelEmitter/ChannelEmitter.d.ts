@@ -1,5 +1,4 @@
-/// <reference types="node" />
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import { EmitMethod, ListenerHandler, MultiEventOverload } from "./types";
 export declare class ChannelEmitter extends EventEmitter {
     _multiEventOverload: MultiEventOverload<this>;

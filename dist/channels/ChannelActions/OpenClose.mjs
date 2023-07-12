@@ -21,25 +21,26 @@ export class OpenClose extends ChannelAction {
       const metadata = { ...params?.metadata, channelId: this.channel.channelId };
       const data = merge({}, params?.data, {
         peer: {
-          identifier: this.spark.identifier,
-          publicKeys: this.spark.publicKeys
+          identifier: this.channel.identifier,
+          publicKeys: this.channel.publicKeys
         }
       });
       const request = new ChannelRequestEvent({ type, metadata, data });
       const confirmEvent = await this.channel.dispatchRequest(request);
-      const sharedKey = await this.spark.cipher.generateSharedKey({ publicKey: confirmEvent.data.peer.publicKeys.cipher });
-      this.channel.peer = merge({}, this.channel.peer, { sharedKey }, confirmEvent.data.peer);
+      await this.channel.setSharedKey(confirmEvent.data.peer.publicKeys.cipher);
+      this.channel.peer.publicKeys = confirmEvent.data.peer.publicKeys;
       this.status = "OPEN";
       return confirmEvent;
     };
     this.OPEN_CONFIRM = async (requestEvent) => {
+      const { eventId, ...meta } = requestEvent?.metadata || {};
       return Promise.resolve(new ChannelConfirmEvent({
         type: Events.OPEN_CONFIRM,
-        metadata: merge({}, requestEvent?.metadata),
+        metadata: merge({}, meta),
         data: merge({}, requestEvent?.data, {
           peer: {
-            identifier: this.spark.identifier,
-            publicKeys: this.spark.publicKeys
+            identifier: this.channel.identifier,
+            publicKeys: this.channel.publicKeys
           }
         })
       }));
@@ -55,15 +56,15 @@ export class OpenClose extends ChannelAction {
     };
     this.CLOSE_CONFIRM = async (requestEvent) => {
       this.status = "CLOSED";
+      const { eventId, ...meta } = requestEvent?.metadata || {};
       return Promise.resolve(new ChannelConfirmEvent({
         type: Events.CLOSE_CONFIRM,
-        metadata: { ...requestEvent.metadata, ...requestEvent?.metadata },
-        data: { ...requestEvent.data, ...requestEvent?.data }
+        metadata: merge({}, meta),
+        data: merge({}, requestEvent?.data)
       }));
     };
   }
-  setContext({ spark, channel }) {
-    this.spark = spark;
+  setContext({ channel }) {
     this.channel = channel;
     this.channel.requestPreflight((requestEvent) => {
       const type = requestEvent.type;

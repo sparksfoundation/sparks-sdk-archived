@@ -1,5 +1,5 @@
-import { CoreChannel } from "../CoreChannel.mjs";
-import { OpenClose, Message } from "../ChannelActions/index.mjs";
+import { CoreChannel } from "../../CoreChannel.mjs";
+import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 const _PostMessage = class extends CoreChannel {
   constructor({ _window, source, peer, ...params }) {
     const openClose = new OpenClose();
@@ -13,6 +13,7 @@ const _PostMessage = class extends CoreChannel {
     this._window = _window || window || null;
     this._source = source;
     this.open = this.open.bind(this);
+    this.handleResponse = this.handleResponse.bind(this);
     this._window.addEventListener("message", (event) => {
       this.handleResponse(event.data);
     });
@@ -33,11 +34,16 @@ const _PostMessage = class extends CoreChannel {
     const action = this.getAction("MESSAGE");
     return action.MESSAGE_REQUEST({ data: message });
   }
+  async handleResponse(event) {
+    await super.handleResponse(event);
+    return Promise.resolve();
+  }
 };
 export let PostMessage = _PostMessage;
 PostMessage.receive = (callback, options) => {
   const { _window, _source, spark } = options;
-  _window.addEventListener("message", async (event) => {
+  const win = _window || window;
+  win.addEventListener("message", async (event) => {
     const { source, origin } = event;
     const { type, data, metadata, _source: _source2 } = event.data;
     if (type !== "OPEN_REQUEST")
@@ -51,9 +57,8 @@ PostMessage.receive = (callback, options) => {
           spark,
           channelId: metadata.channelId
         });
-        channel.on(channel.eventTypes.ANY_EVENT, async (event2) => {
-        });
         channel.on(channel.eventTypes.ANY_ERROR, async (event2) => {
+          return reject(event2);
         });
         await channel.open();
         await channel.handleResponse(event.data);

@@ -18,4 +18,5 @@ export type ListenerHandler<T> = {
 };
 export type EmitMethod<T> = {
     (eventType: ChannelEmitterEventType, event: ChannelEmitterReturnType): boolean;
+    (eventType: string, event: ChannelEmitterReturnType): boolean;
 };

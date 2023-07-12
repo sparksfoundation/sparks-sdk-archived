@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import { ChannelEmitterEventType, ChannelEmitterReturnType } from "./types";
 import { EmitMethod, EmitterMethodName, ListenerHandler, MultiEventOverload } from "./types";
 import { ChannelConfirmEvent, ChannelRequestEvent } from "../ChannelEvent";

@@ -4,7 +4,6 @@ import { ChannelActionParams, ChannelActionRetries, ChannelActionTimeout } from 
 
 export abstract class ChannelAction<Actions extends string[]> {
     protected channel: CoreChannel;
-    protected spark: Spark<any, any, any, any, any>;
     public abstract readonly name: string;
     public readonly actions = [] as Actions;
     public readonly retries: {
@@ -28,8 +27,7 @@ export abstract class ChannelAction<Actions extends string[]> {
         });
     }
 
-    public setContext({ spark, channel }: { spark: Spark<any, any, any, any, any>, channel: CoreChannel }) {
-        this.spark = spark;
+    public setContext({ channel }: { channel: CoreChannel }) {
         this.channel = channel;
     }
 }

@@ -1,5 +1,4 @@
 import cuid from "cuid";
-import { ChannelError } from "../../errors/channel.mjs";
 function getUtcEpochTimestamp() {
   const data = /* @__PURE__ */ new Date();
   const utcTimestamp = Date.UTC(
@@ -13,33 +12,18 @@ function getUtcEpochTimestamp() {
   );
   return utcTimestamp;
 }
-export function eventFromResponse(payload) {
-  if (payload instanceof ChannelEvent)
-    return payload;
-  if (payload instanceof ChannelError)
-    return payload;
-  const { type, sealed, metadata, data } = payload;
-  if (!type || !metadata || !data)
-    throw Error("invalid event");
-  switch (true) {
-    case type.endsWith("_REQUEST"):
-      return new ChannelRequestEvent({ type, sealed, metadata, data });
-    case type.endsWith("_CONFIRM"):
-      return new ChannelConfirmEvent({ type, sealed, metadata, data });
-    case type.endsWith("_ERROR"):
-      return new ChannelError({ ...payload });
-    default:
-      throw Error("invalid event");
+const _ChannelEvent = class {
+  static _getEventId() {
+    const eventId = this._nextEventId;
+    this._nextEventId = cuid();
+    return eventId;
   }
-}
-export class ChannelEvent {
   constructor({
     type,
     data,
     sealed = false,
     metadata
   }) {
-    this._nextEventId = cuid();
     this.type = type;
     this.sealed = sealed;
     this.data = data;
@@ -47,8 +31,8 @@ export class ChannelEvent {
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: metadata.eventId || this._getEventId(),
-      nextEventId: this._getEventId()
+      eventId: metadata.eventId || (metadata.nextEventId || _ChannelEvent._getEventId()),
+      nextEventId: metadata.nextEventId || _ChannelEvent._getEventId()
     };
     Object.defineProperties(this, {
       _nextEventId: { enumerable: false, writable: true },
@@ -57,14 +41,9 @@ export class ChannelEvent {
       _sealed: { enumerable: false, writable: true }
     });
   }
-  _getEventId() {
-    const eventId = this._nextEventId;
-    this._nextEventId = cuid();
-    return eventId;
-  }
   async seal({ cipher, signer, sharedKey }) {
     if (this.sealed)
-      return;
+      return this;
     const data = await cipher.encrypt({ data: this.data, sharedKey });
     const sealed = await signer.seal({ data });
     this.sealed = true;
@@ -73,14 +52,16 @@ export class ChannelEvent {
   }
   async open({ cipher, signer, publicKey, sharedKey }) {
     if (!this.sealed)
-      return;
+      return this;
     const data = await signer.open({ signature: this.data, publicKey });
     const opened = await cipher.decrypt({ data, sharedKey });
     this.sealed = false;
     this.data = opened;
     return this;
   }
-}
+};
+export let ChannelEvent = _ChannelEvent;
+ChannelEvent._nextEventId = cuid();
 export class ChannelRequestEvent extends ChannelEvent {
   constructor({ type, data, sealed, metadata }) {
     super({ type, data, sealed, metadata });

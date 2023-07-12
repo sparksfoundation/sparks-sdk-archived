@@ -1,5 +1,5 @@
-import { CoreChannel } from "../CoreChannel.mjs";
-import { OpenClose, Message } from "../ChannelActions/index.mjs";
+import { CoreChannel } from "../../CoreChannel.mjs";
+import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 export class HttpFetch extends CoreChannel {
   constructor({ peer, ...params }) {
     super({ ...params, peer, actions: [new OpenClose(), new Message()] });

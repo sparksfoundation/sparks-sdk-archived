@@ -1,6 +1,6 @@
 import cuid from "cuid";
 import { ChannelEmitter } from "./ChannelEmitter/index.mjs";
-import { ChannelConfirmEvent, ChannelRequestEvent, eventFromResponse } from "./ChannelEvent/index.mjs";
+import { ChannelConfirmEvent, ChannelRequestEvent } from "./ChannelEvent/index.mjs";
 import { ChannelError, ChannelErrorType, ChannelErrors } from "../errors/channel.mjs";
 export class CoreChannel extends ChannelEmitter {
   constructor({ spark, actions, channelId, peer }) {
@@ -16,9 +16,10 @@ export class CoreChannel extends ChannelEmitter {
     this.peer = peer || {};
     this.channelId = channelId || cuid();
     this.eventLog = [];
+    this._spark = spark;
     this._actions = actions || [];
     for (let action of this._actions) {
-      action.setContext({ spark, channel: this });
+      action.setContext({ channel: this });
       action.actions.forEach((actionType) => {
         const requestType = `${actionType}_REQUEST`;
         const confirmType = `${actionType}_CONFIRM`;
@@ -41,6 +42,24 @@ export class CoreChannel extends ChannelEmitter {
   }
   get eventTypes() {
     return this._eventTypes;
+  }
+  get requestTypes() {
+    const requestTypes = {};
+    for (let eventType in this._eventTypes) {
+      if (eventType.endsWith("_REQUEST")) {
+        requestTypes[eventType] = eventType;
+      }
+    }
+    return requestTypes;
+  }
+  get confirmTypes() {
+    const confirmTypes = {};
+    for (let eventType in this._eventTypes) {
+      if (eventType.endsWith("_CONFIRM")) {
+        confirmTypes[eventType] = eventType;
+      }
+    }
+    return confirmTypes;
   }
   export() {
     return {
@@ -87,16 +106,24 @@ export class CoreChannel extends ChannelEmitter {
           throw error;
         });
       } catch (error) {
+        console.log(error);
         const eventType = event?.type || "unknown";
         const sparkError = error instanceof ChannelError ? error : ChannelErrors.DispatchRequestError({ metadata: { eventType }, message: error.message });
         this.emit(ChannelErrorType.DISPATCH_REQUEST_ERROR, sparkError);
+        reject(sparkError);
       }
     });
   }
   async handleResponse(event) {
     return new Promise(async (resolve, reject) => {
-      event = eventFromResponse(event);
       try {
+        if (this.requestTypes[event.type]) {
+          event = new ChannelRequestEvent({ ...event });
+        } else if (this.confirmTypes[event.type]) {
+          event = new ChannelConfirmEvent({ ...event });
+        } else {
+          event = new ChannelError(event);
+        }
         switch (true) {
           case event instanceof ChannelError:
             throw event;
@@ -129,11 +156,44 @@ export class CoreChannel extends ChannelEmitter {
             throw Error("invalid event");
         }
       } catch (error) {
+        console.log(error);
         const eventType = event?.type || "unknown";
         const sparkError = error instanceof ChannelError ? error : ChannelErrors.HandleResponseError({ metadata: { eventType }, message: error.message });
         this.emit(ChannelErrorType.HANDLE_RESPONSE_ERROR, sparkError);
+        reject(sparkError);
       }
     });
+  }
+  async sealEvent(event) {
+    const sealed = await event.seal({
+      cipher: this._spark.cipher,
+      signer: this._spark.signer,
+      sharedKey: this.peer.sharedKey
+    });
+    return sealed;
+  }
+  async openEvent(event) {
+    const opened = await event.open({
+      cipher: this._spark.cipher,
+      signer: this._spark.signer,
+      sharedKey: this.peer.sharedKey,
+      publicKey: this.peer.publicKeys.signer
+    });
+    return opened;
+  }
+  get identifier() {
+    return this._spark.identifier;
+  }
+  get publicKeys() {
+    return this._spark.publicKeys;
+  }
+  get sharedKey() {
+    return this.peer.sharedKey;
+  }
+  async setSharedKey(publicKey) {
+    const sharedKey = await this._spark.cipher.generateSharedKey({ publicKey });
+    this.peer.sharedKey = sharedKey;
+    return Promise.resolve();
   }
   sendRequest(event) {
     throw Error("sendRequest not implemented");

@@ -1,6 +1,5 @@
 import { ChannelConfirmEvent, ChannelRequestEvent } from "../ChannelEvent";
 import { ChannelActionConfirm, ChannelActionRequest } from "./types";
-import { Spark } from "../../Spark";
 import merge from 'lodash.merge';
 import { CoreChannel } from "../CoreChannel";
 import { ChannelAction } from "./ChannelAction";
@@ -22,8 +21,7 @@ export class OpenClose extends ChannelAction<Actions>{
     public readonly actions = Actions as Actions;
     public status: 'OPEN' | 'CLOSED' = 'CLOSED';
 
-    public setContext({ spark, channel }: { spark: Spark<any, any, any, any, any>; channel: CoreChannel; }): void {
-        this.spark = spark;
+    public setContext({ channel }: { channel: CoreChannel; }): void {
         this.channel = channel;
         this.channel.requestPreflight((requestEvent) => {
             const type = requestEvent.type as string;
@@ -38,26 +36,27 @@ export class OpenClose extends ChannelAction<Actions>{
         const metadata = { ...params?.metadata, channelId: this.channel.channelId };
         const data = merge({}, params?.data, {
             peer: {
-                identifier: this.spark.identifier,
-                publicKeys: this.spark.publicKeys,
+                identifier: this.channel.identifier,
+                publicKeys: this.channel.publicKeys,
             }
         });
         const request = new ChannelRequestEvent({ type, metadata, data });
         const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent<false>;
-        const sharedKey = await this.spark.cipher.generateSharedKey({ publicKey: confirmEvent.data.peer.publicKeys.cipher });
-        this.channel.peer = merge({}, this.channel.peer, { sharedKey }, confirmEvent.data.peer);
+        await this.channel.setSharedKey(confirmEvent.data.peer.publicKeys.cipher);
+        this.channel.peer.publicKeys = confirmEvent.data.peer.publicKeys;
         this.status = 'OPEN';
         return confirmEvent;
     }
 
     public OPEN_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<false>) => {
+        const { eventId, ...meta } = requestEvent?.metadata || {};
         return Promise.resolve(new ChannelConfirmEvent({
             type: Events.OPEN_CONFIRM,
-            metadata: merge({}, requestEvent?.metadata),
+            metadata: merge({}, meta),
             data: merge({}, requestEvent?.data, {
                 peer: {
-                    identifier: this.spark.identifier,
-                    publicKeys: this.spark.publicKeys,
+                    identifier: this.channel.identifier,
+                    publicKeys: this.channel.publicKeys,
                 }
             }),
         }));
@@ -75,10 +74,11 @@ export class OpenClose extends ChannelAction<Actions>{
 
     public CLOSE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<false>) => {
         this.status = 'CLOSED';
+        const { eventId, ...meta } = requestEvent?.metadata || {};
         return Promise.resolve(new ChannelConfirmEvent<false>({
             type: Events.CLOSE_CONFIRM,
-            metadata: { ...requestEvent.metadata, ...requestEvent?.metadata },
-            data: { ...requestEvent.data, ...requestEvent?.data },
+            metadata: merge({}, meta),
+            data:  merge({}, requestEvent?.data),
         }));
     }
 }

@@ -12,7 +12,7 @@ global.fetch = fetch;
 (async function () {
     try {
         const channels = [];
-        const max_users = 2;
+        const max_users = 100;
         for (let i = 0; i < max_users; i++) {
             const client = new Spark({
                 cipher: X25519SalsaPoly,
@@ -27,26 +27,35 @@ global.fetch = fetch;
                 spark: client,
             });
 
-
             await channel.open();
             console.log('user', (i + 1), 'connected');
+            channel.on('MESSAGE_CONFIRM', (message) => {
+                console.log('confirmed:', message.data.slice(0, 10));
+            });
             channels.push(channel);
         }
     
-        // test by iterating over all sparks and sending a message from each
-        // there should be a delay between each message
-        const delay = 100;
-        const max_messages = 10;
+        const delay = 1;
+        const max_messages = 1000;
         let i = 0;
+        const start = performance.now();
         while (i < max_messages) {
-            const channel = channels[i++ % max_users];
-            console.log('sending message')
-            await channel.message(Math.random().toString(36).substring(2, 8))
-                .catch(error => console.error(error));
-            await new Promise(resolve => setTimeout(resolve, delay));
-            i += 1;
-            if (i >= max_messages) break;
+            // send a message from each channel
+            for(let channel of channels) {
+                await channel.message('msg: ' + Math.random().toString(36).substring(2, 8))
+                    .catch(error => console.error(error));
+                await new Promise(resolve => setTimeout(resolve, delay));
+                i += 1;
+                if (i >= max_messages) break;
+            }
         }
+        
+        const end = performance.now();
+        const seconds = (end - start) / 1000;
+        const messages_per_second = (max_messages * channels.length) / seconds;
+        console.log('messages per second:', messages_per_second);
+        console.log('total time:', seconds, 'seconds');
+
     } catch (error) {
         console.error(error);
         process.exit(0);

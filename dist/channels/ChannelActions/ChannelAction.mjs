@@ -13,8 +13,7 @@ export class ChannelAction {
       }
     });
   }
-  setContext({ spark, channel }) {
-    this.spark = spark;
+  setContext({ channel }) {
     this.channel = channel;
   }
 }

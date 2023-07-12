@@ -1,6 +1,5 @@
 import { ChannelConfirmEvent, ChannelRequestEvent } from "../ChannelEvent";
 import { ChannelActionConfirm, ChannelActionInterface, ChannelActionParams, ChannelActionRequest } from "./types";
-import { Spark } from "../../Spark";
 import merge from 'lodash.merge';
 import { CoreChannel } from "../CoreChannel";
 import { ChannelAction } from "./ChannelAction";
@@ -19,40 +18,30 @@ export class Message extends ChannelAction<Actions>{
     public readonly name = 'MESSAGE';
     public readonly actions = Actions as Actions;
 
-    public setContext({ spark, channel }: { spark: Spark<any, any, any, any, any>, channel: CoreChannel }) {
-        this.spark = spark;
+    public setContext({ channel }: { channel: CoreChannel }) {
         this.channel = channel;
     }
 
     public MESSAGE_REQUEST: ChannelActionRequest = async (params) => {
         const type = Events.MESSAGE_REQUEST;
-        const data = params?.data || '';
+        const data = params?.data || {};
         const metadata = { ...params?.metadata, messageId: cuid(), channelId: this.channel.channelId };
-        const request = new ChannelRequestEvent({ type, metadata, data });
-        const sealed = await request.seal({
-            sharedKey: this.channel.peer.sharedKey,
-            cipher: this.spark.cipher,
-            signer: this.spark.signer,
-        });
-
-        const confirmEvent = await this.channel.dispatchRequest(sealed) as ChannelConfirmEvent<true>;
+        const request = new ChannelRequestEvent<false>({ type, metadata, data });
+        await this.channel.sealEvent(request) as ChannelRequestEvent<true>;
+        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent<true>;
         return confirmEvent;
     }
 
     public MESSAGE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<true>) => {
-        // const unsealed = await requestEvent.open({
-        //     publicKey: this.channel.peer.publicKeys.signer,
-        //     sharedKey: this.channel.peer.sharedKey,
-        //     cipher: this.spark.cipher,
-        //     signer: this.spark.signer,
-        // });
-
-        //console.log(unsealed);
-
-        return Promise.resolve(new ChannelConfirmEvent({
+        await this.channel.openEvent(requestEvent) as ChannelRequestEvent<false>;
+        const { eventId, ...meta } = requestEvent?.metadata || {};
+        const data = { ...requestEvent };
+        const confirmationEvent = new ChannelConfirmEvent<false>({
             type: Events.MESSAGE_CONFIRM,
-            metadata: merge({}, requestEvent?.metadata),
-            data: 'confirmed',
-        }));
+            metadata: merge({}, meta),
+            data: data,
+        });
+        await this.channel.sealEvent(confirmationEvent);
+        return Promise.resolve(confirmationEvent);
     }
 }

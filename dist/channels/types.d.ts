@@ -20,20 +20,16 @@ export interface ChannelExport {
     eventLog: ChannelLoggedEvent[];
 }
 export interface ChannelPeer {
-    identifier: Identifier;
-    publicKeys: PublicKeys;
-    sharedKey: EncryptionSharedKey;
+    identifier?: Identifier;
+    publicKeys?: PublicKeys;
+    sharedKey?: EncryptionSharedKey;
     [key: string]: any;
 }
 export interface CoreChannelParams {
     spark: Spark<any, any, any, any, any>;
     actions?: ChannelAction<any>[];
     channelId?: ChannelId;
-    peer?: {
-        identifier: Identifier;
-        publicKeys: PublicKeys;
-        sharedKey: EncryptionSharedKey;
-    };
+    peer?: ChannelPeer;
 }
 export type DispatchRequest = ({ event, attempt, }: {
     event: ChannelRequestEvent<boolean>;

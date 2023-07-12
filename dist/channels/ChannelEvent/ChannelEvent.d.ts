@@ -1,22 +1,21 @@
-import { ChannelNextEventId, ChannelEventInterface, ChannelEventRequestType, ChannelEventConfirmType, ChannelEventType, ChannelEventSealedData, ChannelEventData } from "./types";
+import { ChannelNextEventId, ChannelEventInterface, ChannelEventRequestType, ChannelEventConfirmType, ChannelEventType, ChannelEventSealedData, ChannelEventData, ChannelEventId } from "./types";
 import { Spark } from "../../Spark";
 import { EncryptionSharedKey } from "../../ciphers/types";
 import { SignerPublicKey } from "../../signers/types";
-import { ChannelError } from "../../errors/channel";
-export declare function eventFromResponse(payload: any): ChannelError | ChannelEvent<any, any>;
 export declare class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean> implements ChannelEventInterface<any, any> {
     readonly type: ChannelEventInterface<Type, Sealed>['type'];
     readonly timestamp: ChannelEventInterface<Type, Sealed>['timestamp'];
     readonly metadata: ChannelEventInterface<Type, Sealed>['metadata'];
     sealed: ChannelEventInterface<Type, Sealed>['sealed'];
     data: ChannelEventInterface<Type, Sealed>['data'];
-    private _nextEventId;
-    private _getEventId;
+    private static _nextEventId;
+    private static _getEventId;
     constructor({ type, data, sealed, metadata, }: {
         type: ChannelEventInterface<Type, Sealed>['type'];
         sealed?: ChannelEventInterface<Type, Sealed>['sealed'];
         data: ChannelEventInterface<Type, Sealed>['data'];
         metadata: Omit<ChannelEventInterface<Type, Sealed>['metadata'], 'eventId' | 'nextEventId'> & {
+            eventId?: ChannelEventId;
             nextEventId?: ChannelNextEventId;
         };
     });

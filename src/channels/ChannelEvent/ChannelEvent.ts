@@ -1,5 +1,5 @@
 import cuid from "cuid";
-import { ChannelNextEventId, ChannelEventInterface, ChannelEventRequestType, ChannelEventConfirmType, ChannelEventType, ChannelEventSealedData, ChannelEventData } from "./types";
+import { ChannelNextEventId, ChannelEventInterface, ChannelEventRequestType, ChannelEventConfirmType, ChannelEventType, ChannelEventSealedData, ChannelEventData, ChannelEventId } from "./types";
 import { Spark } from "../../Spark";
 import { EncryptionSharedKey } from "../../ciphers/types";
 import { SignerPublicKey } from "../../signers/types";
@@ -19,24 +19,6 @@ function getUtcEpochTimestamp() {
   return utcTimestamp;
 }
 
-export function eventFromResponse(payload: any) {
-  if (payload instanceof ChannelEvent) return payload;
-  if (payload instanceof ChannelError) return payload;
-
-  const { type, sealed, metadata, data } = payload;
-  if (!type || !metadata || !data) throw Error('invalid event');
-  switch (true) {
-    case type.endsWith('_REQUEST'):
-      return new ChannelRequestEvent({ type, sealed, metadata, data });
-    case type.endsWith('_CONFIRM'):
-      return new ChannelConfirmEvent({ type, sealed, metadata, data });
-    case type.endsWith('_ERROR'):
-      return new ChannelError({ ...payload });
-    default:
-      throw Error('invalid event');
-  }
-}
-
 export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean> implements ChannelEventInterface<any, any> {
   public readonly type: ChannelEventInterface<Type, Sealed>['type'];
   public readonly timestamp: ChannelEventInterface<Type, Sealed>['timestamp'];
@@ -44,8 +26,8 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
   public sealed: ChannelEventInterface<Type, Sealed>['sealed'];
   public data: ChannelEventInterface<Type, Sealed>['data'];
 
-  private _nextEventId: ChannelNextEventId = cuid();
-  private _getEventId() {
+  private static _nextEventId: ChannelNextEventId = cuid();
+  private static _getEventId() {
     const eventId = this._nextEventId;
     this._nextEventId = cuid();
     return eventId;
@@ -60,7 +42,7 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
     type: ChannelEventInterface<Type, Sealed>['type'],
     sealed?: ChannelEventInterface<Type, Sealed>['sealed'],
     data: ChannelEventInterface<Type, Sealed>['data'],
-    metadata: Omit<ChannelEventInterface<Type, Sealed>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
+    metadata: Omit<ChannelEventInterface<Type, Sealed>['metadata'], 'eventId' | 'nextEventId'> & { eventId?: ChannelEventId, nextEventId?: ChannelNextEventId },
   }) {
     this.type = type;
 
@@ -68,11 +50,12 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
     this.data = data;
 
     this.timestamp = getUtcEpochTimestamp();
+
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: metadata.eventId || this._getEventId(),
-      nextEventId: this._getEventId(),
+      eventId: metadata.eventId || (metadata.nextEventId || ChannelEvent._getEventId()),
+      nextEventId: metadata.nextEventId ||  ChannelEvent._getEventId(),
     };
 
     Object.defineProperties(this, {
@@ -88,7 +71,7 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
     signer: Spark<any, any, any, any, any>['signer'],
     sharedKey: EncryptionSharedKey
   }): Promise<ChannelEvent<Type, boolean>> {
-    if (this.sealed) return;
+    if (this.sealed) return this as ChannelEvent<Type, true>;
     const data = await cipher.encrypt({ data: this.data, sharedKey });
     const sealed: ChannelEventSealedData = await signer.seal({ data });
     this.sealed = true;
@@ -102,7 +85,7 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
     publicKey: SignerPublicKey,
     sharedKey: EncryptionSharedKey
   }): Promise<ChannelEvent<Type, boolean>> {
-    if (!this.sealed) return;
+    if (!this.sealed) return this as ChannelEvent<Type, false>;
     const data = await signer.open({ signature: this.data, publicKey });
     const opened = await cipher.decrypt({ data, sharedKey });
     this.sealed = false;
