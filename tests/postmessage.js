@@ -3,14 +3,13 @@ import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
 import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
 import { Basic } from '../dist/controllers/Basic/index.mjs';
 import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
-import { PostMessage } from '../dist/channels/PostMessage/index.mjs';
+import { PostMessage } from '../dist/channels/ChannelTransports/PostMessage.mjs';
 import { assert } from 'console';
-import { _0000, _1111 } from './utilities/MockWindow.js';
+import { Window } from './utilities/Window.js';
 
 (async function () {
-    global.window = _0000;
-
-    Spark.availableChannels = [PostMessage];
+    const webWindow = new Window('http://localhost:1111');
+    const aliceWindow = new Window('http://localhost:0000');
 
     const website = new Spark({
         cipher: X25519SalsaPoly,
@@ -30,43 +29,47 @@ import { _0000, _1111 } from './utilities/MockWindow.js';
     });
 
     await alice.incept()
-    PostMessage.handleOpenRequests(async ({ event, resolve, reject }) => {
-        const channel = await resolve()
 
-        const close = channel.on('close', () => {
-            console.log('closed');
-        })
+    PostMessage.receive(async ({ event, confirmOpen }) => {
+        const channel = await confirmOpen();
+        channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
+            console.log('receiver', event.type);
+        });
 
-        const msg = channel.on('message', event => {
-            console.log('message:', event.data);
-        })
+        await channel.message('hey');
 
-    }, { spark: website, _window: _1111 });
+    }, { spark: website, _window: webWindow });
 
     const channel = new PostMessage({
-        origin: 'http://localhost:1111',
-        _window: _0000,
+        peer: { origin: 'http://localhost:1111' },
         spark: alice,
+        _window: aliceWindow,
     });
 
-    await channel.open();
-    await channel.message('hey');
-    await channel.message('hey');
-    await channel.message('hey');
+    channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
+        console.log('initiator', event.type);
+    });
+    
+    await channel.open()
     await channel.close();
 
-    const test = await website.export();
+    await channel.message('hey');
+    await channel.message('hey');
+    await channel.message('hey');
+    await channel.message('hey');
 
-    const newLogin = new Spark({
-        cipher: X25519SalsaPoly,
-        controller: Basic,
-        hasher: Blake3,
-        signer: Ed25519,
-    });
+    // const test = await website.export();
 
-    await newLogin.import({
-        data: test,
-        ...keyPairs,
-    });
+    // const newLogin = new Spark({
+    //     cipher: X25519SalsaPoly,
+    //     controller: Basic,
+    //     hasher: Blake3,
+    //     signer: Ed25519,
+    // });
+
+    // await newLogin.import({
+    //     data: test,
+    //     ...keyPairs,
+    // });
 
 }())

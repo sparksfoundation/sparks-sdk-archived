@@ -1,4 +1,4 @@
 
-export enum AgentErrorName {
+export enum AgentErrorType {
 
 }

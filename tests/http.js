@@ -3,7 +3,7 @@ import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
 import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
 import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
 import { Basic } from '../dist/controllers/Basic/index.mjs';
-import { FetchAPI } from '../dist/channels/Http/index.mjs';
+import { HttpFetch } from '../dist/channels/ChannelTransports/HttpFetch.mjs';
 import { assert } from 'console';
 
 import fetch from 'node-fetch';
@@ -20,14 +20,14 @@ global.fetch = fetch;
                 hasher: Blake3,
                 signer: Ed25519,
             });
-            const clientKeys = await client.generateKeyPairs()
-            client.setKeyPairs(clientKeys)
             await client.incept()
     
-            const channel = new FetchAPI({
-                url: 'http://127.0.0.1:3400/restAPI',
+            const channel = new HttpFetch({
+                peer: { url: 'http://127.0.0.1:3400/restAPI' },
                 spark: client,
-            })
+            });
+
+
             await channel.open();
             console.log('user', (i + 1), 'connected');
             channels.push(channel);
@@ -40,7 +40,9 @@ global.fetch = fetch;
         let i = 0;
         while (i < max_messages) {
             const channel = channels[i++ % max_users];
-            await channel.message(Math.random().toString(36).substring(2, 8));
+            console.log('sending message')
+            await channel.message(Math.random().toString(36).substring(2, 8))
+                .catch(error => console.error(error));
             await new Promise(resolve => setTimeout(resolve, delay));
             i += 1;
             if (i >= max_messages) break;
