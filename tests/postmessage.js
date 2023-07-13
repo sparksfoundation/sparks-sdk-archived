@@ -33,10 +33,9 @@ import { Window } from './utilities/Window.js';
   PostMessage.receive(async ({ event, confirmOpen }) => {
     const channel = await confirmOpen();
     channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
-      if (event.type.endsWith('ERROR')) { console.log(event) }
-      console.log(event)
+      console.log(event);
     });
-    //await channel.message('hey');
+    await channel.message('hey');
   }, { spark: website, _window: webWindow, _source: aliceWindow });
 
   const channel = new PostMessage({
@@ -50,10 +49,10 @@ import { Window } from './utilities/Window.js';
   });
 
   await channel.open()
-  // await channel.message('hey');
-  // await channel.message('hey');
-  // await channel.message('hey');
-  // await channel.message('hey');
+  await channel.message('hey');
+  await channel.message('hey');
+  await channel.message('hey');
+  await channel.message('hey');
   await channel.close();
 
   const backup = await channel.export();
@@ -66,35 +65,13 @@ import { Window } from './utilities/Window.js';
     }
   }
 
-  console.log(backup.eventLog.length)
-
   const newChannes = new PostMessage({
     ...backup,
     spark: alice,
     _window: aliceWindow,
   });
 
-  await newChannes.open()
+  await newChannes.open();
+  await newChannes.message('hey');
   await newChannes.close();
-
-  //await newChannes.message('hey');
-  const test = await newChannes.export();
-
-  const hahaha = new PostMessage({
-    ...backup,
-    spark: alice,
-    _window: aliceWindow,
-  });
-
-  console.log(test.eventLog.length)
-
-  await hahaha.open()
-  await hahaha.message('asdfasdf');
-  const asdf = await hahaha.export();
-
-  // await newLogin.import({
-  //     data: test,
-  //     ...keyPairs,
-  // });
-
 }())

@@ -19,100 +19,105 @@ function getUtcEpochTimestamp() {
   return utcTimestamp;
 }
 
-export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean> implements ChannelEventInterface<any, any> {
-  public readonly type: ChannelEventInterface<Type, Sealed>['type'];
-  public readonly timestamp: ChannelEventInterface<Type, Sealed>['timestamp'];
-  public readonly metadata: ChannelEventInterface<Type, Sealed>['metadata'];
-  public sealed: ChannelEventInterface<Type, Sealed>['sealed'];
-  public data: ChannelEventInterface<Type, Sealed>['data'];
+export class ChannelEvent<Type extends ChannelEventType> implements ChannelEventInterface<any> {
+  public readonly type: ChannelEventInterface<Type>['type'];
+  public readonly timestamp: ChannelEventInterface<Type>['timestamp'];
+  public readonly metadata: ChannelEventInterface<Type>['metadata'];
+  public seal: ChannelEventInterface<Type>['seal'];
+  public data: ChannelEventInterface<Type>['data'];
 
   private static _nextEventId: ChannelNextEventId = cuid();
-  public static _getEventIds() {
-    const eventId = ChannelEvent._nextEventId;
-    const nextEventId = cuid();
-    ChannelEvent._nextEventId = nextEventId;
-    return { eventId, nextEventId };
-  }
+  // public static _getEventIds(event) {
+  //   const eventId = ChannelEvent._nextEventId;
+  //   const nextEventId = cuid();
+  //   ChannelEvent._nextEventId = nextEventId;
+  //   return { eventId, nextEventId };
+  // }
 
   constructor({
     type,
     data,
-    sealed = false,
+    seal,
     metadata,
   }: {
-    type: ChannelEventInterface<Type, Sealed>['type'],
-    sealed?: ChannelEventInterface<Type, Sealed>['sealed'],
-    data: ChannelEventInterface<Type, Sealed>['data'],
-    metadata: Omit<ChannelEventInterface<Type, Sealed>['metadata'], 'eventId' | 'nextEventId'> & { eventId?: ChannelEventId, nextEventId?: ChannelNextEventId },
+    type: ChannelEventInterface<Type>['type'],
+    seal?: ChannelEventInterface<Type>['seal'],
+    data?: ChannelEventInterface<Type>['data'],
+    metadata: Omit<ChannelEventInterface<Type>['metadata'], 'eventId' | 'nextEventId'> & { eventId?: ChannelEventId, nextEventId?: ChannelNextEventId },
   }) {
     this.type = type;
 
-    this.sealed = sealed;
+    this.seal = seal;
     this.data = data;
 
     this.timestamp = getUtcEpochTimestamp();
 
+    const eventId = metadata.eventId && metadata.nextEventId ? metadata.eventId : ChannelEvent._nextEventId;
+    const nextEventId = metadata.eventId && metadata.nextEventId ? metadata.nextEventId : cuid();
+    ChannelEvent._nextEventId = nextEventId;
+
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: metadata.eventId,
-      nextEventId: metadata.nextEventId,
+      eventId: eventId,
+      nextEventId: nextEventId,
     };
-
-    Object.defineProperties(this, {
-      _nextEventId: { enumerable: false, writable: true, },
-      _getEventId: { enumerable: false, writable: false, },
-      _data: { enumerable: false, writable: true, },
-      _sealed: { enumerable: false, writable: true, },
-    });
   }
 
-  public async seal({ cipher, signer, sharedKey }: {
+  public async sealData({ cipher, signer, sharedKey }: {
     cipher: Spark<any, any, any, any, any>['cipher'],
     signer: Spark<any, any, any, any, any>['signer'],
     sharedKey: EncryptionSharedKey
-  }): Promise<ChannelEvent<Type, boolean>> {
-    if (this.sealed) return this as ChannelEvent<Type, true>;
+  }): Promise<ChannelEvent<Type>> {
+    if (this.seal) return this as ChannelEvent<Type>;
     const data = await cipher.encrypt({ data: this.data, sharedKey });
-    const sealed: ChannelEventSealedData = await signer.seal({ data });
-    this.sealed = true;
-    (this as ChannelEvent<Type, true>).data = sealed;
-    return this as ChannelEvent<Type, true>;
+    this.seal = await signer.seal({ data });
+    this.data = undefined;
+    return this as ChannelEvent<Type>;
   }
 
-  public async open({ cipher, signer, publicKey, sharedKey }: {
+  public async openData({ cipher, signer, publicKey, sharedKey }: {
     cipher: Spark<any, any, any, any, any>['cipher'],
     signer: Spark<any, any, any, any, any>['signer'],
     publicKey: SignerPublicKey,
     sharedKey: EncryptionSharedKey
-  }): Promise<ChannelEvent<Type, boolean>> {
-    if (!this.sealed) return this as ChannelEvent<Type, false>;
-    const data = await signer.open({ signature: this.data, publicKey });
+  }): Promise<ChannelEvent<Type>> {
+    if (!this.seal) return this as ChannelEvent<Type>;
+    const data = await signer.open({ signature: this.seal, publicKey });
     const opened = await cipher.decrypt({ data, sharedKey });
-    this.sealed = false;
     this.data = opened;
-    return this as ChannelEvent<Type, false>;
+    return this as ChannelEvent<Type>;
   }
 }
 
-export class ChannelRequestEvent<Sealed extends boolean> extends ChannelEvent<ChannelEventRequestType, Sealed> {
-  constructor({ type, data, sealed, metadata }: {
-    type: ChannelEventInterface<ChannelEventRequestType, boolean>['type'],
-    sealed?: boolean,
-    data: Sealed extends true ? ChannelEventSealedData : ChannelEventData,
-    metadata: Omit<ChannelEventInterface<ChannelEventRequestType, boolean>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
+export class ChannelRequestEvent extends ChannelEvent<ChannelEventRequestType> {
+  constructor({ type, data, seal, metadata }: {
+    type: ChannelEventInterface<ChannelEventRequestType>['type'],
+    seal: ChannelEventSealedData,
+    data?: ChannelEventData,
+    metadata: Omit<ChannelEventInterface<ChannelEventRequestType>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
+  } | {
+    type: ChannelEventInterface<ChannelEventRequestType>['type'],
+    seal?: undefined,
+    data: ChannelEventData,
+    metadata: Omit<ChannelEventInterface<ChannelEventRequestType>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
   }) {
-    super({ type, data, sealed, metadata });
+    super({ type, data, seal, metadata });
   }
 }
 
-export class ChannelConfirmEvent<Sealed extends boolean> extends ChannelEvent<ChannelEventConfirmType, Sealed> {
-  constructor({ type, data, sealed, metadata }: {
-    type: ChannelEventInterface<ChannelEventConfirmType, boolean>['type'],
-    sealed?: boolean,
-    data: Sealed extends true ? ChannelEventSealedData : ChannelEventData,
-    metadata: Omit<ChannelEventInterface<ChannelEventConfirmType, boolean>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
+export class ChannelConfirmEvent extends ChannelEvent<ChannelEventConfirmType> {
+  constructor({ type, data, seal, metadata }: {
+    type: ChannelEventInterface<ChannelEventConfirmType>['type'],
+    seal?: ChannelEventSealedData,
+    data: ChannelEventData,
+    metadata: Omit<ChannelEventInterface<ChannelEventConfirmType>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
+  } | {
+    type: ChannelEventInterface<ChannelEventConfirmType>['type'],
+    seal: ChannelEventSealedData,
+    data?: ChannelEventData,
+    metadata: Omit<ChannelEventInterface<ChannelEventConfirmType>['metadata'], 'eventId' | 'nextEventId'> & { nextEventId?: ChannelNextEventId },
   }) {
-    super({ type, data, sealed, metadata });
+    super({ type, data, seal, metadata });
   }
 }

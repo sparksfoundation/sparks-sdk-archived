@@ -29,8 +29,9 @@ global.fetch = fetch;
 
             await channel.open();
             console.log('user', (i + 1), 'connected');
-            channel.on('MESSAGE_CONFIRM', (message) => {
-                console.log('confirmed:', message.data.slice(0, 10));
+            channel.on('MESSAGE_CONFIRM', async (event) => {
+                await channel.openEvent(event);
+                console.log('confirmed:', event.data.data.slice(0, 10));
             });
             channels.push(channel);
         }

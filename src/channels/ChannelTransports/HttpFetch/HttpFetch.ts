@@ -7,10 +7,14 @@ export type HttpFetchPeer = ChannelPeer & {
     origin: Window['origin'],
 }
 
+export type HttpFetchParams = CoreChannelParams & {
+    peer: HttpFetchPeer,
+}
+
 export class HttpFetch extends CoreChannel {
-    constructor({ peer, ...params }: CoreChannelParams & {
-        peer: HttpFetchPeer,
-    }) {
+    public readonly type = 'HttpFetch';
+
+    constructor({ peer, ...params }: HttpFetchParams) {
         super({ ...params, peer, actions: [  new OpenClose(), new Message() ] });
         this.peer.url = peer?.url;
         this.peer.origin = peer?.origin ? peer.origin : new URL(peer.url).origin;

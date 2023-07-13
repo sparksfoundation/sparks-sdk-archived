@@ -29,13 +29,25 @@ export class OpenClose extends ChannelAction<Actions>{
             const isClosed = this.status === 'CLOSED';
             if (!isAllowed && isClosed) throw new Error('channel is closed');
         });
+
+        this.channel.on([
+            this.channel.eventTypes.OPEN_REQUEST,
+            this.channel.eventTypes.CLOSE_CONFIRM,
+            this.channel.errorTypes.REQUEST_TIMEOUT_ERROR,
+        ], (event) => {
+            const closeConfirmed = event.type === 'CLOSE_CONFIRM';
+            const closeTimeout = event.type === 'REQUEST_TIMEOUT_ERROR' && event.metadata.eventType === 'CLOSE_REQUEST';
+            if (closeConfirmed || closeTimeout) {
+                this.status = 'CLOSED';
+                this.channel.removeAllListeners();
+            }
+        });
     }
 
     public OPEN_REQUEST: ChannelActionRequest = async (params) => {
-      console.log('requesting')
         const type = Events.OPEN_REQUEST;
-        const ids = ChannelEvent._getEventIds();
-        const metadata = { ...params?.metadata, channelId: this.channel.channelId, ...ids };
+        const { eventId, ...meta } = params?.metadata || {}
+        const metadata = { ...meta, channelId: this.channel.channelId };
         const data = merge({}, params?.data, {
             peer: {
                 identifier: this.channel.identifier,
@@ -43,21 +55,21 @@ export class OpenClose extends ChannelAction<Actions>{
             }
         });
         const request = new ChannelRequestEvent({ type, metadata, data });
-        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent<false>;
+        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent;
         await this.channel.setSharedKey(confirmEvent.data.peer.publicKeys.cipher);
         this.channel.peer.publicKeys = confirmEvent.data.peer.publicKeys;
         this.status = 'OPEN';
         return confirmEvent;
     }
 
-    public OPEN_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<false>) => {
+    public OPEN_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent) => {
         await this.channel.setSharedKey(requestEvent.data.peer.publicKeys.cipher);
         this.channel.peer.publicKeys = requestEvent.data.peer.publicKeys;
         this.status = 'OPEN'; 
-        const ids = ChannelEvent._getEventIds();
+        const { eventId, ...meta } = requestEvent?.metadata || {}
         return Promise.resolve(new ChannelConfirmEvent({
             type: Events.OPEN_CONFIRM,
-            metadata: merge({}, requestEvent?.metadata, ids),
+            metadata: merge({}, meta),
             data: merge({}, requestEvent?.data, {
                 peer: {
                     identifier: this.channel.identifier,
@@ -70,20 +82,21 @@ export class OpenClose extends ChannelAction<Actions>{
     public CLOSE_REQUEST: ChannelActionRequest = async (params) => {
         const type = Events.CLOSE_REQUEST;
         const data = params?.data || {};
-        const ids = ChannelEvent._getEventIds();
-        const metadata = { ...params?.metadata, channelId: this.channel.channelId, ...ids }
+        const { eventId, ...meta } = params?.metadata || {}
+        const metadata = { ...meta, channelId: this.channel.channelId }
         const request = new ChannelRequestEvent({ type, metadata, data });
         this.status = 'CLOSED';
-        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent<false>;
+        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent;
         return confirmEvent;
     }
 
-    public CLOSE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<false>) => {
+    public CLOSE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent) => {
         this.status = 'CLOSED';
-        const ids = ChannelEvent._getEventIds();
-        return Promise.resolve(new ChannelConfirmEvent<false>({
+        const { eventId, ...meta } = requestEvent?.metadata || {}
+        
+        return Promise.resolve(new ChannelConfirmEvent({
             type: Events.CLOSE_CONFIRM,
-            metadata: merge({}, requestEvent?.metadata, ids),
+            metadata: merge({}, meta),
             data:  merge({}, requestEvent?.data),
         }));
     }

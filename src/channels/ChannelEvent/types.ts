@@ -20,10 +20,10 @@ export type ChannelEventConfirmType = 'CONFIRM' | `${string}_CONFIRM`;
 
 export type ChannelEventType = ChannelEventRequestType | ChannelEventConfirmType;
 
-export interface ChannelEventInterface<Type extends ChannelEventType, Sealed extends boolean> {
+export interface ChannelEventInterface<Type extends ChannelEventType> {
   readonly type: Type;
   readonly timestamp: ChannelEventTimestamp;
   readonly metadata: ChannelEventMetadata;
-  readonly data: Sealed extends true ? ChannelEventSealedData : ChannelEventData;
-  readonly sealed: boolean;
+  readonly data: ChannelEventData;
+  readonly seal: ChannelEventSealedData;
 }

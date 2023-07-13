@@ -10,15 +10,16 @@ export type WebRTCParams = CoreChannelParams & {
     connection?: DataConnection;
 };
 export declare class WebRTC extends CoreChannel {
+    readonly type = "WebRTC";
+    streams: WebRTCMediaStreams;
     private connection;
-    private streams;
     private activeCall;
     constructor({ connection, ...params }: WebRTCParams);
-    open(): Promise<ChannelConfirmEvent<boolean>>;
-    close(): Promise<ChannelConfirmEvent<boolean>>;
-    message(message: any): Promise<ChannelConfirmEvent<boolean>>;
+    open(): Promise<ChannelConfirmEvent>;
+    close(): Promise<ChannelConfirmEvent>;
+    message(message: any): Promise<ChannelConfirmEvent>;
     call(): Promise<unknown>;
-    hangup(): Promise<ChannelConfirmEvent<boolean> | undefined>;
+    hangup(): Promise<ChannelConfirmEvent | undefined>;
     protected sendRequest(event: any): Promise<void>;
     handleResponse(event: any): Promise<void>;
     protected static addressFromIdentifier(identifier: string): string;

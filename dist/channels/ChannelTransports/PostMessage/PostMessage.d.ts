@@ -1,8 +1,5 @@
 import { CoreChannel } from "../../CoreChannel";
 import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
-import { ChannelEvent } from "../../ChannelEvent";
-import { ChannelError } from "../../../errors/channel";
-import { ChannelEventType } from "../../ChannelEvent/types";
 export type PostMessageParams = CoreChannelParams & {
     _window?: Window;
     source?: Window;
@@ -11,13 +8,14 @@ export type PostMessageParams = CoreChannelParams & {
     };
 };
 export declare class PostMessage extends CoreChannel {
+    readonly type = "PostMessage";
     private _source;
     private _window?;
     constructor({ _window, source, peer, ...params }: PostMessageParams);
-    open(): Promise<import("../../ChannelEvent").ChannelConfirmEvent<boolean>>;
-    close(): Promise<import("../../ChannelEvent").ChannelConfirmEvent<boolean>>;
-    message(message: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent<boolean>>;
+    setSource(source: Window): void;
+    open(): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
+    close(): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
+    message(message: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
     protected sendRequest: ChannelSendRequest;
-    protected handleResponse(event: ChannelEvent<ChannelEventType, boolean> | ChannelError): Promise<void>;
     static receive: ChannelReceive;
 }

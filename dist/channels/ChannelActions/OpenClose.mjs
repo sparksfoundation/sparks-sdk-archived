@@ -1,4 +1,4 @@
-import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../ChannelEvent/index.mjs";
+import { ChannelConfirmEvent, ChannelRequestEvent } from "../ChannelEvent/index.mjs";
 import merge from "lodash.merge";
 import { ChannelAction } from "./ChannelAction.mjs";
 const Actions = ["OPEN", "CLOSE"];
@@ -17,10 +17,9 @@ export class OpenClose extends ChannelAction {
     this.actions = Actions;
     this.status = "CLOSED";
     this.OPEN_REQUEST = async (params) => {
-      console.log("requesting");
       const type = Events.OPEN_REQUEST;
-      const ids = ChannelEvent._getEventIds();
-      const metadata = { ...params?.metadata, channelId: this.channel.channelId, ...ids };
+      const { eventId, ...meta } = params?.metadata || {};
+      const metadata = { ...meta, channelId: this.channel.channelId };
       const data = merge({}, params?.data, {
         peer: {
           identifier: this.channel.identifier,
@@ -38,10 +37,10 @@ export class OpenClose extends ChannelAction {
       await this.channel.setSharedKey(requestEvent.data.peer.publicKeys.cipher);
       this.channel.peer.publicKeys = requestEvent.data.peer.publicKeys;
       this.status = "OPEN";
-      const ids = ChannelEvent._getEventIds();
+      const { eventId, ...meta } = requestEvent?.metadata || {};
       return Promise.resolve(new ChannelConfirmEvent({
         type: Events.OPEN_CONFIRM,
-        metadata: merge({}, requestEvent?.metadata, ids),
+        metadata: merge({}, meta),
         data: merge({}, requestEvent?.data, {
           peer: {
             identifier: this.channel.identifier,
@@ -53,8 +52,8 @@ export class OpenClose extends ChannelAction {
     this.CLOSE_REQUEST = async (params) => {
       const type = Events.CLOSE_REQUEST;
       const data = params?.data || {};
-      const ids = ChannelEvent._getEventIds();
-      const metadata = { ...params?.metadata, channelId: this.channel.channelId, ...ids };
+      const { eventId, ...meta } = params?.metadata || {};
+      const metadata = { ...meta, channelId: this.channel.channelId };
       const request = new ChannelRequestEvent({ type, metadata, data });
       this.status = "CLOSED";
       const confirmEvent = await this.channel.dispatchRequest(request);
@@ -62,10 +61,10 @@ export class OpenClose extends ChannelAction {
     };
     this.CLOSE_CONFIRM = async (requestEvent) => {
       this.status = "CLOSED";
-      const ids = ChannelEvent._getEventIds();
+      const { eventId, ...meta } = requestEvent?.metadata || {};
       return Promise.resolve(new ChannelConfirmEvent({
         type: Events.CLOSE_CONFIRM,
-        metadata: merge({}, requestEvent?.metadata, ids),
+        metadata: merge({}, meta),
         data: merge({}, requestEvent?.data)
       }));
     };
@@ -78,6 +77,18 @@ export class OpenClose extends ChannelAction {
       const isClosed = this.status === "CLOSED";
       if (!isAllowed && isClosed)
         throw new Error("channel is closed");
+    });
+    this.channel.on([
+      this.channel.eventTypes.OPEN_REQUEST,
+      this.channel.eventTypes.CLOSE_CONFIRM,
+      this.channel.errorTypes.REQUEST_TIMEOUT_ERROR
+    ], (event) => {
+      const closeConfirmed = event.type === "CLOSE_CONFIRM";
+      const closeTimeout = event.type === "REQUEST_TIMEOUT_ERROR" && event.metadata.eventType === "CLOSE_REQUEST";
+      if (closeConfirmed || closeTimeout) {
+        this.status = "CLOSED";
+        this.channel.removeAllListeners();
+      }
     });
   }
 }

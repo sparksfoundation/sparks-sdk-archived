@@ -8,6 +8,7 @@ export type HttpRestPeer = ChannelPeer & {
 }
 
 export class HttpRest extends CoreChannel {
+    public readonly type = 'HttpRest';
     private static promises: Map<string, any> = new Map();
     private static receives: Map<string, any> = new Map();
     public static requestHandler: Function;
@@ -21,13 +22,7 @@ export class HttpRest extends CoreChannel {
         HttpRest.receives.set(this.channelId, this.handleResponse);
     }
 
-    protected open(event) {
-        const action = this.getAction('OPEN_CLOSE') as OpenClose;
-        const { eventId, ...meta } = event?.metadata || {}
-        return action.OPEN_REQUEST({ ...event, metadata: meta });
-    }
-
-    protected async sendRequest(request: ChannelRequestEvent<any>): Promise<void> {
+    protected async sendRequest(request: ChannelRequestEvent): Promise<void> {
         const promise = HttpRest.promises.get(request.metadata.eventId);
         promise.resolve(request);
         HttpRest.promises.delete(request.metadata.eventId);
@@ -36,7 +31,7 @@ export class HttpRest extends CoreChannel {
     public static receive: ChannelReceive = (callback, options) => {
         const { spark } = options;
 
-        HttpRest.requestHandler = async (event: ChannelRequestEvent<false>) => {
+        HttpRest.requestHandler = async (event: ChannelRequestEvent) => {
             return new Promise((resolve, reject) => {
                 const { type, data, metadata } = event;
                 const { eventId, nextEventId, channelId } = metadata;
@@ -64,7 +59,7 @@ export class HttpRest extends CoreChannel {
                             return reject(event);
                         });
 
-                        await channel.open(event);
+                        //await channel.open(event);
                         await channel.handleResponse(event);
                         return resolve(channel);
                     });

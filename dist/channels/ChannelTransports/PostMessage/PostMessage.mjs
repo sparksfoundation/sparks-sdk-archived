@@ -5,6 +5,7 @@ const _PostMessage = class extends CoreChannel {
     const openClose = new OpenClose();
     const message = new Message();
     super({ ...params, peer, actions: [openClose, message] });
+    this.type = "PostMessage";
     this.sendRequest = (event) => {
       this._source.postMessage(event, this.peer.origin);
       return Promise.resolve();
@@ -19,6 +20,12 @@ const _PostMessage = class extends CoreChannel {
     this.on([this.eventTypes.CLOSE_CONFIRM, this.eventTypes.CLOSE_REQUEST], () => {
       this._window.removeEventListener("message", listener);
     });
+    this._window.addEventListener("beforeunload", async () => {
+      await this.close();
+    });
+  }
+  setSource(source) {
+    this._source = source;
   }
   async open() {
     this._source = this._source || this._window.open(this.peer.origin, "_blank");
@@ -35,12 +42,6 @@ const _PostMessage = class extends CoreChannel {
   message(message) {
     const action = this.getAction("MESSAGE");
     return action.MESSAGE_REQUEST({ data: message });
-  }
-  async handleResponse(event) {
-    if (event.type === "OPEN_REQUEST")
-      console.log("handling open request");
-    await super.handleResponse(event);
-    return Promise.resolve();
   }
 };
 export let PostMessage = _PostMessage;

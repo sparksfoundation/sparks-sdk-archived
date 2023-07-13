@@ -48,18 +48,19 @@ class HangUp extends ChannelAction<Actions> {
   public readonly name = 'HangUp';
   public readonly actions = Actions as Actions;
   public HANGUP_REQUEST: ChannelActionRequest = async (params: any) => {
-    return await this.channel.dispatchRequest(new ChannelRequestEvent({ ...params })) as ChannelConfirmEvent<false>;
+    return await this.channel.dispatchRequest(new ChannelRequestEvent({ ...params })) as ChannelConfirmEvent;
   }
   public HANGUP_CONFIRM: ChannelActionRequest = async (params: any) => {
     const data = params?.data || {};
     const { eventId, ...metadata } = params?.metadata || {};
-    return Promise.resolve(new ChannelConfirmEvent<false>({ type: 'HANGUP_CONFIRM', metadata, data }));
+    return Promise.resolve(new ChannelConfirmEvent({ type: 'HANGUP_CONFIRM', metadata, data }));
   }
 }
 
 export class WebRTC extends CoreChannel {
+  public readonly type = 'WebRTC';
+  public streams: WebRTCMediaStreams;
   private connection: DataConnection;
-  private streams: WebRTCMediaStreams;
   private activeCall;
 
   constructor({ connection, ...params }: WebRTCParams) {

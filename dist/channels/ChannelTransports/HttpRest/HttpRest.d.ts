@@ -5,13 +5,13 @@ export type HttpRestPeer = ChannelPeer & {
     origin: Window['origin'];
 };
 export declare class HttpRest extends CoreChannel {
+    readonly type = "HttpRest";
     private static promises;
     private static receives;
     static requestHandler: Function;
     constructor({ peer, ...params }: CoreChannelParams & {
         peer: HttpRestPeer;
     });
-    protected open(event: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent<boolean>>;
-    protected sendRequest(request: ChannelRequestEvent<any>): Promise<void>;
+    protected sendRequest(request: ChannelRequestEvent): Promise<void>;
     static receive: ChannelReceive;
 }

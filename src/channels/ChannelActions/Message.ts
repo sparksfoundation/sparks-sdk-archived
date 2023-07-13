@@ -25,21 +25,21 @@ export class Message extends ChannelAction<Actions>{
     public MESSAGE_REQUEST: ChannelActionRequest = async (params) => {
         const type = Events.MESSAGE_REQUEST;
         const data = params?.data || {};
-        const ids = ChannelEvent._getEventIds();
-        const metadata = { ...params?.metadata, ...ids, messageId: cuid(), channelId: this.channel.channelId };
-        const request = new ChannelRequestEvent<false>({ type, metadata, data });
-        await this.channel.sealEvent(request) as ChannelRequestEvent<true>;
-        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent<true>;
+        const { eventId, ...meta } = params?.metadata || {}
+        const metadata = { ...meta, messageId: cuid(), channelId: this.channel.channelId };
+        const request = new ChannelRequestEvent({ type, metadata, data });
+        await this.channel.sealEvent(request) as ChannelRequestEvent;
+        const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent;
         return confirmEvent;
     }
 
-    public MESSAGE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<true>) => {
-        await this.channel.openEvent(requestEvent) as ChannelRequestEvent<false>;
+    public MESSAGE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent) => {
+        await this.channel.openEvent(requestEvent) as ChannelRequestEvent;
         const data = { ...requestEvent };
-        const ids = ChannelEvent._getEventIds();
-        const confirmationEvent = new ChannelConfirmEvent<false>({
+        const { eventId, ...meta } = requestEvent?.metadata || {}
+        const confirmationEvent = new ChannelConfirmEvent({
             type: Events.MESSAGE_CONFIRM,
-            metadata: merge({}, requestEvent?.metadata, ids),
+            metadata: merge({}, meta),
             data: data,
         });
         await this.channel.sealEvent(confirmationEvent);

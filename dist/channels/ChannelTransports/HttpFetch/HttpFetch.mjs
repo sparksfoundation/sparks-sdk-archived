@@ -3,6 +3,7 @@ import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 export class HttpFetch extends CoreChannel {
   constructor({ peer, ...params }) {
     super({ ...params, peer, actions: [new OpenClose(), new Message()] });
+    this.type = "HttpFetch";
     this.peer.url = peer?.url;
     this.peer.origin = peer?.origin ? peer.origin : new URL(peer.url).origin;
     this.sendRequest = this.sendRequest.bind(this);

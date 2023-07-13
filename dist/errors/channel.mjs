@@ -3,7 +3,7 @@ export var ChannelErrorType = /* @__PURE__ */ ((ChannelErrorType2) => {
   ChannelErrorType2["REQUEST_ACTION_ERROR"] = "REQUEST_ACTION_ERROR";
   ChannelErrorType2["HANDLE_RESPONSE_ERROR"] = "HANDLE_RESPONSE_ERROR";
   ChannelErrorType2["DISPATCH_REQUEST_ERROR"] = "DISPATCH_REQUEST_ERROR";
-  ChannelErrorType2["DISPATCH_REQUEST_TIMEOUT_ERROR"] = "DISPATCH_REQUEST_TIMEOUT_ERROR";
+  ChannelErrorType2["REQUEST_TIMEOUT_ERROR"] = "REQUEST_TIMEOUT_ERROR";
   return ChannelErrorType2;
 })(ChannelErrorType || {});
 export class ChannelError extends SparkError {
@@ -38,7 +38,7 @@ export class ChannelErrors {
   }
   static DispatchRequestTimeoutError({ metadata = {}, message, stack } = {}) {
     return new ChannelError({
-      type: "DISPATCH_REQUEST_TIMEOUT_ERROR" /* DISPATCH_REQUEST_TIMEOUT_ERROR */,
+      type: "REQUEST_TIMEOUT_ERROR" /* REQUEST_TIMEOUT_ERROR */,
       message: `Request timeout error${message ? `: ${message}` : ""}`,
       metadata: { ...metadata },
       stack

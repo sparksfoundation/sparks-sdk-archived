@@ -49,6 +49,7 @@ const _WebRTC = class extends CoreChannel {
     const message = new Message();
     const hangup = new HangUp();
     super({ ...params, actions: [openClose, message, hangup] });
+    this.type = "WebRTC";
     this.connection = connection;
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);

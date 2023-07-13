@@ -3,14 +3,10 @@ import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 const _HttpRest = class extends CoreChannel {
   constructor({ peer, ...params }) {
     super({ ...params, peer, actions: [new OpenClose(), new Message()] });
+    this.type = "HttpRest";
     this.sendRequest = this.sendRequest.bind(this);
     this.handleResponse = this.handleResponse.bind(this);
     _HttpRest.receives.set(this.channelId, this.handleResponse);
-  }
-  open(event) {
-    const action = this.getAction("OPEN_CLOSE");
-    const { eventId, ...meta } = event?.metadata || {};
-    return action.OPEN_REQUEST({ ...event, metadata: meta });
   }
   async sendRequest(request) {
     const promise = _HttpRest.promises.get(request.metadata.eventId);
@@ -47,7 +43,6 @@ HttpRest.receive = (callback, options) => {
           channel.on(channel.eventTypes.ANY_ERROR, async (event2) => {
             return reject2(event2);
           });
-          await channel.open(event);
           await channel.handleResponse(event);
           return resolve2(channel);
         });

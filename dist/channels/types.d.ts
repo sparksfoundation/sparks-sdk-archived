@@ -7,16 +7,18 @@ import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./Channe
 import { ChannelEventInterface, ChannelEventType } from "./ChannelEvent/types";
 import { CoreChannel } from "./CoreChannel";
 export type ChannelId = string;
-export type ChannelLoggedEvent = (ChannelEventInterface<ChannelEventType, boolean> & {
+export type ChannelType = 'WebRTC' | 'PostMessage' | 'HttpFetch' | 'HttpRest';
+export type ChannelLoggedEvent = (ChannelEventInterface<ChannelEventType> & {
     response: true;
     request?: false;
-}) | (ChannelEventInterface<ChannelEventType, boolean> & {
+}) | (ChannelEventInterface<ChannelEventType> & {
     response?: false;
     request: true;
 });
 export interface ChannelExport {
+    type: ChannelType;
+    peer: ChannelPeer;
     channelId: ChannelId;
-    peer?: ChannelPeer;
     eventLog: ChannelLoggedEvent[];
 }
 export interface ChannelPeer {
@@ -33,14 +35,14 @@ export interface CoreChannelParams {
     eventLog?: ChannelLoggedEvent[];
 }
 export type DispatchRequest = ({ event, attempt, }: {
-    event: ChannelRequestEvent<boolean>;
+    event: ChannelRequestEvent;
     attempt?: number;
-}) => Promise<ChannelConfirmEvent<boolean>>;
-export type ChannelDispatchRequest = (event: ChannelRequestEvent<boolean>, attempt: number) => Promise<ChannelConfirmEvent<boolean>>;
-export type ChannelSendRequest = (event: ChannelEvent<ChannelEventType, boolean>) => Promise<void>;
+}) => Promise<ChannelConfirmEvent>;
+export type ChannelDispatchRequest = (event: ChannelRequestEvent, attempt: number) => Promise<ChannelConfirmEvent>;
+export type ChannelSendRequest = (event: ChannelEvent<ChannelEventType>) => Promise<void>;
 export type ChannelHandleResponse = (event: any) => Promise<void>;
 export type ChannelReceive = (callback: ({ event, confirmOpen }: {
-    event: ChannelEvent<ChannelEventType, boolean>;
+    event: ChannelEvent<ChannelEventType>;
     confirmOpen: () => Promise<CoreChannel>;
 }) => Promise<void>, options: {
     spark: Spark<any, any, any, any, any>;

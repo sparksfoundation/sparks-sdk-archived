@@ -13,50 +13,45 @@ function getUtcEpochTimestamp() {
   return utcTimestamp;
 }
 const _ChannelEvent = class {
-  static _getEventIds() {
-    const eventId = _ChannelEvent._nextEventId;
-    const nextEventId = cuid();
-    _ChannelEvent._nextEventId = nextEventId;
-    return { eventId, nextEventId };
-  }
+  // public static _getEventIds(event) {
+  //   const eventId = ChannelEvent._nextEventId;
+  //   const nextEventId = cuid();
+  //   ChannelEvent._nextEventId = nextEventId;
+  //   return { eventId, nextEventId };
+  // }
   constructor({
     type,
     data,
-    sealed = false,
+    seal,
     metadata
   }) {
     this.type = type;
-    this.sealed = sealed;
+    this.seal = seal;
     this.data = data;
     this.timestamp = getUtcEpochTimestamp();
+    const eventId = metadata.eventId && metadata.nextEventId ? metadata.eventId : _ChannelEvent._nextEventId;
+    const nextEventId = metadata.eventId && metadata.nextEventId ? metadata.nextEventId : cuid();
+    _ChannelEvent._nextEventId = nextEventId;
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: metadata.eventId,
-      nextEventId: metadata.nextEventId
+      eventId,
+      nextEventId
     };
-    Object.defineProperties(this, {
-      _nextEventId: { enumerable: false, writable: true },
-      _getEventId: { enumerable: false, writable: false },
-      _data: { enumerable: false, writable: true },
-      _sealed: { enumerable: false, writable: true }
-    });
   }
-  async seal({ cipher, signer, sharedKey }) {
-    if (this.sealed)
+  async sealData({ cipher, signer, sharedKey }) {
+    if (this.seal)
       return this;
     const data = await cipher.encrypt({ data: this.data, sharedKey });
-    const sealed = await signer.seal({ data });
-    this.sealed = true;
-    this.data = sealed;
+    this.seal = await signer.seal({ data });
+    this.data = void 0;
     return this;
   }
-  async open({ cipher, signer, publicKey, sharedKey }) {
-    if (!this.sealed)
+  async openData({ cipher, signer, publicKey, sharedKey }) {
+    if (!this.seal)
       return this;
-    const data = await signer.open({ signature: this.data, publicKey });
+    const data = await signer.open({ signature: this.seal, publicKey });
     const opened = await cipher.decrypt({ data, sharedKey });
-    this.sealed = false;
     this.data = opened;
     return this;
   }
@@ -64,12 +59,12 @@ const _ChannelEvent = class {
 export let ChannelEvent = _ChannelEvent;
 ChannelEvent._nextEventId = cuid();
 export class ChannelRequestEvent extends ChannelEvent {
-  constructor({ type, data, sealed, metadata }) {
-    super({ type, data, sealed, metadata });
+  constructor({ type, data, seal, metadata }) {
+    super({ type, data, seal, metadata });
   }
 }
 export class ChannelConfirmEvent extends ChannelEvent {
-  constructor({ type, data, sealed, metadata }) {
-    super({ type, data, sealed, metadata });
+  constructor({ type, data, seal, metadata }) {
+    super({ type, data, seal, metadata });
   }
 }

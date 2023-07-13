@@ -9,8 +9,8 @@ export type ChannelActionRequest = (params?: {
     metadata?: Omit<ChannelEventMetadata, 'eventId' | 'nextEventId'> & {
         nextEventId?: string;
     };
-}) => Promise<ChannelConfirmEvent<boolean>>;
-export type ChannelActionConfirm = (requestEvent: ChannelRequestEvent<boolean>) => Promise<ChannelConfirmEvent<boolean>>;
+}) => Promise<ChannelConfirmEvent>;
+export type ChannelActionConfirm = (requestEvent: ChannelRequestEvent) => Promise<ChannelConfirmEvent>;
 export interface ChannelActionContext {
     action: ChannelActionName;
     retries: ChannelActionRetries;
@@ -39,7 +39,7 @@ export type ChannelActionInterface<Actions extends string[]> = {
     [key in Confirm<Actions[number]>]: ChannelActionConfirm;
 } : {});
 export type ChannelActionParams<Actions extends string[]> = {
-    [key in Actions[number]]?: {
+    [key in Request<Actions[number]>]?: {
         retries?: ChannelActionRetries;
         timeout?: ChannelActionTimeout;
     };

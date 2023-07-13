@@ -1,4 +1,4 @@
-import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../ChannelEvent/index.mjs";
+import { ChannelConfirmEvent, ChannelRequestEvent } from "../ChannelEvent/index.mjs";
 import merge from "lodash.merge";
 import { ChannelAction } from "./ChannelAction.mjs";
 import cuid from "cuid";
@@ -16,8 +16,8 @@ export class Message extends ChannelAction {
     this.MESSAGE_REQUEST = async (params) => {
       const type = Events.MESSAGE_REQUEST;
       const data = params?.data || {};
-      const ids = ChannelEvent._getEventIds();
-      const metadata = { ...params?.metadata, ...ids, messageId: cuid(), channelId: this.channel.channelId };
+      const { eventId, ...meta } = params?.metadata || {};
+      const metadata = { ...meta, messageId: cuid(), channelId: this.channel.channelId };
       const request = new ChannelRequestEvent({ type, metadata, data });
       await this.channel.sealEvent(request);
       const confirmEvent = await this.channel.dispatchRequest(request);
@@ -26,10 +26,10 @@ export class Message extends ChannelAction {
     this.MESSAGE_CONFIRM = async (requestEvent) => {
       await this.channel.openEvent(requestEvent);
       const data = { ...requestEvent };
-      const ids = ChannelEvent._getEventIds();
+      const { eventId, ...meta } = requestEvent?.metadata || {};
       const confirmationEvent = new ChannelConfirmEvent({
         type: Events.MESSAGE_CONFIRM,
-        metadata: merge({}, requestEvent?.metadata, ids),
+        metadata: merge({}, meta),
         data
       });
       await this.channel.sealEvent(confirmationEvent);

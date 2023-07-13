@@ -14,12 +14,14 @@ export type PostMessageParams = CoreChannelParams & {
 }
 
 export class PostMessage extends CoreChannel {
+    public readonly type = 'PostMessage';
     private _source: Window;
     private _window?: Window;
 
     constructor({ _window, source, peer, ...params }: PostMessageParams) {
         const openClose = new OpenClose();
         const message = new Message();
+        
         super({ ...params, peer, actions: [openClose, message] });
 
         this.peer.origin = peer?.origin;
@@ -34,6 +36,13 @@ export class PostMessage extends CoreChannel {
         this.on([this.eventTypes.CLOSE_CONFIRM, this.eventTypes.CLOSE_REQUEST], () => {
           this._window.removeEventListener('message', listener);
         });
+        this._window.addEventListener('beforeunload', async () => {
+            await this.close();
+        });
+    }
+
+    public setSource(source: Window) {
+        this._source = source;
     }
 
     public async open() {
@@ -57,12 +66,6 @@ export class PostMessage extends CoreChannel {
 
     protected sendRequest: ChannelSendRequest = (event) => {
         this._source.postMessage(event, this.peer.origin);
-        return Promise.resolve();
-    }
-
-    protected async handleResponse(event: ChannelEvent<ChannelEventType, boolean> | ChannelError): Promise<void> {
-        if (event.type === 'OPEN_REQUEST') console.log('handling open request')
-        await super.handleResponse(event);
         return Promise.resolve();
     }
 
