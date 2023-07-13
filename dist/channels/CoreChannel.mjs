@@ -3,7 +3,7 @@ import { ChannelEmitter } from "./ChannelEmitter/index.mjs";
 import { ChannelConfirmEvent, ChannelRequestEvent } from "./ChannelEvent/index.mjs";
 import { ChannelError, ChannelErrorType, ChannelErrors } from "../errors/channel.mjs";
 export class CoreChannel extends ChannelEmitter {
-  constructor({ spark, actions, channelId, peer }) {
+  constructor({ spark, actions, channelId, peer, eventLog }) {
     super();
     this.eventLog = [];
     this._eventTypes = {
@@ -15,7 +15,7 @@ export class CoreChannel extends ChannelEmitter {
     this.preflightChecks = [];
     this.peer = peer || {};
     this.channelId = channelId || cuid();
-    this.eventLog = [];
+    this.eventLog = [...eventLog || []];
     this._spark = spark;
     this._actions = actions || [];
     for (let action of this._actions) {
@@ -102,6 +102,7 @@ export class CoreChannel extends ChannelEmitter {
         for (let preflightCheck of this.preflightChecks) {
           preflightCheck(requestEvent);
         }
+        this.eventLog.push({ ...requestEvent, request: true });
         this.sendRequest(requestEvent).catch((error) => {
           throw error;
         });
@@ -136,11 +137,11 @@ export class CoreChannel extends ChannelEmitter {
             const confirmEvent = await action[confirmType](requestEvent).catch((error) => {
               throw error;
             });
-            this.eventLog.push({ ...confirmEvent, request: true });
             for (let preflightCheck of this.preflightChecks) {
               preflightCheck(requestEvent);
             }
             this.emit(requestType, requestEvent);
+            this.eventLog.push({ ...confirmEvent, request: true });
             this.sendRequest(confirmEvent).catch((error) => {
               throw error;
             });

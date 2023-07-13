@@ -7,14 +7,6 @@ const _HttpRest = class extends CoreChannel {
     this.handleResponse = this.handleResponse.bind(this);
     _HttpRest.receives.set(this.channelId, this.handleResponse);
   }
-  async handleResponse(response) {
-    await super.handleResponse(response);
-    const promise = _HttpRest.promises.get(response.eventId);
-    if (!promise)
-      return;
-    promise.resolve();
-    _HttpRest.promises.delete(response.eventId);
-  }
   open(event) {
     const action = this.getAction("OPEN_CLOSE");
     const { eventId, ...meta } = event?.metadata || {};

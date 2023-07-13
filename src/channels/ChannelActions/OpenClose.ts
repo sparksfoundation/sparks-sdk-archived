@@ -1,4 +1,4 @@
-import { ChannelConfirmEvent, ChannelRequestEvent } from "../ChannelEvent";
+import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../ChannelEvent";
 import { ChannelActionConfirm, ChannelActionRequest } from "./types";
 import merge from 'lodash.merge';
 import { CoreChannel } from "../CoreChannel";
@@ -32,8 +32,10 @@ export class OpenClose extends ChannelAction<Actions>{
     }
 
     public OPEN_REQUEST: ChannelActionRequest = async (params) => {
+      console.log('requesting')
         const type = Events.OPEN_REQUEST;
-        const metadata = { ...params?.metadata, channelId: this.channel.channelId };
+        const ids = ChannelEvent._getEventIds();
+        const metadata = { ...params?.metadata, channelId: this.channel.channelId, ...ids };
         const data = merge({}, params?.data, {
             peer: {
                 identifier: this.channel.identifier,
@@ -49,10 +51,13 @@ export class OpenClose extends ChannelAction<Actions>{
     }
 
     public OPEN_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<false>) => {
-        const { eventId, ...meta } = requestEvent?.metadata || {};
+        await this.channel.setSharedKey(requestEvent.data.peer.publicKeys.cipher);
+        this.channel.peer.publicKeys = requestEvent.data.peer.publicKeys;
+        this.status = 'OPEN'; 
+        const ids = ChannelEvent._getEventIds();
         return Promise.resolve(new ChannelConfirmEvent({
             type: Events.OPEN_CONFIRM,
-            metadata: merge({}, meta),
+            metadata: merge({}, requestEvent?.metadata, ids),
             data: merge({}, requestEvent?.data, {
                 peer: {
                     identifier: this.channel.identifier,
@@ -65,7 +70,8 @@ export class OpenClose extends ChannelAction<Actions>{
     public CLOSE_REQUEST: ChannelActionRequest = async (params) => {
         const type = Events.CLOSE_REQUEST;
         const data = params?.data || {};
-        const metadata = { ...params?.metadata, channelId: this.channel.channelId }
+        const ids = ChannelEvent._getEventIds();
+        const metadata = { ...params?.metadata, channelId: this.channel.channelId, ...ids }
         const request = new ChannelRequestEvent({ type, metadata, data });
         this.status = 'CLOSED';
         const confirmEvent = await this.channel.dispatchRequest(request) as ChannelConfirmEvent<false>;
@@ -74,10 +80,10 @@ export class OpenClose extends ChannelAction<Actions>{
 
     public CLOSE_CONFIRM: ChannelActionConfirm = async (requestEvent: ChannelRequestEvent<false>) => {
         this.status = 'CLOSED';
-        const { eventId, ...meta } = requestEvent?.metadata || {};
+        const ids = ChannelEvent._getEventIds();
         return Promise.resolve(new ChannelConfirmEvent<false>({
             type: Events.CLOSE_CONFIRM,
-            metadata: merge({}, meta),
+            metadata: merge({}, requestEvent?.metadata, ids),
             data:  merge({}, requestEvent?.data),
         }));
     }

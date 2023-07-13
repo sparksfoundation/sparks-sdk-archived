@@ -14,8 +14,10 @@ const _PostMessage = class extends CoreChannel {
     this._source = source;
     this.open = this.open.bind(this);
     this.handleResponse = this.handleResponse.bind(this);
-    this._window.addEventListener("message", (event) => {
-      this.handleResponse(event.data);
+    const listener = (event) => this.handleResponse(event.data);
+    this._window.addEventListener("message", listener);
+    this.on([this.eventTypes.CLOSE_CONFIRM, this.eventTypes.CLOSE_REQUEST], () => {
+      this._window.removeEventListener("message", listener);
     });
   }
   async open() {
@@ -35,6 +37,8 @@ const _PostMessage = class extends CoreChannel {
     return action.MESSAGE_REQUEST({ data: message });
   }
   async handleResponse(event) {
+    if (event.type === "OPEN_REQUEST")
+      console.log("handling open request");
     await super.handleResponse(event);
     return Promise.resolve();
   }
@@ -45,7 +49,7 @@ PostMessage.receive = (callback, options) => {
   const win = _window || window;
   win.addEventListener("message", async (event) => {
     const { source, origin } = event;
-    const { type, data, metadata, _source: _source2 } = event.data;
+    const { type, data, metadata } = event.data;
     if (type !== "OPEN_REQUEST")
       return;
     const confirmOpen = () => {
@@ -53,14 +57,13 @@ PostMessage.receive = (callback, options) => {
         const channel = new _PostMessage({
           _window,
           peer: { ...data.peer },
-          source: _source2 || source,
+          source: _source || source,
           spark,
           channelId: metadata.channelId
         });
         channel.on(channel.eventTypes.ANY_ERROR, async (event2) => {
           return reject(event2);
         });
-        await channel.open();
         await channel.handleResponse(event.data);
         return resolve(channel);
       });

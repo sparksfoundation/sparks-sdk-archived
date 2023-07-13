@@ -9,7 +9,10 @@ export declare class ChannelEvent<Type extends ChannelEventType, Sealed extends 
     sealed: ChannelEventInterface<Type, Sealed>['sealed'];
     data: ChannelEventInterface<Type, Sealed>['data'];
     private static _nextEventId;
-    private static _getEventId;
+    static _getEventIds(): {
+        eventId: string;
+        nextEventId: any;
+    };
     constructor({ type, data, sealed, metadata, }: {
         type: ChannelEventInterface<Type, Sealed>['type'];
         sealed?: ChannelEventInterface<Type, Sealed>['sealed'];

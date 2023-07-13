@@ -14,7 +14,7 @@ export declare class CoreChannel extends ChannelEmitter {
     private _spark;
     private _actions;
     private _eventTypes;
-    constructor({ spark, actions, channelId, peer }: CoreChannelParams);
+    constructor({ spark, actions, channelId, peer, eventLog }: CoreChannelParams);
     protected getAction(typeOrName: string): ChannelAction<any>;
     protected toConfirmType(eventType: ChannelEventRequestType): ChannelEventConfirmType;
     get eventTypes(): {

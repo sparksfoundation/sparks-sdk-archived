@@ -3,7 +3,7 @@ import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
 import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
 import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
 import { Basic } from '../dist/controllers/Basic/index.mjs';
-import { HttpFetch } from '../dist/channels/ChannelTransports/HttpFetch.mjs';
+import { HttpFetch } from '../dist/channels/ChannelTransports/HttpFetch/index.mjs';
 import { assert } from 'console';
 
 import fetch from 'node-fetch';
@@ -12,7 +12,7 @@ global.fetch = fetch;
 (async function () {
     try {
         const channels = [];
-        const max_users = 100;
+        const max_users = 1;
         for (let i = 0; i < max_users; i++) {
             const client = new Spark({
                 cipher: X25519SalsaPoly,
@@ -36,7 +36,7 @@ global.fetch = fetch;
         }
     
         const delay = 1;
-        const max_messages = 1000;
+        const max_messages = 10;
         let i = 0;
         const start = performance.now();
         while (i < max_messages) {

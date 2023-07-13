@@ -13,10 +13,11 @@ function getUtcEpochTimestamp() {
   return utcTimestamp;
 }
 const _ChannelEvent = class {
-  static _getEventId() {
-    const eventId = this._nextEventId;
-    this._nextEventId = cuid();
-    return eventId;
+  static _getEventIds() {
+    const eventId = _ChannelEvent._nextEventId;
+    const nextEventId = cuid();
+    _ChannelEvent._nextEventId = nextEventId;
+    return { eventId, nextEventId };
   }
   constructor({
     type,
@@ -31,8 +32,8 @@ const _ChannelEvent = class {
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: metadata.eventId || (metadata.nextEventId || _ChannelEvent._getEventId()),
-      nextEventId: metadata.nextEventId || _ChannelEvent._getEventId()
+      eventId: metadata.eventId,
+      nextEventId: metadata.nextEventId
     };
     Object.defineProperties(this, {
       _nextEventId: { enumerable: false, writable: true },

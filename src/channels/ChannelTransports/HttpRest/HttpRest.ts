@@ -1,5 +1,5 @@
 import { CoreChannel } from "../../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
+import { CoreChannelParams, ChannelPeer, ChannelReceive } from "../../types";
 import { OpenClose, Message } from "../../ChannelActions";
 import { ChannelRequestEvent } from "../../ChannelEvent";
 
@@ -19,14 +19,6 @@ export class HttpRest extends CoreChannel {
         this.sendRequest = this.sendRequest.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
         HttpRest.receives.set(this.channelId, this.handleResponse);
-    }
-
-    protected async handleResponse(response) {
-        await super.handleResponse(response);
-        const promise = HttpRest.promises.get(response.eventId);
-        if (!promise) return;
-        promise.resolve();
-        HttpRest.promises.delete(response.eventId);
     }
 
     protected open(event) {

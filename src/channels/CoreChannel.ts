@@ -26,11 +26,11 @@ export class CoreChannel extends ChannelEmitter {
             ANY_CONFIRM: 'ANY_CONFIRM' as ChannelEventConfirmType,
         };
 
-    constructor({ spark, actions, channelId, peer }: CoreChannelParams) {
+    constructor({ spark, actions, channelId, peer, eventLog }: CoreChannelParams) {
         super();
         this.peer = peer || {} as ChannelPeer;
         this.channelId = channelId || cuid();
-        this.eventLog = [];
+        this.eventLog = [ ...eventLog || [] ];
         this._spark = spark;
         this._actions = actions || [];
 
@@ -145,6 +145,8 @@ export class CoreChannel extends ChannelEmitter {
                     preflightCheck(requestEvent)
                 }
 
+                this.eventLog.push({ ...requestEvent, request: true });
+
                 this.sendRequest(requestEvent)
                     .catch((error: Error) => { throw error });
 
@@ -183,13 +185,13 @@ export class CoreChannel extends ChannelEmitter {
                         const confirmEvent = await action[confirmType](requestEvent)
                             .catch((error: Error) => { throw error });
 
-                        this.eventLog.push({ ...confirmEvent, request: true });
-
                         for (let preflightCheck of this.preflightChecks) {
                             preflightCheck(requestEvent)
                         }
 
                         this.emit(requestType, requestEvent);
+                        
+                        this.eventLog.push({ ...confirmEvent, request: true });
                         
                         this.sendRequest(confirmEvent)
                             .catch((error: Error) => { throw error });

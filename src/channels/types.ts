@@ -34,7 +34,8 @@ export interface CoreChannelParams {
     spark: Spark<any, any, any, any, any>,
     actions?: ChannelAction<any>[],
     channelId?: ChannelId,
-    peer?: ChannelPeer
+    peer?: ChannelPeer,
+    eventLog?: ChannelLoggedEvent[],
 }
 
 export type DispatchRequest = ({

@@ -27,10 +27,11 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
   public data: ChannelEventInterface<Type, Sealed>['data'];
 
   private static _nextEventId: ChannelNextEventId = cuid();
-  private static _getEventId() {
-    const eventId = this._nextEventId;
-    this._nextEventId = cuid();
-    return eventId;
+  public static _getEventIds() {
+    const eventId = ChannelEvent._nextEventId;
+    const nextEventId = cuid();
+    ChannelEvent._nextEventId = nextEventId;
+    return { eventId, nextEventId };
   }
 
   constructor({
@@ -54,8 +55,8 @@ export class ChannelEvent<Type extends ChannelEventType, Sealed extends boolean>
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: metadata.eventId || (metadata.nextEventId || ChannelEvent._getEventId()),
-      nextEventId: metadata.nextEventId ||  ChannelEvent._getEventId(),
+      eventId: metadata.eventId,
+      nextEventId: metadata.nextEventId,
     };
 
     Object.defineProperties(this, {

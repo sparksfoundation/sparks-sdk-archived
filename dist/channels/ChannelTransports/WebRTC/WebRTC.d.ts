@@ -18,8 +18,7 @@ export declare class WebRTC extends CoreChannel {
     close(): Promise<ChannelConfirmEvent<boolean>>;
     message(message: any): Promise<ChannelConfirmEvent<boolean>>;
     call(): Promise<unknown>;
-    handleHangup: any;
-    hangup(): void;
+    hangup(): Promise<ChannelConfirmEvent<boolean> | undefined>;
     protected sendRequest(event: any): Promise<void>;
     handleResponse(event: any): Promise<void>;
     protected static addressFromIdentifier(identifier: string): string;

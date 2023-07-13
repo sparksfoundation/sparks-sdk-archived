@@ -30,6 +30,7 @@ export interface CoreChannelParams {
     actions?: ChannelAction<any>[];
     channelId?: ChannelId;
     peer?: ChannelPeer;
+    eventLog?: ChannelLoggedEvent[];
 }
 export type DispatchRequest = ({ event, attempt, }: {
     event: ChannelRequestEvent<boolean>;

@@ -110,14 +110,9 @@ const _WebRTC = class extends CoreChannel {
       }, 1e4);
     });
   }
-  hangup() {
-    if (this.handleHangup) {
-      this.handleHangup();
-    }
+  async hangup() {
     if (this.streams) {
-      this.connection.send({
-        type: "hangup"
-      });
+      const action = this.getAction("HANGUP");
       Object.values(this.streams).forEach((stream) => {
         stream.getTracks().forEach((track) => {
           track.enabled = false;
@@ -125,6 +120,7 @@ const _WebRTC = class extends CoreChannel {
         });
       });
       this.streams = null;
+      return await action.HANGUP_REQUEST();
     }
     if (this.activeCall) {
       this.activeCall.close();

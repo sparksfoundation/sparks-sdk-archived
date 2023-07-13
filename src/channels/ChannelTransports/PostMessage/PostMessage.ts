@@ -18,7 +18,6 @@ export class PostMessage extends CoreChannel {
     private _window?: Window;
 
     constructor({ _window, source, peer, ...params }: PostMessageParams) {
-
         const openClose = new OpenClose();
         const message = new Message();
         super({ ...params, peer, actions: [openClose, message] });
@@ -29,19 +28,20 @@ export class PostMessage extends CoreChannel {
 
         this.open = this.open.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
-        this._window.addEventListener('message', event => {
-            this.handleResponse(event.data);
+
+        const listener = event => this.handleResponse(event.data);
+        this._window.addEventListener('message', listener);
+        this.on([this.eventTypes.CLOSE_CONFIRM, this.eventTypes.CLOSE_REQUEST], () => {
+          this._window.removeEventListener('message', listener);
         });
     }
 
     public async open() {
         this._source = this._source || this._window.open(this.peer.origin, '_blank');
         const action = this.getAction('OPEN_CLOSE') as OpenClose;
-
         const confirmation = await action.OPEN_REQUEST({
             data: { peer: { origin: this._window.origin } }
         });
-
         return confirmation;
     }
 
@@ -61,6 +61,7 @@ export class PostMessage extends CoreChannel {
     }
 
     protected async handleResponse(event: ChannelEvent<ChannelEventType, boolean> | ChannelError): Promise<void> {
+        if (event.type === 'OPEN_REQUEST') console.log('handling open request')
         await super.handleResponse(event);
         return Promise.resolve();
     }
@@ -70,7 +71,7 @@ export class PostMessage extends CoreChannel {
         const win = _window || window;
         win.addEventListener('message', async (event) => {
             const { source, origin } = event;
-            const { type, data, metadata, _source } = event.data;
+            const { type, data, metadata } = event.data;
             if (type !== 'OPEN_REQUEST') return;
 
             const confirmOpen = () => {
@@ -87,7 +88,6 @@ export class PostMessage extends CoreChannel {
                         return reject(event);
                     });
 
-                    await channel.open();
                     await channel.handleResponse(event.data);
                     return resolve(channel);
                 });

@@ -11,7 +11,6 @@ export declare class HttpRest extends CoreChannel {
     constructor({ peer, ...params }: CoreChannelParams & {
         peer: HttpRestPeer;
     });
-    protected handleResponse(response: any): Promise<void>;
     protected open(event: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent<boolean>>;
     protected sendRequest(request: ChannelRequestEvent<any>): Promise<void>;
     static receive: ChannelReceive;
