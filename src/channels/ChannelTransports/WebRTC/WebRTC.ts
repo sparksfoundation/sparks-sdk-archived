@@ -1,10 +1,8 @@
 import { CoreChannel } from "../../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
-import { OpenClose, Message, ChannelAction, ChannelActionRequest } from "../../ChannelActions";
+import { CoreChannelParams, ChannelReceive } from "../../types";
+import { OpenClose, Message } from "../../ChannelActions";
 import Peer, { DataConnection } from "peerjs";
-import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../../ChannelEvent";
-import { ChannelError } from "../../../errors/channel";
-import { ChannelEventType } from "../../ChannelEvent/types";
+import { CallHangUp } from "../../ChannelActions/CallHangUp";
 
 const iceServers = [
   {
@@ -41,22 +39,6 @@ export type WebRTCParams = CoreChannelParams & {
   connection?: DataConnection,
 }
 
-type Actions = ['HANGUP']
-const Actions = ['HANGUP'] as const;
-
-class HangUp extends ChannelAction<Actions> {
-  public readonly name = 'HangUp';
-  public readonly actions = Actions as Actions;
-  public HANGUP_REQUEST: ChannelActionRequest = async (params: any) => {
-    return await this.channel.dispatchRequest(new ChannelRequestEvent({ ...params })) as ChannelConfirmEvent;
-  }
-  public HANGUP_CONFIRM: ChannelActionRequest = async (params: any) => {
-    const data = params?.data || {};
-    const { eventId, ...metadata } = params?.metadata || {};
-    return Promise.resolve(new ChannelConfirmEvent({ type: 'HANGUP_CONFIRM', metadata, data }));
-  }
-}
-
 export class WebRTC extends CoreChannel {
   public readonly type = 'WebRTC';
   public streams: WebRTCMediaStreams;
@@ -66,7 +48,7 @@ export class WebRTC extends CoreChannel {
   constructor({ connection, ...params }: WebRTCParams) {
     const openClose = new OpenClose();
     const message = new Message();
-    const hangup = new HangUp();
+    const hangup = new CallHangUp();
     super({ ...params, actions: [openClose, message, hangup] });
 
     this.connection = connection;
@@ -95,12 +77,26 @@ export class WebRTC extends CoreChannel {
     const peerAddress = WebRTC.addressFromIdentifier(this.peer.identifier);
     this.connection = WebRTC.peerjs.connect(peerAddress);
     this.connection.on('data', this.handleResponse);
+
+    this.on([
+      this.eventTypes.CLOSE_REQUEST,
+      this.eventTypes.CLOSE_CONFIRM,
+      this.eventTypes.REQUEST_TIMEOUT_ERROR,
+    ], (event) => {
+      if (event.type === 'REQUEST_TIMEOUT_ERROR' && event.metadata?.type !== 'CLOSE_REQUEST') {
+        return;
+      }
+      this.connection.close();
+    });
+
     return await action.OPEN_REQUEST();
   }
 
   public async close() {
     const action = this.getAction('OPEN_CLOSE') as OpenClose;
-    return await action.CLOSE_REQUEST();
+    await action.CLOSE_REQUEST();
+    this.connection.close();
+    return Promise.resolve();
   }
 
   public async message(message) {
@@ -146,7 +142,7 @@ export class WebRTC extends CoreChannel {
 
   public async hangup() {
     if (this.streams) {
-      const action = this.getAction('HANGUP') as HangUp;
+      const action = this.getAction('HANGUP') as CallHangUp;
       Object.values(this.streams).forEach(stream => {
         stream.getTracks().forEach(track => {
           track.enabled = false;
@@ -200,7 +196,6 @@ export class WebRTC extends CoreChannel {
   protected static addressFromIdentifier(identifier: string) {
     return identifier.replace(/[^a-zA-Z0-9]/g, '');
   }
-
 
   public handleCalls: ({ accept, reject }: { accept: () => Promise<WebRTCMediaStreams>, reject: () => Promise<void> }) => void;
   private _handleCalls(call) {
@@ -284,11 +279,11 @@ export class WebRTC extends CoreChannel {
               return resolve(channel);
             });
           }
+
+          connection.off('data', dataListener);
           return callback({ event: event, confirmOpen });
         }
-
-        connection.once('data', dataListener);
-        WebRTC.peerjs.off('connection', connectionListener);
+        connection.on('data', dataListener);
       }
       WebRTC.peerjs.on('connection', connectionListener)
     })

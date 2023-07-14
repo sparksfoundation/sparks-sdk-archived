@@ -10,10 +10,10 @@ import { CipherPublicKey, EncryptionSharedKey } from "../ciphers/types";
 export declare class CoreChannel extends ChannelEmitter {
     static readonly timeout = 2000;
     private readonly timeout;
-    readonly channelId: ChannelId;
-    readonly eventLog: ChannelLoggedEvent[];
     readonly type: ChannelType;
     peer: ChannelPeer;
+    channelId: ChannelId;
+    eventLog: ChannelLoggedEvent[];
     private _spark;
     private _actions;
     private _errorTypes;
@@ -34,6 +34,7 @@ export declare class CoreChannel extends ChannelEmitter {
         [key: string]: ChannelEventConfirmType;
     };
     export(): ChannelExport;
+    import(data: ChannelExport): Promise<void>;
     private preflightChecks;
     requestPreflight(callback: (requestEvent: ChannelRequestEvent) => void): void;
     dispatchRequest(event: ChannelRequestEvent, attempt?: number): Promise<ChannelConfirmEvent>;

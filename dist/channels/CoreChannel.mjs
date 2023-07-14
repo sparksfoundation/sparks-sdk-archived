@@ -2,6 +2,7 @@ import cuid from "cuid";
 import { ChannelEmitter } from "./ChannelEmitter/index.mjs";
 import { ChannelConfirmEvent, ChannelRequestEvent } from "./ChannelEvent/index.mjs";
 import { ChannelError, ChannelErrorType, ChannelErrors } from "../errors/channel.mjs";
+import merge from "lodash.merge";
 const _CoreChannel = class extends ChannelEmitter {
   constructor({ spark, actions, channelId, peer, eventLog, timeout }) {
     super();
@@ -77,6 +78,13 @@ const _CoreChannel = class extends ChannelEmitter {
       peer: this.peer || {},
       eventLog: this.eventLog || []
     };
+  }
+  async import(data) {
+    this.channelId = data.channelId || this.channelId;
+    this.peer = merge(this.peer, data.peer || {});
+    const eventLog = [...this.eventLog, ...data.eventLog].filter((event, index, self) => self.findIndex((e) => e.metadata.eventId === event.metadata.eventId) === index);
+    this.eventLog = [...eventLog];
+    return Promise.resolve();
   }
   requestPreflight(callback) {
     this.preflightChecks.push(callback);

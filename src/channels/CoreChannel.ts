@@ -9,16 +9,19 @@ import { Spark } from "../Spark";
 import { Identifier } from "../controllers/types";
 import { PublicKeys } from "../types";
 import { CipherPublicKey, EncryptionSharedKey } from "../ciphers/types";
+import merge from "lodash.merge";
 
 export class CoreChannel extends ChannelEmitter {
   public static readonly timeout = 2000;
   private readonly timeout: number;
 
-  public readonly channelId: ChannelId;
-  public readonly eventLog: ChannelLoggedEvent[] = [];
   public readonly type: ChannelType;
-
+  
+  // todo - make these private w/getters instead
   public peer: ChannelPeer;
+  public channelId: ChannelId;
+  public eventLog: ChannelLoggedEvent[] = [];
+
   private _spark: Spark<any, any, any, any, any>;
   private _actions: ChannelAction<any>[];
   private _errorTypes: {
@@ -119,6 +122,15 @@ export class CoreChannel extends ChannelEmitter {
       peer: this.peer || {},
       eventLog: this.eventLog || [],
     }
+  }
+
+  public async import(data: ChannelExport): Promise<void> {
+    this.channelId = data.channelId || this.channelId;
+    this.peer = merge(this.peer, data.peer || {});
+    const eventLog = [ ...this.eventLog, ...data.eventLog ]
+      .filter((event, index, self) => self.findIndex((e) => e.metadata.eventId === event.metadata.eventId) === index);
+    this.eventLog = [ ...eventLog ];
+    return Promise.resolve();
   }
 
   private preflightChecks: ((requestEvent: ChannelRequestEvent) => void)[] = [];

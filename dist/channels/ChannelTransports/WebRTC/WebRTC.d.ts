@@ -1,7 +1,6 @@
 import { CoreChannel } from "../../CoreChannel";
 import { CoreChannelParams, ChannelReceive } from "../../types";
 import Peer, { DataConnection } from "peerjs";
-import { ChannelConfirmEvent } from "../../ChannelEvent";
 export type WebRTCMediaStreams = {
     local: MediaStream;
     remote: MediaStream;
@@ -15,11 +14,11 @@ export declare class WebRTC extends CoreChannel {
     private connection;
     private activeCall;
     constructor({ connection, ...params }: WebRTCParams);
-    open(): Promise<ChannelConfirmEvent>;
-    close(): Promise<ChannelConfirmEvent>;
-    message(message: any): Promise<ChannelConfirmEvent>;
+    open(): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
+    close(): Promise<void>;
+    message(message: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
     call(): Promise<unknown>;
-    hangup(): Promise<ChannelConfirmEvent | undefined>;
+    hangup(): Promise<import("../../ChannelEvent").ChannelConfirmEvent | undefined>;
     protected sendRequest(event: any): Promise<void>;
     handleResponse(event: any): Promise<void>;
     protected static addressFromIdentifier(identifier: string): string;

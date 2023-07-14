@@ -1,7 +1,7 @@
 import { CoreChannel } from "../../CoreChannel.mjs";
-import { OpenClose, Message, ChannelAction } from "../../ChannelActions/index.mjs";
+import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 import Peer from "peerjs";
-import { ChannelConfirmEvent, ChannelRequestEvent } from "../../ChannelEvent/index.mjs";
+import { CallHangUp } from "../../ChannelActions/CallHangUp.mjs";
 const iceServers = [
   {
     urls: "stun:stun.relay.metered.ca:80"
@@ -27,27 +27,11 @@ const iceServers = [
     credential: "PqVetG0J+Kn//OUc"
   }
 ];
-const Actions = ["HANGUP"];
-class HangUp extends ChannelAction {
-  constructor() {
-    super(...arguments);
-    this.name = "HangUp";
-    this.actions = Actions;
-    this.HANGUP_REQUEST = async (params) => {
-      return await this.channel.dispatchRequest(new ChannelRequestEvent({ ...params }));
-    };
-    this.HANGUP_CONFIRM = async (params) => {
-      const data = params?.data || {};
-      const { eventId, ...metadata } = params?.metadata || {};
-      return Promise.resolve(new ChannelConfirmEvent({ type: "HANGUP_CONFIRM", metadata, data }));
-    };
-  }
-}
 const _WebRTC = class extends CoreChannel {
   constructor({ connection, ...params }) {
     const openClose = new OpenClose();
     const message = new Message();
-    const hangup = new HangUp();
+    const hangup = new CallHangUp();
     super({ ...params, actions: [openClose, message, hangup] });
     this.type = "WebRTC";
     this.connection = connection;
@@ -73,11 +57,23 @@ const _WebRTC = class extends CoreChannel {
     const peerAddress = _WebRTC.addressFromIdentifier(this.peer.identifier);
     this.connection = _WebRTC.peerjs.connect(peerAddress);
     this.connection.on("data", this.handleResponse);
+    this.on([
+      this.eventTypes.CLOSE_REQUEST,
+      this.eventTypes.CLOSE_CONFIRM,
+      this.eventTypes.REQUEST_TIMEOUT_ERROR
+    ], (event) => {
+      if (event.type === "REQUEST_TIMEOUT_ERROR" && event.metadata?.type !== "CLOSE_REQUEST") {
+        return;
+      }
+      this.connection.close();
+    });
     return await action.OPEN_REQUEST();
   }
   async close() {
     const action = this.getAction("OPEN_CLOSE");
-    return await action.CLOSE_REQUEST();
+    await action.CLOSE_REQUEST();
+    this.connection.close();
+    return Promise.resolve();
   }
   async message(message) {
     const action = this.getAction("MESSAGE");
@@ -233,10 +229,10 @@ WebRTC.receive = (callback, options) => {
             return resolve(channel);
           });
         };
+        connection.off("data", dataListener);
         return callback({ event, confirmOpen });
       };
-      connection.once("data", dataListener);
-      _WebRTC.peerjs.off("connection", connectionListener);
+      connection.on("data", dataListener);
     };
     _WebRTC.peerjs.on("connection", connectionListener);
   });
