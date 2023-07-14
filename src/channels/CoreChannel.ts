@@ -1,6 +1,6 @@
 import cuid from "cuid";
 import { ChannelEmitter } from "./ChannelEmitter";
-import { ChannelExport, ChannelPeer, ChannelId, ChannelLoggedEvent, CoreChannelParams, ChannelType } from "./types";
+import { ChannelExport, ChannelPeer, ChannelId, ChannelLoggedEvent, CoreChannelParams, ChannelType, ChannelState } from "./types";
 import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./ChannelEvent";
 import { ChannelError, ChannelErrorType, ChannelErrors } from "../errors/channel";
 import { ChannelEventConfirmType, ChannelEventRequestType, ChannelEventType } from "./ChannelEvent/types";
@@ -18,6 +18,7 @@ export class CoreChannel extends ChannelEmitter {
   public readonly type: ChannelType;
   
   // todo - make these private w/getters instead
+  public state: ChannelState = {};
   public peer: ChannelPeer;
   public channelId: ChannelId;
   public eventLog: ChannelLoggedEvent[] = [];

@@ -36,6 +36,9 @@ export interface CoreChannelParams {
     eventLog?: ChannelLoggedEvent[];
     timeout?: Nullable<number>;
 }
+export interface ChannelState {
+    [key: string]: any;
+}
 export type DispatchRequest = ({ event, attempt, }: {
     event: ChannelRequestEvent;
     attempt?: number;

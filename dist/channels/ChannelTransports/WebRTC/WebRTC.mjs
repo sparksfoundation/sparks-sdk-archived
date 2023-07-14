@@ -27,6 +27,16 @@ const iceServers = [
     credential: "PqVetG0J+Kn//OUc"
   }
 ];
+async function isStreamable() {
+  return new Promise((resolve) => {
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        const hasVideo = devices.some((device) => device.kind === "videoinput");
+        return resolve(hasVideo);
+      });
+    }
+  });
+}
 const _WebRTC = class extends CoreChannel {
   constructor({ connection, ...params }) {
     const openClose = new OpenClose();
@@ -34,6 +44,7 @@ const _WebRTC = class extends CoreChannel {
     const hangup = new CallHangUp();
     super({ ...params, actions: [openClose, message, hangup] });
     this.type = "WebRTC";
+    this.activeCall = null;
     this.connection = connection;
     this.handleResponse = this.handleResponse.bind(this);
     this.sendRequest = this.sendRequest.bind(this);
@@ -45,18 +56,6 @@ const _WebRTC = class extends CoreChannel {
       this.connection = connection;
       this.connection.on("data", this.handleResponse);
     }
-    window.addEventListener("beforeunload", async () => {
-      await this.close();
-      _WebRTC.peerjs.destroy();
-    }, { capture: true });
-  }
-  async open() {
-    const action = this.getAction("OPEN_CLOSE");
-    if (this.connection?.open)
-      return await action.OPEN_REQUEST();
-    const peerAddress = _WebRTC.addressFromIdentifier(this.peer.identifier);
-    this.connection = _WebRTC.peerjs.connect(peerAddress);
-    this.connection.on("data", this.handleResponse);
     this.on([
       this.eventTypes.CLOSE_REQUEST,
       this.eventTypes.CLOSE_CONFIRM,
@@ -67,13 +66,27 @@ const _WebRTC = class extends CoreChannel {
       }
       this.connection.close();
     });
+    this.state.streams = null;
+    isStreamable().then((streamable) => {
+      this.state.streamable = streamable;
+    });
+    window.addEventListener("beforeunload", async () => {
+      await this.close();
+      _WebRTC.peerjs.destroy();
+    }, { capture: true });
+  }
+  async open() {
+    const action = this.getAction("OPEN_CLOSE");
+    if (!this.connection?.open) {
+      const peerAddress = _WebRTC.addressFromIdentifier(this.peer.identifier);
+      this.connection = _WebRTC.peerjs.connect(peerAddress);
+      this.connection.on("data", this.handleResponse);
+    }
     return await action.OPEN_REQUEST();
   }
   async close() {
     const action = this.getAction("OPEN_CLOSE");
-    await action.CLOSE_REQUEST();
-    this.connection.close();
-    return Promise.resolve();
+    return await action.CLOSE_REQUEST();
   }
   async message(message) {
     const action = this.getAction("MESSAGE");
@@ -81,42 +94,37 @@ const _WebRTC = class extends CoreChannel {
   }
   async call() {
     return new Promise(async (resolve, reject) => {
-      if (!this.connection.open) {
+      if (!this.connection.open || this.state.status !== "OPEN") {
         return reject("connection not open");
       }
-      await this.setLocalStream().catch(reject);
-      const call = _WebRTC.peerjs.call(_WebRTC.addressFromIdentifier(this.peer.identifier), this.streams.local);
-      call.on("stream", (stream) => {
-        this.streams.remote = stream;
+      const address = _WebRTC.addressFromIdentifier(this.peer.identifier);
+      const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      this.state.streams.local = localStream;
+      const action = this.getAction("CALL_HANGUP");
+      await action.CALL_REQUEST();
+      const call = _WebRTC.peerjs.call(address, localStream);
+      call.on("stream", async (stream) => {
         this.activeCall = call;
-        clearTimeout(timer);
+        this.state.streams.remote = stream;
         resolve(this.streams);
       });
-      call.on("close", () => {
-        this.hangup();
-      });
-      call.on("error", (error) => {
-        clearTimeout(timer);
+      call.once("error", (error) => {
+        this.state.streams = null;
+        this.activeCall = null;
         reject(error);
       });
-      const timer = setTimeout(() => {
-        if (!this.streams.remote) {
-          this.hangup();
-          reject("timeout");
-        }
-      }, 1e4);
     });
   }
   async hangup() {
-    if (this.streams) {
+    if (this.state.streams) {
       const action = this.getAction("HANGUP");
-      Object.values(this.streams).forEach((stream) => {
+      Object.values(this.state.streams).forEach((stream) => {
         stream.getTracks().forEach((track) => {
           track.enabled = false;
           track.stop();
         });
       });
-      this.streams = null;
+      this.state.streams = null;
       return await action.HANGUP_REQUEST();
     }
     if (this.activeCall) {
@@ -166,7 +174,6 @@ const _WebRTC = class extends CoreChannel {
     const accept = async () => {
       return new Promise(async (_resolve, _reject) => {
         this.activeCall = call;
-        await this.setLocalStream();
         call.answer(this.streams.local);
         call.on("close", () => {
           this.hangup();
@@ -186,20 +193,6 @@ const _WebRTC = class extends CoreChannel {
       return Promise.resolve();
     };
     this.handleCalls({ accept, reject });
-  }
-  async setLocalStream() {
-    if (this.streams?.local) {
-      return Promise.resolve();
-    }
-    this.streams = { local: null, remote: null };
-    this.streams.local = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
-    });
-    if (!this.streams.local) {
-      throw new Error("Failed to get local stream");
-    }
-    return Promise.resolve();
   }
 };
 export let WebRTC = _WebRTC;

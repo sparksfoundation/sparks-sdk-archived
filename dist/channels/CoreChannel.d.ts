@@ -1,5 +1,5 @@
 import { ChannelEmitter } from "./ChannelEmitter";
-import { ChannelExport, ChannelPeer, ChannelId, ChannelLoggedEvent, CoreChannelParams, ChannelType } from "./types";
+import { ChannelExport, ChannelPeer, ChannelId, ChannelLoggedEvent, CoreChannelParams, ChannelType, ChannelState } from "./types";
 import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./ChannelEvent";
 import { ChannelError, ChannelErrorType } from "../errors/channel";
 import { ChannelEventConfirmType, ChannelEventRequestType, ChannelEventType } from "./ChannelEvent/types";
@@ -11,6 +11,7 @@ export declare class CoreChannel extends ChannelEmitter {
     static readonly timeout = 2000;
     private readonly timeout;
     readonly type: ChannelType;
+    state: ChannelState;
     peer: ChannelPeer;
     channelId: ChannelId;
     eventLog: ChannelLoggedEvent[];

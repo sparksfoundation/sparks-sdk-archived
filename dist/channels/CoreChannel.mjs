@@ -6,6 +6,8 @@ import merge from "lodash.merge";
 const _CoreChannel = class extends ChannelEmitter {
   constructor({ spark, actions, channelId, peer, eventLog, timeout }) {
     super();
+    // todo - make these private w/getters instead
+    this.state = {};
     this.eventLog = [];
     this._errorTypes = {
       ANY_ERROR: "ANY_ERROR"

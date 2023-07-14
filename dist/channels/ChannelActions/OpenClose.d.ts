@@ -6,7 +6,6 @@ declare const Actions: readonly ["OPEN", "CLOSE"];
 export declare class OpenClose extends ChannelAction<Actions> {
     readonly name = "OPEN_CLOSE";
     readonly actions: Actions;
-    status: 'OPEN' | 'CLOSED';
     setContext({ channel }: {
         channel: CoreChannel;
     }): void;

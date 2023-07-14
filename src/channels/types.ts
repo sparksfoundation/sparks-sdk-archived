@@ -44,6 +44,10 @@ export interface CoreChannelParams {
     timeout?: Nullable<number>,
 }
 
+export interface ChannelState {
+  [key: string]: any,
+}
+
 export type DispatchRequest = ({
     event,
     attempt,
