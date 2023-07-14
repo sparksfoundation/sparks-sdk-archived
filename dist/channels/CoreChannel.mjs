@@ -82,7 +82,7 @@ const _CoreChannel = class extends ChannelEmitter {
     this.preflightChecks.push(callback);
   }
   dispatchRequest(event, attempt = 1) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         let timer;
         const requestEvent = event;
@@ -147,10 +147,10 @@ const _CoreChannel = class extends ChannelEmitter {
               preflightCheck(requestEvent);
             }
             this.emit(requestType, requestEvent);
-            this.eventLog.push({ ...confirmEvent, request: true });
             this.sendRequest(confirmEvent).catch((error) => {
               throw error;
             });
+            this.eventLog.push({ ...confirmEvent, request: true });
             resolve();
             break;
           case event instanceof ChannelConfirmEvent:

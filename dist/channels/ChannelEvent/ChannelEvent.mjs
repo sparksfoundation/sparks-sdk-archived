@@ -13,12 +13,6 @@ function getUtcEpochTimestamp() {
   return utcTimestamp;
 }
 const _ChannelEvent = class {
-  // public static _getEventIds(event) {
-  //   const eventId = ChannelEvent._nextEventId;
-  //   const nextEventId = cuid();
-  //   ChannelEvent._nextEventId = nextEventId;
-  //   return { eventId, nextEventId };
-  // }
   constructor({
     type,
     data,
@@ -44,7 +38,6 @@ const _ChannelEvent = class {
       return this;
     const data = await cipher.encrypt({ data: this.data, sharedKey });
     this.seal = await signer.seal({ data });
-    this.data = void 0;
     return this;
   }
   async openData({ cipher, signer, publicKey, sharedKey }) {

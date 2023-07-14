@@ -25,14 +25,7 @@ export class ChannelEvent<Type extends ChannelEventType> implements ChannelEvent
   public readonly metadata: ChannelEventInterface<Type>['metadata'];
   public seal: ChannelEventInterface<Type>['seal'];
   public data: ChannelEventInterface<Type>['data'];
-
   private static _nextEventId: ChannelNextEventId = cuid();
-  // public static _getEventIds(event) {
-  //   const eventId = ChannelEvent._nextEventId;
-  //   const nextEventId = cuid();
-  //   ChannelEvent._nextEventId = nextEventId;
-  //   return { eventId, nextEventId };
-  // }
 
   constructor({
     type,
@@ -72,7 +65,6 @@ export class ChannelEvent<Type extends ChannelEventType> implements ChannelEvent
     if (this.seal) return this as ChannelEvent<Type>;
     const data = await cipher.encrypt({ data: this.data, sharedKey });
     this.seal = await signer.seal({ data });
-    this.data = undefined;
     return this as ChannelEvent<Type>;
   }
 
