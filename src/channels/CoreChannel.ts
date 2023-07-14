@@ -11,10 +11,13 @@ import { PublicKeys } from "../types";
 import { CipherPublicKey, EncryptionSharedKey } from "../ciphers/types";
 
 export class CoreChannel extends ChannelEmitter {
-    public static readonly requestTimeout = 2000;
+    public static readonly timeout = 2000;
+    private readonly timeout: number;
+
     public readonly channelId: ChannelId;
     public readonly eventLog: ChannelLoggedEvent[] = [];
     public readonly type: ChannelType;
+
     public peer: ChannelPeer;
     private _spark: Spark<any, any, any, any, any>;
     private _actions: ChannelAction<any>[];
@@ -32,13 +35,14 @@ export class CoreChannel extends ChannelEmitter {
             ANY_CONFIRM: 'ANY_CONFIRM' as ChannelEventConfirmType,
         };
 
-    constructor({ spark, actions, channelId, peer, eventLog }: CoreChannelParams) {
+    constructor({ spark, actions, channelId, peer, eventLog, timeout }: CoreChannelParams) {
         super();
         this.peer = peer || {} as ChannelPeer;
         this.channelId = channelId || cuid();
         this.eventLog = [...eventLog || []];
         this._spark = spark;
         this._actions = actions || [];
+        this.timeout = timeout !== undefined ? timeout : CoreChannel.timeout;
 
         for (let action of this._actions) {
             action.setContext({ channel: this });
@@ -144,8 +148,8 @@ export class CoreChannel extends ChannelEmitter {
                     reject(timeoutError);
                 }
 
-                if (CoreChannel.requestTimeout) {
-                    timer = setTimeout(onTimeout, CoreChannel.requestTimeout);
+                if (this.timeout) {
+                    timer = setTimeout(onTimeout, this.timeout);
                 }
 
                 this.once(confirmType, onConfirmed);

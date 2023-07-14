@@ -3,7 +3,7 @@ import { ChannelEmitter } from "./ChannelEmitter/index.mjs";
 import { ChannelConfirmEvent, ChannelRequestEvent } from "./ChannelEvent/index.mjs";
 import { ChannelError, ChannelErrorType, ChannelErrors } from "../errors/channel.mjs";
 const _CoreChannel = class extends ChannelEmitter {
-  constructor({ spark, actions, channelId, peer, eventLog }) {
+  constructor({ spark, actions, channelId, peer, eventLog, timeout }) {
     super();
     this.eventLog = [];
     this._errorTypes = {
@@ -20,6 +20,7 @@ const _CoreChannel = class extends ChannelEmitter {
     this.eventLog = [...eventLog || []];
     this._spark = spark;
     this._actions = actions || [];
+    this.timeout = timeout !== void 0 ? timeout : _CoreChannel.timeout;
     for (let action of this._actions) {
       action.setContext({ channel: this });
       action.actions.forEach((actionType) => {
@@ -98,8 +99,8 @@ const _CoreChannel = class extends ChannelEmitter {
           this.emit(ChannelErrorType.REQUEST_TIMEOUT_ERROR, timeoutError);
           reject(timeoutError);
         };
-        if (_CoreChannel.requestTimeout) {
-          timer = setTimeout(onTimeout, _CoreChannel.requestTimeout);
+        if (this.timeout) {
+          timer = setTimeout(onTimeout, this.timeout);
         }
         this.once(confirmType, onConfirmed);
         for (let preflightCheck of this.preflightChecks) {
@@ -208,4 +209,4 @@ const _CoreChannel = class extends ChannelEmitter {
   }
 };
 export let CoreChannel = _CoreChannel;
-CoreChannel.requestTimeout = 2e3;
+CoreChannel.timeout = 2e3;

@@ -7,6 +7,8 @@ import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./Channe
 import { ChannelEventInterface, ChannelEventType } from "./ChannelEvent/types";
 import { CoreChannel } from "./CoreChannel";
 
+type Nullable<T> = T | null;
+
 export type ChannelId = string;
 
 export type ChannelType = 'WebRTC' | 'PostMessage' | 'HttpFetch' | 'HttpRest';
@@ -39,6 +41,7 @@ export interface CoreChannelParams {
     channelId?: ChannelId,
     peer?: ChannelPeer,
     eventLog?: ChannelLoggedEvent[],
+    timeout?: Nullable<number>,
 }
 
 export type DispatchRequest = ({

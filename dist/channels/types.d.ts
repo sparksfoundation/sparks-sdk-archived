@@ -6,6 +6,7 @@ import { ChannelAction } from "./ChannelActions";
 import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./ChannelEvent";
 import { ChannelEventInterface, ChannelEventType } from "./ChannelEvent/types";
 import { CoreChannel } from "./CoreChannel";
+type Nullable<T> = T | null;
 export type ChannelId = string;
 export type ChannelType = 'WebRTC' | 'PostMessage' | 'HttpFetch' | 'HttpRest';
 export type ChannelLoggedEvent = (ChannelEventInterface<ChannelEventType> & {
@@ -33,6 +34,7 @@ export interface CoreChannelParams {
     channelId?: ChannelId;
     peer?: ChannelPeer;
     eventLog?: ChannelLoggedEvent[];
+    timeout?: Nullable<number>;
 }
 export type DispatchRequest = ({ event, attempt, }: {
     event: ChannelRequestEvent;
@@ -48,3 +50,4 @@ export type ChannelReceive = (callback: ({ event, confirmOpen }: {
     spark: Spark<any, any, any, any, any>;
     [key: string]: any;
 }) => void;
+export {};

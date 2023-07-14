@@ -8,7 +8,8 @@ import { Identifier } from "../controllers/types";
 import { PublicKeys } from "../types";
 import { CipherPublicKey, EncryptionSharedKey } from "../ciphers/types";
 export declare class CoreChannel extends ChannelEmitter {
-    static readonly requestTimeout = 2000;
+    static readonly timeout = 2000;
+    private readonly timeout;
     readonly channelId: ChannelId;
     readonly eventLog: ChannelLoggedEvent[];
     readonly type: ChannelType;
@@ -17,7 +18,7 @@ export declare class CoreChannel extends ChannelEmitter {
     private _actions;
     private _errorTypes;
     private _eventTypes;
-    constructor({ spark, actions, channelId, peer, eventLog }: CoreChannelParams);
+    constructor({ spark, actions, channelId, peer, eventLog, timeout }: CoreChannelParams);
     protected getAction(typeOrName: string): ChannelAction<any>;
     protected toConfirmType(eventType: ChannelEventRequestType): ChannelEventConfirmType;
     get eventTypes(): {
