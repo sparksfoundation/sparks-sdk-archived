@@ -1,21 +1,16 @@
+import { ChannelEvent } from "../../ChannelEvent";
 import { CoreChannel } from "../../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
-export type PostMessageParams = CoreChannelParams & {
-    _window?: Window;
-    source?: Window;
-    peer: Partial<ChannelPeer> & {
-        origin: Window['origin'];
-    };
-};
-export declare class PostMessage extends CoreChannel {
-    readonly type = "PostMessage";
-    private _source;
-    private _window?;
-    constructor({ _window, source, peer, ...params }: PostMessageParams);
-    setSource(source: Window): void;
+import { ChannelReceive, CoreChannelActions, CoreChannelInterface } from "../../types";
+import { PostMessageExport, PostMessageParams } from "./types";
+export declare class PostMessage extends CoreChannel implements CoreChannelInterface<CoreChannelActions> {
+    constructor(params: PostMessageParams);
     open(): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
+    confirmOpen(request: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
     close(): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
-    message(message: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
-    protected sendRequest: ChannelSendRequest;
+    confirmClose(request: any): Promise<import("../../ChannelEvent").ChannelConfirmEvent>;
+    handleEvent(event: any): Promise<void>;
+    sendEvent(event: ChannelEvent): Promise<void>;
+    export(): PostMessageExport;
+    import(data: PostMessageExport): Promise<void>;
     static receive: ChannelReceive;
 }

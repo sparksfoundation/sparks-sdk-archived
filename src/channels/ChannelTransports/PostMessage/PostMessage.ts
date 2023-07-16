@@ -1,102 +1,109 @@
-import { CoreChannel } from "../../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelSendRequest, ChannelReceive } from "../../types";
-import { OpenClose, Message } from "../../ChannelActions";
 import { ChannelEvent } from "../../ChannelEvent";
-import { ChannelError } from "../../../errors/channel";
-import { ChannelEventType } from "../../ChannelEvent/types";
+import { CoreChannel } from "../../CoreChannel";
+import { ChannelReceive, CoreChannelActions, CoreChannelInterface } from "../../types";
+import { PostMessageExport, PostMessageParams } from "./types";
 
-export type PostMessageParams = CoreChannelParams & {
-    _window?: Window,
-    source?: Window,
-    peer: Partial<ChannelPeer> & {
-        origin: Window['origin'],
+export class PostMessage extends CoreChannel implements CoreChannelInterface<CoreChannelActions>{
+  constructor(params: PostMessageParams) {
+    const type = 'PostMessage';
+    const { _window, source, peer, ...rest } = params;
+    super({ ...rest, type, peer });
+
+    this.peer.origin = peer.origin;
+    this.state.window = _window || window;
+    this.state.source = source;
+
+    this.handleEvent = this.handleEvent.bind(this);
+    this.state.window.addEventListener('message', this.handleEvent);
+    this.state.window.addEventListener('beforeunload', async () => {
+      await this.close();
+      this.state.window.removeEventListener('message', this.handleEvent);
+    })
+  }
+
+  public async open() {
+    if (!this.state.source) {
+      this.state.source = this.state.window.open(this.peer.origin, '_blank');
     }
-}
+    const confirm = await super.open({ data: { origin: this.state.window.origin } });
+    this.peer.origin = confirm.data.origin;
+    return confirm
+  }
 
-export class PostMessage extends CoreChannel {
-    public readonly type = 'PostMessage';
-    private _source: Window;
-    private _window?: Window;
+  public async confirmOpen(request) {
+    this.peer.origin = request.data.origin;
+    request.data.origin = this.state.window.origin;
+    const confirm = await super.confirmOpen(request);
+    return confirm
+  }
 
-    constructor({ _window, source, peer, ...params }: PostMessageParams) {
-        const openClose = new OpenClose();
-        const message = new Message();
-        
-        super({ ...params, peer, actions: [openClose, message] });
+  public async close() {
+    const confirm = await super.close();
+    this.state.window.removeEventListener('message', this.handleEvent);
+    this.state.source = null;
+    return confirm
+  }
 
-        this.peer.origin = peer?.origin;
-        this._window = _window || window || null;
-        this._source = source;
+  public async confirmClose(request) {
+    const confirm = await super.confirmClose(request);
+    return confirm
+  }
 
-        this.open = this.open.bind(this);
-        this.handleResponse = this.handleResponse.bind(this);
+  public async handleEvent(event) {
+    if (event.type === this.confirmTypes.CLOSE_CONFIRM) {
+      this.state.source = null;
+      this.state.window.removeEventListener('message', this.handleEvent);
+    }
+    return await super.handleEvent(event.data as ChannelEvent);
+  }
 
-        const listener = event => this.handleResponse(event.data);
-        this._window.addEventListener('message', listener);
-        this.on([this.eventTypes.CLOSE_CONFIRM, this.eventTypes.CLOSE_REQUEST], () => {
-          this._window.removeEventListener('message', listener);
+  // specify how request events are sent out
+  public sendEvent(event: ChannelEvent) {
+    this.state.source.postMessage(event, this.peer.origin);
+    return Promise.resolve();
+  }
+
+  public export(): PostMessageExport {
+    return {
+      ...super.export(),
+      type: 'PostMessage',
+      peer: { ...this.peer, origin: this.peer.origin },
+    }
+  }
+
+  public async import(data: PostMessageExport) {
+    super.import(data);
+    this.peer.origin = data.peer.origin;
+  }
+
+  public static receive: ChannelReceive = (callback, options) => {
+    const { _window, _source, spark } = options;
+    const win = _window || window;
+    win.addEventListener('message', async (event) => {
+      const { source, origin } = event;
+      const { type, data, metadata } = event.data;
+      if (type !== 'OPEN_REQUEST') return;
+
+      const confirmOpen = () => {
+        return new Promise<PostMessage>(async (resolve, reject) => {
+          const channel = new PostMessage({
+            _window: win,
+            channelId: metadata.channelId,
+            peer: { ...data.peer, origin: origin },
+            source: _source || source,
+            spark: spark,
+          });
+
+          channel.on(channel.errorTypes.ANY_ERROR, async (event) => {
+            return reject(event);
+          });
+
+          await channel.handleEvent(event);
+          return resolve(channel);
         });
-        this._window.addEventListener('beforeunload', async () => {
-            await this.close();
-        });
-    }
+      }
 
-    public setSource(source: Window) {
-        this._source = source;
-    }
-
-    public async open() {
-        this._source = this._source || this._window.open(this.peer.origin, '_blank');
-        const action = this.getAction('OPEN_CLOSE') as OpenClose;
-        const confirmation = await action.OPEN_REQUEST({
-            data: { peer: { origin: this._window.origin } }
-        });
-        return confirmation;
-    }
-
-    public close() {
-        const action = this.getAction('OPEN_CLOSE') as OpenClose;
-        return action.CLOSE_REQUEST();
-    }
-
-    public message(message) {
-        const action = this.getAction('MESSAGE') as Message;
-        return action.MESSAGE_REQUEST({ data: message });
-    }
-
-    protected sendRequest: ChannelSendRequest = (event) => {
-        this._source.postMessage(event, this.peer.origin);
-        return Promise.resolve();
-    }
-
-    public static receive: ChannelReceive = (callback, options) => {
-        const { _window, _source, spark } = options;
-        const win = _window || window;
-        win.addEventListener('message', async (event) => {
-            const { source, origin } = event;
-            const { type, data, metadata } = event.data;
-            if (type !== 'OPEN_REQUEST') return;
-
-            const confirmOpen = () => {
-                return new Promise<PostMessage>(async (resolve, reject) => {
-                    const channel = new PostMessage({
-                        _window,
-                        peer: { ...data.peer },
-                        source: _source || source,
-                        spark: spark,
-                        channelId: metadata.channelId,
-                    });
-
-                    channel.on(channel.eventTypes.ANY_ERROR, async (event) => {
-                        return reject(event);
-                    });
-
-                    await channel.handleResponse(event.data);
-                    return resolve(channel);
-                });
-            }
-
-            return callback({ event: event.data, confirmOpen });
-        });
-    }
+      return callback({ event: event.data, confirmOpen });
+    });
+  }
 }

@@ -1,11 +1,15 @@
 import { SparkError } from "./SparkError.mjs";
-export var ChannelErrorType = /* @__PURE__ */ ((ChannelErrorType2) => {
-  ChannelErrorType2["REQUEST_ACTION_ERROR"] = "REQUEST_ACTION_ERROR";
-  ChannelErrorType2["HANDLE_RESPONSE_ERROR"] = "HANDLE_RESPONSE_ERROR";
-  ChannelErrorType2["DISPATCH_REQUEST_ERROR"] = "DISPATCH_REQUEST_ERROR";
-  ChannelErrorType2["REQUEST_TIMEOUT_ERROR"] = "REQUEST_TIMEOUT_ERROR";
-  return ChannelErrorType2;
-})(ChannelErrorType || {});
+export const ChannelErrorType = {
+  REQUEST_ACTION_ERROR: "REQUEST_ACTION_ERROR",
+  HANDLE_EVENT_ERROR: "HANDLE_EVENT_ERROR",
+  DISPATCH_REQUEST_ERROR: "DISPATCH_REQUEST_ERROR",
+  INVALID_EVENT_TYPE_ERROR: "INVALID_EVENT_TYPE_ERROR",
+  CONFIRM_TIMEOUT_ERROR: "CONFIRM_TIMEOUT_ERROR",
+  CHANNEL_CLOSED_ERROR: "CHANNEL_CLOSED_ERROR",
+  CHANNEL_OPEN_ERROR: "CHANNEL_OPEN_ERROR",
+  CHANNEL_NOT_FOUND_ERROR: "CHANNEL_NOT_FOUND_ERROR",
+  NO_STREAMS_AVAILABLE_ERROR: "NO_STREAMS_AVAILABLE_ERROR"
+};
 export class ChannelError extends SparkError {
   constructor(params) {
     super(params);
@@ -14,15 +18,15 @@ export class ChannelError extends SparkError {
 export class ChannelErrors {
   static RequestActionError({ metadata = {}, message, stack } = {}) {
     return new ChannelError({
-      type: "REQUEST_ACTION_ERROR" /* REQUEST_ACTION_ERROR */,
+      type: ChannelErrorType.REQUEST_ACTION_ERROR,
       message: `Error requesting action${message ? `: ${message}` : ""}`,
       metadata: { ...metadata },
       stack
     });
   }
-  static HandleResponseError({ metadata = {}, message, stack } = {}) {
+  static HandleEventError({ metadata = {}, message, stack } = {}) {
     return new ChannelError({
-      type: "HANDLE_RESPONSE_ERROR" /* HANDLE_RESPONSE_ERROR */,
+      type: ChannelErrorType.HANDLE_EVENT_ERROR,
       message: `Error handling response${message ? `: ${message}` : ""}`,
       metadata: { ...metadata },
       stack
@@ -30,16 +34,56 @@ export class ChannelErrors {
   }
   static DispatchRequestError({ metadata = {}, message, stack } = {}) {
     return new ChannelError({
-      type: "DISPATCH_REQUEST_ERROR" /* DISPATCH_REQUEST_ERROR */,
+      type: ChannelErrorType.DISPATCH_REQUEST_ERROR,
       message: `Error dispatching request${message ? `: ${message}` : ""}`,
       metadata: { ...metadata },
       stack
     });
   }
-  static DispatchRequestTimeoutError({ metadata = {}, message, stack } = {}) {
+  static InvalidEventTypeError({ metadata = {}, message, stack } = {}) {
     return new ChannelError({
-      type: "REQUEST_TIMEOUT_ERROR" /* REQUEST_TIMEOUT_ERROR */,
-      message: `Request timeout error${message ? `: ${message}` : ""}`,
+      type: ChannelErrorType.INVALID_EVENT_TYPE_ERROR,
+      message: `Invalid event type error${message ? `: ${message}` : ""}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+  static ConfirmTimeoutError({ metadata = {}, message, stack } = {}) {
+    return new ChannelError({
+      type: ChannelErrorType.CONFIRM_TIMEOUT_ERROR,
+      message: `Confirm timeout error${message ? `: ${message}` : ""}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+  static ChannelClosedError({ metadata = {}, message, stack } = {}) {
+    return new ChannelError({
+      type: ChannelErrorType.CHANNEL_CLOSED_ERROR,
+      message: `Channel closed error${message ? `: ${message}` : ""}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+  static ChannelOpenError({ metadata = {}, message, stack } = {}) {
+    return new ChannelError({
+      type: ChannelErrorType.CHANNEL_OPEN_ERROR,
+      message: `Channel open error${message ? `: ${message}` : ""}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+  static ChannelNotFoundError({ metadata = {}, message, stack } = {}) {
+    return new ChannelError({
+      type: ChannelErrorType.CHANNEL_NOT_FOUND_ERROR,
+      message: `Channel not found error${message ? `: ${message}` : ""}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+  static NoStreamsAvailableError({ metadata = {}, message, stack } = {}) {
+    return new ChannelError({
+      type: ChannelErrorType.NO_STREAMS_AVAILABLE_ERROR,
+      message: `No streams available error${message ? `: ${message}` : ""}`,
       metadata: { ...metadata },
       stack
     });

@@ -30,14 +30,14 @@ global.fetch = fetch;
             await channel.open();
             console.log('user', (i + 1), 'connected');
             channel.on('MESSAGE_CONFIRM', async (event) => {
-                await channel.openEvent(event);
-                console.log('confirmed:', event.data.data.slice(0, 10));
+              const data = await channel.openEvent(event);
+              console.log(data.data);
             });
             channels.push(channel);
         }
     
         const delay = 1;
-        const max_messages = 10;
+        const max_messages = 100;
         let i = 0;
         const start = performance.now();
         while (i < max_messages) {
@@ -45,7 +45,7 @@ global.fetch = fetch;
             for(let channel of channels) {
                 await channel.message('msg: ' + Math.random().toString(36).substring(2, 8))
                     .catch(error => console.error(error));
-                await new Promise(resolve => setTimeout(resolve, delay));
+                //await new Promise(resolve => setTimeout(resolve, delay));
                 i += 1;
                 if (i >= max_messages) break;
             }

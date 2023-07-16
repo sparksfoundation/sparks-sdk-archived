@@ -1,50 +1,55 @@
+import { Spark } from "../Spark";
+import { ChannelErrorParams, ChannelErrorType } from "../errors/channel";
 import { ChannelEmitter } from "./ChannelEmitter";
-import { ChannelExport, ChannelPeer, ChannelId, ChannelLoggedEvent, CoreChannelParams, ChannelType, ChannelState } from "./types";
-import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./ChannelEvent";
-import { ChannelError, ChannelErrorType } from "../errors/channel";
-import { ChannelEventConfirmType, ChannelEventRequestType, ChannelEventType } from "./ChannelEvent/types";
-import { ChannelAction } from "./ChannelActions";
-import { Identifier } from "../controllers/types";
-import { PublicKeys } from "../types";
-import { CipherPublicKey, EncryptionSharedKey } from "../ciphers/types";
-export declare class CoreChannel extends ChannelEmitter {
-    static readonly timeout = 2000;
-    private readonly timeout;
-    readonly type: ChannelType;
-    state: ChannelState;
-    peer: ChannelPeer;
-    channelId: ChannelId;
-    eventLog: ChannelLoggedEvent[];
-    private _spark;
-    private _actions;
-    private _errorTypes;
+import { ChannelRequestEvent, ChannelEvent, ChannelConfirmEvent } from "./ChannelEvent";
+import { ChannelEventData, ChannelEventParams, ChannelEventType } from "./ChannelEvent/types";
+import { ChannelEventLog, ChannelExport, ChannelPeer, ChannelSettings, ChannelState, ChannelType, CoreChannelActions, CoreChannelInterface, CoreChannelParams } from "./types";
+export declare class CoreChannel extends ChannelEmitter implements CoreChannelInterface<CoreChannelActions> {
+    private _channelId;
+    private _type;
+    private _peer;
+    private _state;
+    private _settings;
+    private _eventLog;
     private _eventTypes;
-    constructor({ spark, actions, channelId, peer, eventLog, timeout }: CoreChannelParams);
-    protected getAction(typeOrName: string): ChannelAction<any>;
-    protected toConfirmType(eventType: ChannelEventRequestType): ChannelEventConfirmType;
+    private _requestTypes;
+    private _confirmTypes;
+    private _errorTypes;
+    private _spark;
+    constructor(params: CoreChannelParams);
+    protected get spark(): Spark<any, any, any, any, any>;
+    get channelId(): string;
+    get type(): ChannelType;
+    get peer(): ChannelPeer;
+    get state(): ChannelState;
+    get settings(): ChannelSettings;
+    get eventLog(): ChannelEventLog;
     get eventTypes(): {
-        [key: string]: ChannelEventRequestType | ChannelEventConfirmType | ChannelErrorType;
+        [key: string]: ChannelEventType<string>;
+    };
+    get requestTypes(): {
+        [key: string]: `${string}_REQUEST`;
+    };
+    get confirmTypes(): {
+        [key: string]: `${string}_CONFIRM`;
     };
     get errorTypes(): {
         [key: string]: ChannelErrorType;
     };
-    get requestTypes(): {
-        [key: string]: ChannelEventRequestType;
-    };
-    get confirmTypes(): {
-        [key: string]: ChannelEventConfirmType;
-    };
+    private logEvent;
+    private requestMethodName;
+    private confirmMethodName;
+    private confirmTypeFromType;
+    protected dispatchRequest(request: ChannelRequestEvent): Promise<ChannelConfirmEvent>;
+    handleEvent(params: ChannelEventParams | ChannelErrorParams): Promise<void>;
+    sendEvent(event: ChannelEvent): Promise<void>;
+    open(params?: Partial<ChannelEventParams>): Promise<ChannelConfirmEvent>;
+    confirmOpen(request: ChannelRequestEvent): Promise<ChannelConfirmEvent>;
+    close(params?: Partial<ChannelEventParams>): Promise<ChannelConfirmEvent>;
+    confirmClose(request: ChannelRequestEvent): Promise<ChannelConfirmEvent>;
+    message(message: any): Promise<ChannelConfirmEvent>;
+    confirmMessage(request: ChannelRequestEvent): Promise<ChannelConfirmEvent>;
+    getEventData(event: ChannelEvent): Promise<ChannelEventData>;
     export(): ChannelExport;
     import(data: ChannelExport): Promise<void>;
-    private preflightChecks;
-    requestPreflight(callback: (requestEvent: ChannelRequestEvent) => void): void;
-    dispatchRequest(event: ChannelRequestEvent, attempt?: number): Promise<ChannelConfirmEvent>;
-    protected handleResponse(event: ChannelEvent<ChannelEventType> | ChannelError): Promise<void>;
-    sealEvent(event: ChannelEvent<ChannelEventType>): Promise<ChannelEvent<ChannelEventType>>;
-    openEvent(event: ChannelEvent<ChannelEventType>): Promise<ChannelEvent<ChannelEventType>>;
-    get identifier(): Identifier;
-    get publicKeys(): PublicKeys;
-    get sharedKey(): EncryptionSharedKey;
-    setSharedKey(publicKey: CipherPublicKey): Promise<void>;
-    protected sendRequest(event: ChannelEvent<ChannelEventType>): Promise<void>;
 }

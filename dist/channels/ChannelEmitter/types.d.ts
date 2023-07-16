@@ -1,10 +1,9 @@
-import { ChannelError } from "../../errors/channel";
+import { ChannelError, ChannelErrorType } from "../../errors/channel";
 import { ChannelEvent } from "../ChannelEvent/ChannelEvent";
 import { ChannelEventType } from "../ChannelEvent/types";
 export type ListenerHaneder = (...args: any[]) => void;
-export type ChannelEmitterErrorType = `${Uppercase<string>}_ERROR`;
-export type ChannelEmitterEventType = ChannelEventType | ChannelEmitterErrorType;
-export type ChannelEmitterReturnType = ChannelEvent<any, any> | ChannelError;
+export type ChannelEmitterEventType = ChannelEventType<any> | ChannelErrorType | 'ANY_EVENT' | 'ANY_ERROR' | 'ANY_REQUEST' | 'ANY_CONFIRM';
+export type ChannelEmitterReturnType = ChannelEvent | ChannelError;
 export type EmitterMethodName = 'addListener' | 'on' | 'once' | 'prependListener' | 'prependOnceListener' | 'removeListener' | 'off';
 export type MultiEventOverload<T> = {
     (method: EmitterMethodName, eventType: ChannelEmitterEventType, listener: (event: ChannelEmitterReturnType) => void): T;

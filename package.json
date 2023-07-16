@@ -56,11 +56,6 @@
       "import": "./dist/channels/index.mjs",
       "require": "./dist/channels/index.cjs"
     },
-    "./channels/ChannelActions": {
-      "types": "./dist/channels/ChannelActions/index.d.ts",
-      "import": "./dist/channels/ChannelActions/index.mjs",
-      "require": "./dist/channels/ChannelActions/index.cjs"
-    },
     "./channels/ChannelEmitter": {
       "types": "./dist/channels/ChannelEmitter/index.d.ts",
       "import": "./dist/channels/ChannelEmitter/index.mjs",
@@ -130,6 +125,51 @@
       "types": "./dist/hashers/Blake3/index.d.ts",
       "import": "./dist/hashers/Blake3/index.mjs",
       "require": "./dist/hashers/Blake3/index.cjs"
+    },
+    "./old_channels": {
+      "types": "./dist/old_channels/index.d.ts",
+      "import": "./dist/old_channels/index.mjs",
+      "require": "./dist/old_channels/index.cjs"
+    },
+    "./old_channels/ChannelActions": {
+      "types": "./dist/old_channels/ChannelActions/index.d.ts",
+      "import": "./dist/old_channels/ChannelActions/index.mjs",
+      "require": "./dist/old_channels/ChannelActions/index.cjs"
+    },
+    "./old_channels/ChannelEmitter": {
+      "types": "./dist/old_channels/ChannelEmitter/index.d.ts",
+      "import": "./dist/old_channels/ChannelEmitter/index.mjs",
+      "require": "./dist/old_channels/ChannelEmitter/index.cjs"
+    },
+    "./old_channels/ChannelEvent": {
+      "types": "./dist/old_channels/ChannelEvent/index.d.ts",
+      "import": "./dist/old_channels/ChannelEvent/index.mjs",
+      "require": "./dist/old_channels/ChannelEvent/index.cjs"
+    },
+    "./old_channels/ChannelTransports": {
+      "types": "./dist/old_channels/ChannelTransports/index.d.ts",
+      "import": "./dist/old_channels/ChannelTransports/index.mjs",
+      "require": "./dist/old_channels/ChannelTransports/index.cjs"
+    },
+    "./old_channels/ChannelTransports/HttpFetch": {
+      "types": "./dist/old_channels/ChannelTransports/HttpFetch/index.d.ts",
+      "import": "./dist/old_channels/ChannelTransports/HttpFetch/index.mjs",
+      "require": "./dist/old_channels/ChannelTransports/HttpFetch/index.cjs"
+    },
+    "./old_channels/ChannelTransports/HttpRest": {
+      "types": "./dist/old_channels/ChannelTransports/HttpRest/index.d.ts",
+      "import": "./dist/old_channels/ChannelTransports/HttpRest/index.mjs",
+      "require": "./dist/old_channels/ChannelTransports/HttpRest/index.cjs"
+    },
+    "./old_channels/ChannelTransports/PostMessage": {
+      "types": "./dist/old_channels/ChannelTransports/PostMessage/index.d.ts",
+      "import": "./dist/old_channels/ChannelTransports/PostMessage/index.mjs",
+      "require": "./dist/old_channels/ChannelTransports/PostMessage/index.cjs"
+    },
+    "./old_channels/ChannelTransports/WebRTC": {
+      "types": "./dist/old_channels/ChannelTransports/WebRTC/index.d.ts",
+      "import": "./dist/old_channels/ChannelTransports/WebRTC/index.mjs",
+      "require": "./dist/old_channels/ChannelTransports/WebRTC/index.cjs"
     },
     "./signers": {
       "types": "./dist/signers/index.d.ts",

@@ -13,15 +13,11 @@ function getUtcEpochTimestamp() {
   return utcTimestamp;
 }
 const _ChannelEvent = class {
-  constructor({
-    type,
-    data,
-    seal,
-    metadata
-  }) {
+  constructor(params) {
+    const { type, metadata, data = void 0, seal = void 0 } = params;
     this.type = type;
-    this.seal = seal;
     this.data = data;
+    this.seal = seal;
     this.timestamp = getUtcEpochTimestamp();
     const eventId = metadata.eventId && metadata.nextEventId ? metadata.eventId : _ChannelEvent._nextEventId;
     const nextEventId = metadata.eventId && metadata.nextEventId ? metadata.nextEventId : cuid();
@@ -33,31 +29,18 @@ const _ChannelEvent = class {
       nextEventId
     };
   }
-  async sealData({ cipher, signer, sharedKey }) {
-    if (this.seal)
-      return this;
-    const data = await cipher.encrypt({ data: this.data, sharedKey });
-    this.seal = await signer.seal({ data });
-    return this;
-  }
-  async openData({ cipher, signer, publicKey, sharedKey }) {
-    if (!this.seal)
-      return this;
-    const data = await signer.open({ signature: this.seal, publicKey });
-    const opened = await cipher.decrypt({ data, sharedKey });
-    this.data = opened;
-    return this;
-  }
 };
 export let ChannelEvent = _ChannelEvent;
 ChannelEvent._nextEventId = cuid();
 export class ChannelRequestEvent extends ChannelEvent {
-  constructor({ type, data, seal, metadata }) {
-    super({ type, data, seal, metadata });
+  constructor(params) {
+    super(params);
+    this.type = params.type;
   }
 }
 export class ChannelConfirmEvent extends ChannelEvent {
-  constructor({ type, data, seal, metadata }) {
-    super({ type, data, seal, metadata });
+  constructor(params) {
+    super(params);
+    this.type = params.type;
   }
 }

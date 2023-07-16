@@ -1,47 +1,65 @@
 import { CoreChannel } from "../../CoreChannel.mjs";
-import { OpenClose, Message } from "../../ChannelActions/index.mjs";
 const _PostMessage = class extends CoreChannel {
-  constructor({ _window, source, peer, ...params }) {
-    const openClose = new OpenClose();
-    const message = new Message();
-    super({ ...params, peer, actions: [openClose, message] });
-    this.type = "PostMessage";
-    this.sendRequest = (event) => {
-      this._source.postMessage(event, this.peer.origin);
-      return Promise.resolve();
-    };
-    this.peer.origin = peer?.origin;
-    this._window = _window || window || null;
-    this._source = source;
-    this.open = this.open.bind(this);
-    this.handleResponse = this.handleResponse.bind(this);
-    const listener = (event) => this.handleResponse(event.data);
-    this._window.addEventListener("message", listener);
-    this.on([this.eventTypes.CLOSE_CONFIRM, this.eventTypes.CLOSE_REQUEST], () => {
-      this._window.removeEventListener("message", listener);
-    });
-    this._window.addEventListener("beforeunload", async () => {
+  constructor(params) {
+    const type = "PostMessage";
+    const { _window, source, peer, ...rest } = params;
+    super({ ...rest, type, peer });
+    this.peer.origin = peer.origin;
+    this.state.window = _window || window;
+    this.state.source = source;
+    this.handleEvent = this.handleEvent.bind(this);
+    this.state.window.addEventListener("message", this.handleEvent);
+    this.state.window.addEventListener("beforeunload", async () => {
       await this.close();
+      this.state.window.removeEventListener("message", this.handleEvent);
     });
-  }
-  setSource(source) {
-    this._source = source;
   }
   async open() {
-    this._source = this._source || this._window.open(this.peer.origin, "_blank");
-    const action = this.getAction("OPEN_CLOSE");
-    const confirmation = await action.OPEN_REQUEST({
-      data: { peer: { origin: this._window.origin } }
-    });
-    return confirmation;
+    if (!this.state.source) {
+      this.state.source = this.state.window.open(this.peer.origin, "_blank");
+    }
+    const confirm = await super.open({ data: { origin: this.state.window.origin } });
+    this.peer.origin = confirm.data.origin;
+    return confirm;
   }
-  close() {
-    const action = this.getAction("OPEN_CLOSE");
-    return action.CLOSE_REQUEST();
+  async confirmOpen(request) {
+    this.peer.origin = request.data.origin;
+    request.data.origin = this.state.window.origin;
+    const confirm = await super.confirmOpen(request);
+    return confirm;
   }
-  message(message) {
-    const action = this.getAction("MESSAGE");
-    return action.MESSAGE_REQUEST({ data: message });
+  async close() {
+    const confirm = await super.close();
+    this.state.window.removeEventListener("message", this.handleEvent);
+    this.state.source = null;
+    return confirm;
+  }
+  async confirmClose(request) {
+    const confirm = await super.confirmClose(request);
+    return confirm;
+  }
+  async handleEvent(event) {
+    if (event.type === this.confirmTypes.CLOSE_CONFIRM) {
+      this.state.source = null;
+      this.state.window.removeEventListener("message", this.handleEvent);
+    }
+    return await super.handleEvent(event.data);
+  }
+  // specify how request events are sent out
+  sendEvent(event) {
+    this.state.source.postMessage(event, this.peer.origin);
+    return Promise.resolve();
+  }
+  export() {
+    return {
+      ...super.export(),
+      type: "PostMessage",
+      peer: { ...this.peer, origin: this.peer.origin }
+    };
+  }
+  async import(data) {
+    super.import(data);
+    this.peer.origin = data.peer.origin;
   }
 };
 export let PostMessage = _PostMessage;
@@ -56,16 +74,16 @@ PostMessage.receive = (callback, options) => {
     const confirmOpen = () => {
       return new Promise(async (resolve, reject) => {
         const channel = new _PostMessage({
-          _window,
-          peer: { ...data.peer },
+          _window: win,
+          channelId: metadata.channelId,
+          peer: { ...data.peer, origin },
           source: _source || source,
-          spark,
-          channelId: metadata.channelId
+          spark
         });
-        channel.on(channel.eventTypes.ANY_ERROR, async (event2) => {
+        channel.on(channel.errorTypes.ANY_ERROR, async (event2) => {
           return reject(event2);
         });
-        await channel.handleResponse(event.data);
+        await channel.handleEvent(event);
         return resolve(channel);
       });
     };

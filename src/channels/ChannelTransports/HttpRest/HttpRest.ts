@@ -1,72 +1,70 @@
+import { ChannelErrors } from "../../../errors/channel";
 import { CoreChannel } from "../../CoreChannel";
-import { CoreChannelParams, ChannelPeer, ChannelReceive } from "../../types";
-import { OpenClose, Message } from "../../ChannelActions";
-import { ChannelRequestEvent } from "../../ChannelEvent";
+import { ChannelReceive, CoreChannelActions, CoreChannelInterface } from "../../types";
+import { HttpRestParams } from "./types";
 
-export type HttpRestPeer = ChannelPeer & {
-    origin: Window['origin'],
-}
+export class HttpRest extends CoreChannel implements CoreChannelInterface<CoreChannelActions> {
 
-export class HttpRest extends CoreChannel {
-    public readonly type = 'HttpRest';
-    private static promises: Map<string, any> = new Map();
-    private static receives: Map<string, any> = new Map();
-    public static requestHandler: Function;
+  constructor({ peer, ...params }: HttpRestParams) {
+    const type = 'HttpRest';
+    super({ ...params, type, peer });
+    this.peer.origin = peer.origin;
+  }
 
-    constructor({ peer, ...params }: CoreChannelParams & {
-        peer: HttpRestPeer,
-    }) {
-        super({ ...params, peer, actions: [new OpenClose(), new Message()] });
-        this.sendRequest = this.sendRequest.bind(this);
-        this.handleResponse = this.handleResponse.bind(this);
-        HttpRest.receives.set(this.channelId, this.handleResponse);
-    }
+  public static requestHandler;
+  public static channels: Map<string, HttpRest> = new Map();
+  public static receive: ChannelReceive = (callback, options) => {
+    HttpRest.requestHandler = async (event) => {
+      return new Promise(async (resolveRequest, rejectRequest) => {
+        const { type, data, metadata } = event;
+        const { eventId, nextEventId, channelId } = metadata;
 
-    protected async sendRequest(request: ChannelRequestEvent): Promise<void> {
-        const promise = HttpRest.promises.get(request.metadata.eventId);
-        promise.resolve(request);
-        HttpRest.promises.delete(request.metadata.eventId);
-    }
+        if (!eventId || !channelId || !type) {
+          const error = ChannelErrors.InvalidEventTypeError({ metadata });
+          return rejectRequest(error);
+        }
 
-    public static receive: ChannelReceive = (callback, options) => {
-        const { spark } = options;
+        if (type !== 'OPEN_REQUEST') {
+          const channel = HttpRest.channels.get(metadata.channelId);
+          if (!channel) {
+            const error = ChannelErrors.ChannelNotFoundError({ metadata });
+            return rejectRequest(error);
+          }
 
-        HttpRest.requestHandler = async (event: ChannelRequestEvent) => {
-            return new Promise((resolve, reject) => {
-                const { type, data, metadata } = event;
-                const { eventId, nextEventId, channelId } = metadata;
-                if (!eventId || !channelId || !type) {
-                    return reject({ error: 'Invalid request' });
-                }
+          channel.sendEvent = async (event) => {
+            resolveRequest(event);
+          };
 
-                HttpRest.promises.set(nextEventId, { resolve, reject });
-                
-                const receivePromise = HttpRest.receives.get(channelId);
-                if (receivePromise) return receivePromise(event);
+          channel.handleEvent(event);
+          return; 
+        }
 
-                const isRequest = type === 'OPEN_REQUEST';
-                if (!isRequest) return;
+        const confirmOpen = () => {
+          return new Promise<HttpRest>(async (resolveChannel, rejectChannel) => {
 
-                const confirmOpen = () => {
-                    return new Promise<HttpRest>(async (resolve, reject) => {
-                        const channel = new HttpRest({
-                            peer: { ...data.peer },
-                            spark: spark,
-                            channelId: metadata.channelId,
-                        });
-
-                        channel.on(channel.eventTypes.ANY_ERROR, async (event) => {
-                            return reject(event);
-                        });
-
-                        //await channel.open(event);
-                        await channel.handleResponse(event);
-                        return resolve(channel);
-                    });
-                }
-
-                return callback({ event, confirmOpen });
+            const channel = new HttpRest({
+              channelId: metadata.channelId,
+              peer: { ...data.origin },
+              spark: options.spark,
             });
-        };
+  
+            channel.on(channel.errorTypes.ANY_ERROR, async (event) => {
+              return rejectChannel(event);
+            });
+  
+            channel.sendEvent = async (event) => {
+              resolveRequest(event);
+            };
+  
+            await channel.handleEvent(event);
+            HttpRest.channels.set(channelId, channel);
+
+            return resolveChannel(channel);
+          });
+        }
+
+        return callback({ event: event.data, confirmOpen });
+      });
     }
+  }
 }

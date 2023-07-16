@@ -1,13 +1,24 @@
 import { SparkError, SparkErrorParams } from "./SparkError";
 
-export enum ChannelErrorType {
-  REQUEST_ACTION_ERROR = 'REQUEST_ACTION_ERROR',
-  HANDLE_RESPONSE_ERROR = 'HANDLE_RESPONSE_ERROR',
-  DISPATCH_REQUEST_ERROR = 'DISPATCH_REQUEST_ERROR',
-  REQUEST_TIMEOUT_ERROR = 'REQUEST_TIMEOUT_ERROR',
-}
+export const ChannelErrorType = {
+  REQUEST_ACTION_ERROR: 'REQUEST_ACTION_ERROR',
+  HANDLE_EVENT_ERROR: 'HANDLE_EVENT_ERROR',
+  DISPATCH_REQUEST_ERROR: 'DISPATCH_REQUEST_ERROR',
+  INVALID_EVENT_TYPE_ERROR: 'INVALID_EVENT_TYPE_ERROR',
+  CONFIRM_TIMEOUT_ERROR: 'CONFIRM_TIMEOUT_ERROR',
+  CHANNEL_CLOSED_ERROR: 'CHANNEL_CLOSED_ERROR',
+  CHANNEL_OPEN_ERROR: 'CHANNEL_OPEN_ERROR',
+  CHANNEL_NOT_FOUND_ERROR: 'CHANNEL_NOT_FOUND_ERROR',
+  NO_STREAMS_AVAILABLE_ERROR: 'NO_STREAMS_AVAILABLE_ERROR',
+} as const;
+
+export type ChannelErrorType = typeof ChannelErrorType[keyof typeof ChannelErrorType];
 
 export interface ChannelError extends SparkError {
+  type: ChannelErrorType;
+}
+
+export interface ChannelErrorParams extends SparkErrorParams {
   type: ChannelErrorType;
 }
 
@@ -27,9 +38,9 @@ export class ChannelErrors {
     });
   }
 
-  static HandleResponseError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+  static HandleEventError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
     return new ChannelError({
-      type: ChannelErrorType.HANDLE_RESPONSE_ERROR as ChannelErrorType,
+      type: ChannelErrorType.HANDLE_EVENT_ERROR as ChannelErrorType,
       message: `Error handling response${message ? `: ${message}` : ''}`,
       metadata: { ...metadata },
       stack
@@ -45,10 +56,55 @@ export class ChannelErrors {
     });
   }
 
-  static DispatchRequestTimeoutError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+  static InvalidEventTypeError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
     return new ChannelError({
-      type: ChannelErrorType.REQUEST_TIMEOUT_ERROR as ChannelErrorType,
-      message: `Request timeout error${message ? `: ${message}` : ''}`,
+      type: ChannelErrorType.INVALID_EVENT_TYPE_ERROR as ChannelErrorType,
+      message: `Invalid event type error${message ? `: ${message}` : ''}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  static ConfirmTimeoutError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+    return new ChannelError({
+      type: ChannelErrorType.CONFIRM_TIMEOUT_ERROR as ChannelErrorType,
+      message: `Confirm timeout error${message ? `: ${message}` : ''}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  static ChannelClosedError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+    return new ChannelError({
+      type: ChannelErrorType.CHANNEL_CLOSED_ERROR as ChannelErrorType,
+      message: `Channel closed error${message ? `: ${message}` : ''}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  static ChannelOpenError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+    return new ChannelError({
+      type: ChannelErrorType.CHANNEL_OPEN_ERROR as ChannelErrorType,
+      message: `Channel open error${message ? `: ${message}` : ''}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  static ChannelNotFoundError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+    return new ChannelError({
+      type: ChannelErrorType.CHANNEL_NOT_FOUND_ERROR as ChannelErrorType,
+      message: `Channel not found error${message ? `: ${message}` : ''}`,
+      metadata: { ...metadata },
+      stack
+    });
+  }
+
+  static NoStreamsAvailableError({ metadata = {}, message, stack }: SparkErrorParams = {}): ChannelError {
+    return new ChannelError({
+      type: ChannelErrorType.NO_STREAMS_AVAILABLE_ERROR as ChannelErrorType,
+      message: `No streams available error${message ? `: ${message}` : ''}`,
       metadata: { ...metadata },
       stack
     });

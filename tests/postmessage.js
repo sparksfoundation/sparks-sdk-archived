@@ -32,29 +32,34 @@ import { Window } from './utilities/Window.js';
 
   PostMessage.receive(async ({ event, confirmOpen }) => {
     const channel = await confirmOpen();
-    channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
-      console.log(event);
+    channel.on(channel.eventTypes.ANY_EVENT, async (event) => {
+      // console.log('w', channel.peer.origin, event.type);
     });
-    await channel.message('hey');
+
+    // await channel.message('hey');
+
   }, { spark: website, _window: webWindow, _source: aliceWindow });
 
   const channel = new PostMessage({
-    peer: { origin: 'http://localhost:1111' },
+    peer: { origin: webWindow.origin },
     spark: alice,
+    source: webWindow,
     _window: aliceWindow,
   });
 
-  channel.on([channel.eventTypes.ANY_EVENT], async (event) => {
-    if (event.type.endsWith('ERROR')) { console.log(event) }
+  channel.on(channel.eventTypes.ANY_EVENT, async (event) => {
+    // console.log('a', channel.peer.origin, event.type);
   });
 
-  await channel.open()
-  await channel.message('hey');
-  await channel.message('hey');
-  await channel.message('hey');
+  const confirmed = await channel.open()
+  // await channel.message('hey');
+  // await channel.message('hey');
+  // await channel.message('hey');
   await channel.message('hey');
   await channel.close();
 
+  process.exit(0);
+  
   const backup = await channel.export();
   // go through the event log and check to make sure eventId === prev nextEventId
   for (let i = 0; i < backup.eventLog.length; i++) {
@@ -66,12 +71,19 @@ import { Window } from './utilities/Window.js';
   }
 
   const newChannes = new PostMessage({
-    ...backup,
     spark: alice,
+    source: webWindow,
+    peer: { origin: webWindow.origin },
     _window: aliceWindow,
   });
 
+  newChannes.on(channel.eventTypes.ANY_EVENT, async (event) => {
+    // console.log('a', channel.peer.origin, event.type);
+  });
+
+  await newChannes.import(backup);
   await newChannes.open();
-  await newChannes.message('hey');
+  
   await newChannes.close();
+  
 }())

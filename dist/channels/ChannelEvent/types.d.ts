@@ -10,13 +10,22 @@ export type ChannelEventMetadata = Record<string, any> & {
     readonly nextEventId: ChannelNextEventId;
     [key: string]: any;
 };
-export type ChannelEventRequestType = 'REQUEST' | `${string}_REQUEST`;
-export type ChannelEventConfirmType = 'CONFIRM' | `${string}_CONFIRM`;
-export type ChannelEventType = ChannelEventRequestType | ChannelEventConfirmType;
-export interface ChannelEventInterface<Type extends ChannelEventType> {
-    readonly type: Type;
+export type ChannelEventRequestType<A extends string> = `${A}_REQUEST`;
+export type ChannelEventConfirmType<A extends string> = `${A}_CONFIRM`;
+export type ChannelEventType<A extends string> = ChannelEventRequestType<A> | ChannelEventConfirmType<A>;
+export interface ChannelEventInterface {
+    readonly type: ChannelEventConfirmType<any> | ChannelEventRequestType<any>;
     readonly timestamp: ChannelEventTimestamp;
     readonly metadata: ChannelEventMetadata;
     readonly data: ChannelEventData;
     readonly seal: ChannelEventSealedData;
 }
+export type ChannelEventParams = {
+    type: ChannelEventInterface['type'];
+    data?: ChannelEventInterface['data'];
+    seal?: ChannelEventInterface['seal'];
+    metadata: Omit<ChannelEventInterface['metadata'], 'eventId' | 'nextEventId'> & {
+        eventId?: ChannelEventId;
+        nextEventId?: ChannelNextEventId;
+    };
+};
