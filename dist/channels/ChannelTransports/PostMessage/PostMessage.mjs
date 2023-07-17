@@ -28,9 +28,9 @@ const _PostMessage = class extends CoreChannel {
     request.data.origin = this.state.window.origin;
     await super.confirmOpen(request);
   }
-  async close() {
+  async close(params = {}) {
     return new Promise((resolve, reject) => {
-      super.close().then(resolve).catch((error) => {
+      super.close(params).then(resolve).catch((error) => {
         this.onCloseConfirmed(null);
         reject(error);
       });
