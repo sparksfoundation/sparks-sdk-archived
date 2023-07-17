@@ -92,11 +92,6 @@
       "import": "./dist/channels/ChannelTransports/WebRTC/index.mjs",
       "require": "./dist/channels/ChannelTransports/WebRTC/index.cjs"
     },
-    "./channels/ChannelTransports/WebRTCBackup": {
-      "types": "./dist/channels/ChannelTransports/WebRTCBackup/index.d.ts",
-      "import": "./dist/channels/ChannelTransports/WebRTCBackup/index.mjs",
-      "require": "./dist/channels/ChannelTransports/WebRTCBackup/index.cjs"
-    },
     "./ciphers": {
       "types": "./dist/ciphers/index.d.ts",
       "import": "./dist/ciphers/index.mjs",
