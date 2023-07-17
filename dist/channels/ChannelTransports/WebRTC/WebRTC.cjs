@@ -53,7 +53,6 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
     this.setStreamable();
     this.handleEvent = this.handleEvent.bind(this);
     window.addEventListener("beforeunload", async () => {
-      await this.hangup();
       await this.close();
     });
   }
@@ -126,12 +125,14 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
   async onCloseRequested(request) {
     await super.onCloseRequested(request);
     setTimeout(() => {
+      this.closeStreams();
       this.connection.close();
     }, 200);
   }
   async onCloseConfirmed(confirm) {
     await super.onCloseConfirmed(confirm);
     setTimeout(() => {
+      this.closeStreams();
       this.connection.close();
     }, 200);
   }

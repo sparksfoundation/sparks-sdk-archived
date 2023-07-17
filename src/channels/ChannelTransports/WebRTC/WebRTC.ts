@@ -41,7 +41,6 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
     this.handleEvent = this.handleEvent.bind(this);
 
     window.addEventListener('beforeunload', async () => {
-      await this.hangup();
       await this.close();
     });
   }
@@ -112,6 +111,7 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
   public async onCloseRequested(request: ChannelRequestEvent): Promise<void> {
     await super.onCloseRequested(request);
     setTimeout(() => {
+      this.closeStreams();
       this.connection.close()
     }, 200);
   }
@@ -119,6 +119,7 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
   public async onCloseConfirmed(confirm: ChannelConfirmEvent): Promise<void> {
     await super.onCloseConfirmed(confirm);
     setTimeout(() => {
+      this.closeStreams();
       this.connection.close();
     }, 200);
   }
