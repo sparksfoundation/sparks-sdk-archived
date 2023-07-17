@@ -8,7 +8,7 @@ export declare class WebRTC extends CoreChannel implements CoreChannelInterface<
     private connection;
     get state(): WebRTCState;
     constructor({ connection, ...params }: WebRTCParams);
-    getStreamable(): Promise<boolean>;
+    setStreamable(): Promise<boolean>;
     private ensurePeerConnection;
     handleEvent(event: ChannelEventParams): Promise<void>;
     sendEvent(event: ChannelEventParams): Promise<void>;
