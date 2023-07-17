@@ -18,34 +18,30 @@ const _PostMessage = class extends CoreChannel {
     if (!this.state.source) {
       this.state.source = this.state.window.open(this.peer.origin, "_blank");
     }
-    const confirm = await super.open({ data: { origin: this.state.window.origin } });
-    this.peer.origin = confirm.data.origin;
-    return confirm;
+    return await super.open({ data: { origin: this.state.window.origin } });
+  }
+  async onOpenRequested(request) {
+    this.peer.origin = request.data.origin;
+    await super.onOpenRequested(request);
   }
   async confirmOpen(request) {
-    this.peer.origin = request.data.origin;
     request.data.origin = this.state.window.origin;
-    const confirm = await super.confirmOpen(request);
-    return confirm;
+    await super.confirmOpen(request);
   }
   async close() {
-    const confirm = await super.close();
+    const confirmEvent = await super.close();
     this.state.window.removeEventListener("message", this.handleEvent);
     this.state.source = null;
-    return confirm;
+    return confirmEvent;
   }
   async confirmClose(request) {
-    const confirm = await super.confirmClose(request);
-    return confirm;
+    await super.confirmClose(request);
+    this.state.window.removeEventListener("message", this.handleEvent);
+    this.state.source = null;
   }
   async handleEvent(event) {
-    if (event.type === this.confirmTypes.CLOSE_CONFIRM) {
-      this.state.source = null;
-      this.state.window.removeEventListener("message", this.handleEvent);
-    }
-    return await super.handleEvent(event.data);
+    await super.handleEvent(event.data);
   }
-  // specify how request events are sent out
   sendEvent(event) {
     this.state.source.postMessage(event, this.peer.origin);
     return Promise.resolve();
@@ -53,7 +49,7 @@ const _PostMessage = class extends CoreChannel {
   export() {
     return {
       ...super.export(),
-      type: "PostMessage",
+      type: this.type,
       peer: { ...this.peer, origin: this.peer.origin }
     };
   }
@@ -76,7 +72,7 @@ PostMessage.receive = (callback, options) => {
         const channel = new _PostMessage({
           _window: win,
           channelId: metadata.channelId,
-          peer: { ...data.peer, origin },
+          peer: { ...data.peer, origin: origin || _source.origin },
           source: _source || source,
           spark
         });

@@ -6,11 +6,14 @@ import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "./Channe
 import { ChannelEventInterface, ChannelEventParams } from "./ChannelEvent/types";
 import { CoreChannel } from "./CoreChannel";
 
+
+export type ChannelTimeout = number;
 export type ChannelId = string;
 export type ChannelType = 'WebRTC' | 'PostMessage' | 'HttpFetch' | 'HttpRest';
 export type ChannelState = Record<string, any>;
-export type ChannelSettings = Record<string, any>;
-export type ChannelTimeout = number;
+export type ChannelSettings = Record<string, any> & {
+  readonly timeout?: ChannelTimeout;
+};
 
 export type ChannelPeer = Partial<{
   identifier: Identifier,
@@ -35,10 +38,7 @@ type CamelCase<S extends string> = S extends `${infer P1}_${infer P2}${infer P3}
   : Lowercase<S>
 
 type RequestMethod<Action extends string> = Uncapitalize<CamelCase<Action>>;
-type OnRequestMethod<Action extends string> = `on${Capitalize<CamelCase<Action>>}Requested`;
-
-type ConfirmMethod<Action extends string> = `confirm${Capitalize<CamelCase<Action>>}`;
-type OnConfirmMethod<Action extends string> = `on${Capitalize<CamelCase<Action>>}Confirmed`;
+type ConfirmMethod<Action extends string> = `confirm${Capitalize<CamelCase<Action>>}`
 
 export type CoreChannelInterface<Actions extends string[]> = {
   channelId: ChannelId,
@@ -48,16 +48,15 @@ export type CoreChannelInterface<Actions extends string[]> = {
   settings: ChannelSettings,
   eventLog: ChannelEventLog,
 
+  handleEvent(data?: any): Promise<void>,
+  sendEvent(event: ChannelEvent): Promise<void>,
+
   export(): ChannelExport,
   import(params: ChannelExport): void,
 } & {
-    [key in RequestMethod<Actions[number]>]: (params?: Partial<ChannelEventParams>) => Promise<any>;
+    [key in RequestMethod<Actions[number]>]: (params?: Partial<ChannelEventParams>) => Promise<ChannelConfirmEvent>;
   } & {
-    [key in OnRequestMethod<Actions[number]>]: (request: ChannelRequestEvent) => Promise<void>;
-  } & {
-    [key in ConfirmMethod<Actions[number]>]: (request: ChannelRequestEvent) => Promise<void>;
-  } & {
-    [key in OnConfirmMethod<Actions[number]>]: (confirm: ChannelConfirmEvent) => Promise<void>;
+    [key in ConfirmMethod<Actions[number]>]: (request: ChannelRequestEvent) => Promise<ChannelConfirmEvent>;
   }
 
 export type CoreChannelParams = {
@@ -73,11 +72,6 @@ export type CoreChannelParams = {
 
 export type CoreChannelActions = ['OPEN', 'CLOSE', 'MESSAGE'];
 export const CoreChannelActions = ['OPEN', 'CLOSE', 'MESSAGE'] as const;
-
-export type ChannelRequestParams = Partial<ChannelEventParams> & {
-  timeout?: ChannelTimeout,
-  [key: string]: any,
-}
 
 export type ChannelReceive = (
   callback: ({ event, confirmOpen }: { event: ChannelEvent, confirmOpen: () => Promise<CoreChannel> }) => Promise<void>,

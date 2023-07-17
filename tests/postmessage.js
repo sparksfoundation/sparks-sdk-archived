@@ -32,11 +32,12 @@ import { Window } from './utilities/Window.js';
 
   PostMessage.receive(async ({ event, confirmOpen }) => {
     const channel = await confirmOpen();
-    channel.on(channel.eventTypes.ANY_EVENT, async (event) => {
-      // console.log('w', channel.peer.origin, event.type);
+    channel.on(channel.eventTypes.MESSAGE_REQUEST, async (event) => {
+      const message = await channel.getEventData(event);
+      console.log('w: ', message);
     });
 
-    // await channel.message('hey');
+    await channel.message('hey alice');
 
   }, { spark: website, _window: webWindow, _source: aliceWindow });
 
@@ -47,43 +48,42 @@ import { Window } from './utilities/Window.js';
     _window: aliceWindow,
   });
 
-  channel.on(channel.eventTypes.ANY_EVENT, async (event) => {
-    // console.log('a', channel.peer.origin, event.type);
+  channel.on(channel.eventTypes.MESSAGE_REQUEST, async (event) => {
+    const message = await channel.getEventData(event);
+
   });
 
-  const confirmed = await channel.open()
-  // await channel.message('hey');
-  // await channel.message('hey');
-  // await channel.message('hey');
-  await channel.message('hey');
-  await channel.close();
+  await channel.open()
 
-  process.exit(0);
-  
+  await channel.message('hey website');
+  await channel.message('hey website');
+  await channel.message('hey website');
+  await channel.message('hey website');
+
   const backup = await channel.export();
-  // go through the event log and check to make sure eventId === prev nextEventId
   for (let i = 0; i < backup.eventLog.length; i++) {
     const event = backup.eventLog[i];
     const nextEvent = backup.eventLog[i + 1];
+    console.log(!!event.request, event.type);
     if (nextEvent) {
       const matched = event.metadata.nextEventId === nextEvent.metadata.eventId;
     }
   }
 
-  const newChannes = new PostMessage({
-    spark: alice,
-    source: webWindow,
-    peer: { origin: webWindow.origin },
-    _window: aliceWindow,
-  });
+  // const newChannes = new PostMessage({
+  //   spark: alice,
+  //   source: webWindow,
+  //   peer: { origin: webWindow.origin },
+  //   _window: aliceWindow,
+  // });
 
-  newChannes.on(channel.eventTypes.ANY_EVENT, async (event) => {
-    // console.log('a', channel.peer.origin, event.type);
-  });
+  // newChannes.on(channel.eventTypes.ANY_EVENT, async (event) => {
+  //   console.log('a', channel.peer.origin, event.type);
+  // });
 
-  await newChannes.import(backup);
-  await newChannes.open();
+  // await newChannes.import(backup);
+  // await newChannes.open();
   
-  await newChannes.close();
+  // await newChannes.close();
   
 }())

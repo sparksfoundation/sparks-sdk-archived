@@ -1,4 +1,4 @@
-import { ChannelExport, CoreChannelParams } from "../../types";
+import { ChannelExport, ChannelType, CoreChannelParams } from "../../types";
 
 export type PostMessageParams = CoreChannelParams & {
   _window?: Window;
@@ -6,7 +6,7 @@ export type PostMessageParams = CoreChannelParams & {
 }
 
 export type PostMessageExport = ChannelExport & {
-  type: 'PostMessage';
+  type: ChannelType,
   peer: ChannelExport['peer'] & {
     origin: string;
   }

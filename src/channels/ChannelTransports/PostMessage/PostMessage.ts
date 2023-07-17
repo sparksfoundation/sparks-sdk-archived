@@ -1,4 +1,4 @@
-import { ChannelEvent } from "../../ChannelEvent";
+import { ChannelEvent, ChannelRequestEvent } from "../../ChannelEvent";
 import { CoreChannel } from "../../CoreChannel";
 import { ChannelReceive, CoreChannelActions, CoreChannelInterface } from "../../types";
 import { PostMessageExport, PostMessageParams } from "./types";
@@ -25,39 +25,36 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
     if (!this.state.source) {
       this.state.source = this.state.window.open(this.peer.origin, '_blank');
     }
-    const confirm = await super.open({ data: { origin: this.state.window.origin } });
-    this.peer.origin = confirm.data.origin;
-    return confirm
+    return await super.open({ data: { origin: this.state.window.origin } });
+  }
+
+  public async onOpenRequested(request: ChannelRequestEvent) {
+    this.peer.origin = request.data.origin;
+    await super.onOpenRequested(request);
   }
 
   public async confirmOpen(request) {
-    this.peer.origin = request.data.origin;
     request.data.origin = this.state.window.origin;
-    const confirm = await super.confirmOpen(request);
-    return confirm
+    await super.confirmOpen(request);
   }
 
   public async close() {
-    const confirm = await super.close();
+    const confirmEvent = await super.close();
     this.state.window.removeEventListener('message', this.handleEvent);
     this.state.source = null;
-    return confirm
+    return confirmEvent;
   }
 
   public async confirmClose(request) {
-    const confirm = await super.confirmClose(request);
-    return confirm
+    await super.confirmClose(request);
+    this.state.window.removeEventListener('message', this.handleEvent);
+    this.state.source = null;
   }
 
-  public async handleEvent(event) {
-    if (event.type === this.confirmTypes.CLOSE_CONFIRM) {
-      this.state.source = null;
-      this.state.window.removeEventListener('message', this.handleEvent);
-    }
-    return await super.handleEvent(event.data as ChannelEvent);
+  public async handleEvent(event: any) {
+    await super.handleEvent(event.data as ChannelEvent);
   }
 
-  // specify how request events are sent out
   public sendEvent(event: ChannelEvent) {
     this.state.source.postMessage(event, this.peer.origin);
     return Promise.resolve();
@@ -66,7 +63,7 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
   public export(): PostMessageExport {
     return {
       ...super.export(),
-      type: 'PostMessage',
+      type: this.type,
       peer: { ...this.peer, origin: this.peer.origin },
     }
   }
@@ -89,7 +86,7 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
           const channel = new PostMessage({
             _window: win,
             channelId: metadata.channelId,
-            peer: { ...data.peer, origin: origin },
+            peer: { ...data.peer, origin: origin || _source.origin },
             source: _source || source,
             spark: spark,
           });
