@@ -14,11 +14,11 @@ const _PostMessage = class extends CoreChannel {
       this.state.window.removeEventListener("message", this.handleEvent);
     });
   }
-  async open() {
+  async open(params = {}) {
     if (!this.state.source) {
       this.state.source = this.state.window.open(this.peer.origin, "_blank");
     }
-    return await super.open({ data: { origin: this.state.window.origin } });
+    return await super.open({ data: { origin: this.state.window.origin }, ...params });
   }
   async onOpenRequested(request) {
     this.peer.origin = request.data.origin;
@@ -29,15 +29,22 @@ const _PostMessage = class extends CoreChannel {
     await super.confirmOpen(request);
   }
   async close() {
-    const confirmEvent = await super.close();
-    this.state.window.removeEventListener("message", this.handleEvent);
-    this.state.source = null;
-    return confirmEvent;
+    return new Promise((resolve, reject) => {
+      super.close().then(resolve).catch((error) => {
+        this.onCloseConfirmed(null);
+        reject(error);
+      });
+    });
   }
-  async confirmClose(request) {
-    await super.confirmClose(request);
+  async onCloseConfirmed(confirm) {
+    await super.onCloseConfirmed(confirm);
     this.state.window.removeEventListener("message", this.handleEvent);
     this.state.source = null;
+  }
+  async onCloseRequested(request) {
+    await super.onCloseRequested(request);
+    this.state.source = null;
+    this.state.window.removeEventListener("message", this.handleEvent);
   }
   async handleEvent(event) {
     await super.handleEvent(event.data);

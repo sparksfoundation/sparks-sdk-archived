@@ -5,6 +5,7 @@ import { ChannelRequestEvent, ChannelEvent, ChannelConfirmEvent } from "./Channe
 import { ChannelEventData, ChannelEventParams, ChannelEventType } from "./ChannelEvent/types";
 import { ChannelEventLog, ChannelExport, ChannelPeer, ChannelRequestParams, ChannelSettings, ChannelState, ChannelType, CoreChannelActions, CoreChannelInterface } from "./types";
 import { SignerPublicKey } from "../signers/types";
+import { EncryptedData } from "../ciphers/types";
 export declare class CoreChannel extends ChannelEmitter implements CoreChannelInterface<CoreChannelActions> {
     private _spark;
     private _channelId;
@@ -39,9 +40,9 @@ export declare class CoreChannel extends ChannelEmitter implements CoreChannelIn
     protected get spark(): Spark<any, any, any, any, any>;
     protected sendEvent(event: ChannelEvent): Promise<void>;
     protected handleEvent(params: ChannelEventParams | ChannelErrorParams): Promise<void>;
-    getEventData(event: ChannelEvent, signingKey?: SignerPublicKey): Promise<any>;
+    openEventData(data: EncryptedData, signingKey?: SignerPublicKey): Promise<any>;
     protected sealEventData(data: ChannelEventData, signingKey?: SignerPublicKey): Promise<any>;
-    protected dispatchRequest(request: ChannelRequestEvent, timeout?: null): Promise<ChannelConfirmEvent>;
+    protected dispatchRequest(request: ChannelRequestEvent, timeout?: number): Promise<ChannelConfirmEvent>;
     open(params?: ChannelRequestParams): Promise<CoreChannel>;
     onOpenRequested(request: ChannelRequestEvent): Promise<void>;
     confirmOpen(request: ChannelRequestEvent): Promise<void>;
@@ -50,7 +51,7 @@ export declare class CoreChannel extends ChannelEmitter implements CoreChannelIn
     onCloseRequested(request: ChannelRequestEvent): Promise<void>;
     confirmClose(request: ChannelRequestEvent): Promise<void>;
     onCloseConfirmed(confirm: ChannelConfirmEvent): Promise<void>;
-    message(message: ChannelEventData, options?: ChannelRequestParams): Promise<ChannelConfirmEvent>;
+    message(message: ChannelEventData | string, options?: ChannelRequestParams): Promise<ChannelConfirmEvent>;
     onMessageRequested(request: ChannelRequestEvent): Promise<void>;
     confirmMessage(request: ChannelRequestEvent): Promise<void>;
     onMessageConfirmed(confirm: ChannelConfirmEvent): Promise<void>;

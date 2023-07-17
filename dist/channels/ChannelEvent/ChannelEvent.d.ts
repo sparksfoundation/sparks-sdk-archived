@@ -1,6 +1,5 @@
 import { ChannelEventInterface, ChannelEventRequestType, ChannelEventConfirmType, ChannelEventParams } from "./types";
 export declare class ChannelEvent implements ChannelEventInterface {
-    private static _nextEventId;
     readonly type: ChannelEventInterface['type'];
     readonly timestamp: ChannelEventInterface['timestamp'];
     readonly metadata: ChannelEventInterface['metadata'];

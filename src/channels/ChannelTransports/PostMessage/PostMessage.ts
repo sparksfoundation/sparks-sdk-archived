@@ -1,4 +1,4 @@
-import { ChannelEvent, ChannelRequestEvent } from "../../ChannelEvent";
+import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../../ChannelEvent";
 import { CoreChannel } from "../../CoreChannel";
 import { ChannelReceive, CoreChannelActions, CoreChannelInterface } from "../../types";
 import { PostMessageExport, PostMessageParams } from "./types";
@@ -21,11 +21,11 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
     })
   }
 
-  public async open() {
+  public async open(params = {}) {
     if (!this.state.source) {
       this.state.source = this.state.window.open(this.peer.origin, '_blank');
     }
-    return await super.open({ data: { origin: this.state.window.origin } });
+    return await super.open({ data: { origin: this.state.window.origin }, ...params });
   }
 
   public async onOpenRequested(request: ChannelRequestEvent) {
@@ -39,16 +39,27 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
   }
 
   public async close() {
-    const confirmEvent = await super.close();
-    this.state.window.removeEventListener('message', this.handleEvent);
-    this.state.source = null;
-    return confirmEvent;
+    return new Promise<ChannelConfirmEvent>((resolve, reject) => {
+      super.close()
+        .then(resolve)
+        .catch(error => {
+          // assume closed if we get an error
+          this.onCloseConfirmed(null);
+          reject(error);
+        })
+    });
   }
 
-  public async confirmClose(request) {
-    await super.confirmClose(request);
+  public async onCloseConfirmed(confirm: ChannelConfirmEvent) {
+    await super.onCloseConfirmed(confirm);
     this.state.window.removeEventListener('message', this.handleEvent);
     this.state.source = null;
+  }
+
+  public async onCloseRequested(request: ChannelRequestEvent) {
+    await super.onCloseRequested(request);
+    this.state.source = null;
+    this.state.window.removeEventListener('message', this.handleEvent);
   }
 
   public async handleEvent(event: any) {

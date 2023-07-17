@@ -14,6 +14,7 @@ import {
 import merge from "lodash.merge";
 import toCase from "to-case";
 import { SignerPublicKey } from "../signers/types";
+import { EncryptedData } from "../ciphers/types";
 
 export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<CoreChannelActions> {
   private _spark: Spark<any, any, any, any, any>;
@@ -56,6 +57,9 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
       await sendEvent(event);
       await this.logEvent(event, { request: true });
     }
+
+    this.sendEvent = this.sendEvent.bind(this);
+    this.handleEvent = this.handleEvent.bind(this);
   }
 
   public get channelId() { return this._channelId; }
@@ -79,15 +83,15 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
         case this.requestTypes.hasOwnProperty(params.type):
           const request = new ChannelRequestEvent(params as ChannelEventParams);
           const requestHandler = this.getRequestHandlerName(request.type);
-          await this[requestHandler](request);
           await this.logEvent(request, { response: true });
+          await this[requestHandler](request);
           this.emit(request.type, request);
           break;
         case this.confirmTypes.hasOwnProperty(params.type):
           const confirm = new ChannelConfirmEvent(params as ChannelEventParams);
           const confirmHandler = this.getConfirmHandlerName(confirm.type);
-          await this[confirmHandler](confirm);
           await this.logEvent(confirm, { response: true });
+          await this[confirmHandler](confirm);
           this.emit(confirm.type, confirm);
           break;
         case this.errorTypes.hasOwnProperty(params.type):
@@ -96,6 +100,7 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
           break;
       }
     } catch (error) {
+      console.log('error handling event', error)
       if (error instanceof ChannelError) {
         this.emit(ChannelErrorType.HANDLE_EVENT_ERROR, error);
         return;
@@ -107,11 +112,11 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
     }
   }
 
-  public async getEventData(event: ChannelEvent, signingKey?: SignerPublicKey) {
-    if (!!event.data && !event.seal) return event.data;
+  public async openEventData(data: EncryptedData, signingKey?: SignerPublicKey) {
+    if (!data) return data;
     // we can assume that we're trying to open a message from the peer
     const publicKey = signingKey || this.peer.publicKeys.signer;
-    const opened = await this.spark.signer.open({ signature: event.seal, publicKey });
+    const opened = await this.spark.signer.open({ signature: data, publicKey });
     const decrypted = await this.spark.cipher.decrypt({ data: opened, sharedKey: this.peer.sharedKey });
     return decrypted;
   }
@@ -119,14 +124,14 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
   protected async sealEventData(data: ChannelEventData, signingKey?: SignerPublicKey) {
     const encrypted = await this.spark.cipher.encrypt({ data, sharedKey: this.peer.sharedKey });
     const seal = await this.spark.signer.seal({ data: encrypted, signingKey });
-    return seal;    
+    return seal;
   }
 
-  protected async dispatchRequest(request: ChannelRequestEvent, timeout = null): Promise<ChannelConfirmEvent> {
+  protected async dispatchRequest(request: ChannelRequestEvent, timeout = 5000): Promise<ChannelConfirmEvent> {
     return new Promise<ChannelConfirmEvent>(async (resolve, reject) => {
       const baseType = request.type.replace('_REQUEST', '');
       const confirmType = this.confirmTypes[`${baseType}_CONFIRM`];
-
+      
       const isOpen = this.requestTypes.OPEN_REQUEST === request.type;
       if (!isOpen && !this.state.open) {
         return reject(ChannelErrors.ChannelClosedError({
@@ -140,18 +145,24 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
         }));
       }
 
+      let timer;
+
       const listener = (confirm: ChannelConfirmEvent) => {
+        clearTimeout(timer);
         resolve(confirm);
       }
-  
+
       this.once(confirmType, listener);
 
       if (timeout) {
-        setTimeout(() => {
+        timer = setTimeout(() => {
+          clearTimeout(timer);
           this.off(confirmType, listener);
-          reject(ChannelErrors.ConfirmTimeoutError({
+          const error = ChannelErrors.ConfirmTimeoutError({
             metadata: { channelId: this.channelId, eventType: request.type }
-          }));
+          });
+          this.emit(error.type, error);
+          reject(error);
         }, timeout);
       }
 
@@ -169,8 +180,9 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
         publicKeys: this.spark.publicKeys,
       };
       const request = new ChannelRequestEvent({ type, metadata, data });
-      await this.dispatchRequest(request, params.timeout);
-      resolve(this);
+      this.dispatchRequest(request, params.timeout)
+        .then(() => resolve(this))
+        .catch((error) => reject(error));
     })
   }
 
@@ -186,13 +198,17 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
     const type = this.confirmTypes.OPEN_CONFIRM;
     const { eventId, channelId, ...meta } = request?.metadata;
     const metadata = { ...meta, channelId: this.channelId };
+    const receipt = await this.sealEventData(request);
+
     const data = {
       ...request?.data,
       identifier: this.spark.identifier,
       publicKeys: this.spark.publicKeys,
+      receipt,
     };
+    
     const confirm = new ChannelConfirmEvent({ type, metadata, data });
-    await this.sendEvent(confirm as ChannelConfirmEvent);
+    this.sendEvent(confirm as ChannelConfirmEvent);
   }
 
   public async onOpenConfirmed(confirm: ChannelConfirmEvent) {
@@ -208,13 +224,22 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
       const metadata = { ...params.metadata, channelId: this.channelId };
       const data = { ...params.data };
       const request = new ChannelRequestEvent({ type, metadata, data });
-      const confirmEvent = await this.dispatchRequest(request, params.timeout);
-      resolve(confirmEvent);
+      this.dispatchRequest(request, params.timeout)
+        .then((confirm) => { resolve(confirm) })
+        .catch((error) => {
+          // assume closed if we get a timeout error
+          this.onCloseConfirmed(null);
+          reject(error);
+        });
     })
   }
 
   public async onCloseRequested(request: ChannelRequestEvent) {
     await this.confirmClose(request);
+    this.state.open = false;
+    setTimeout(() => {
+      this.removeAllListeners();
+    }, 100)
   }
 
   public async confirmClose(request: ChannelRequestEvent) {
@@ -226,26 +251,27 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
     const type = this.confirmTypes.CLOSE_CONFIRM;
     const { eventId, channelId, ...meta } = request?.metadata;
     const metadata = { ...meta, channelId: this.channelId };
-    const data = { ...request?.data };
+    const receipt = await this.sealEventData(request);
+    const data = { ...request?.data, receipt };
     const confirm = new ChannelConfirmEvent({ type, metadata, data });
     await this.sendEvent(confirm as ChannelConfirmEvent);
-    // this.state.open = false;
-    // this.removeAllListeners();
   }
 
   public async onCloseConfirmed(confirm: ChannelConfirmEvent) {
     this.state.open = false;
-    this.removeAllListeners();
+    setTimeout(() => {
+      this.removeAllListeners();
+    }, 100)
   }
 
-  public async message(message: ChannelEventData, options: ChannelRequestParams = {}): Promise<ChannelConfirmEvent> {
+  public async message(message: ChannelEventData | string, options: ChannelRequestParams = {}): Promise<ChannelConfirmEvent> {
     return new Promise<ChannelConfirmEvent>(async (resolve, reject) => {
       const type = this.requestTypes.MESSAGE_REQUEST;
       const metadata = { channelId: this.channelId };
-      const seal = await this.sealEventData(message);
+      const seal = await this.sealEventData(message as ChannelEventData);
       const request = new ChannelRequestEvent({ type, metadata, seal });
       const confirm = await this.dispatchRequest(request, options.timeout);
-      resolve(confirm);
+      return resolve(confirm);
     });
   }
 
@@ -262,20 +288,14 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
     const type = this.confirmTypes.MESSAGE_CONFIRM;
     const { eventId, channelId, ...meta } = request?.metadata;
     const metadata = { ...meta, channelId: this.channelId };
-    const data = await this.getEventData(request);
-    const sealData = {
-      type: request.type,
-      timestamp: request.timestamp,
-      metadata: request.metadata,
-      data: data,
-    };
-    const encrypted = await this.spark.cipher.encrypt({ data: sealData, sharedKey: this.peer.sharedKey });
-    const seal = await this.spark.signer.seal({ data: encrypted });
-    const confirm = new ChannelConfirmEvent({ type, metadata, seal });
-    await this.sendEvent(confirm as ChannelConfirmEvent);
+    const data = await this.openEventData(request.seal);
+    const receipt = await this.sealEventData({ ...request, data });
+    const confirm = new ChannelConfirmEvent({ type, metadata, data: { receipt } });
+    this.sendEvent(confirm as ChannelConfirmEvent);
   }
 
   public async onMessageConfirmed(confirm: ChannelConfirmEvent) {
+    return Promise.resolve();
   }
 
   public export(): ChannelExport {
@@ -306,7 +326,7 @@ export class CoreChannel extends ChannelEmitter implements CoreChannelInterface<
   private async logEvent(event: ChannelEvent, { request = undefined, response = undefined } = {}) {
     if (!event.data && !!event.seal) {
       const publicKey = request ? this.spark.publicKeys.signer : this.peer.publicKeys.signer;
-      const data = await this.getEventData(event, publicKey);
+      const data = await this.openEventData(event.seal, publicKey);
       this.eventLog.push({ ...event, data: data, request, response });
     } else {
       this._eventLog.push({ ...event, request, response })

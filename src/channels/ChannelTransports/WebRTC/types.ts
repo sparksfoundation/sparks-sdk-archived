@@ -8,13 +8,13 @@ export type WebRTCParams = CoreChannelParams & {
 }
 
 export type WebRTCMediaStreams = {
-  call: Nullbale<MediaConnection>,
   local: Nullbale<MediaStream>,
   remote: Nullbale<MediaStream>,
 }
 
 export type WebRTCState = ChannelState & {
   streamable: boolean,
+  call: Nullbale<MediaConnection>,
   streams: WebRTCMediaStreams,
 }
 

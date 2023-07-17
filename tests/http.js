@@ -30,8 +30,8 @@ global.fetch = fetch;
             await channel.open();
             console.log('user', (i + 1), 'connected');
             channel.on('MESSAGE_CONFIRM', async (event) => {
-              const data = await channel.openEvent(event);
-              console.log(data.data);
+                const receipt = await channel.openEventData(event.data.receipt);
+                console.log(receipt.data);
             });
             channels.push(channel);
         }

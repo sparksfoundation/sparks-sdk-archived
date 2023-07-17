@@ -33,12 +33,11 @@ import { Window } from './utilities/Window.js';
   PostMessage.receive(async ({ event, confirmOpen }) => {
     const channel = await confirmOpen();
     channel.on(channel.eventTypes.MESSAGE_REQUEST, async (event) => {
-      const message = await channel.getEventData(event);
+      const message = await channel.openEventData(event.seal);
       console.log('w: ', message);
     });
 
     await channel.message('hey alice');
-
   }, { spark: website, _window: webWindow, _source: aliceWindow });
 
   const channel = new PostMessage({
@@ -49,41 +48,37 @@ import { Window } from './utilities/Window.js';
   });
 
   channel.on(channel.eventTypes.MESSAGE_REQUEST, async (event) => {
-    const message = await channel.getEventData(event);
-
+    const message = await channel.openEventData(event.seal);
+    console.log('a: ', message);
   });
 
-  await channel.open()
-
+  await channel.open();
   await channel.message('hey website');
   await channel.message('hey website');
   await channel.message('hey website');
   await channel.message('hey website');
 
-  const backup = await channel.export();
-  for (let i = 0; i < backup.eventLog.length; i++) {
-    const event = backup.eventLog[i];
-    const nextEvent = backup.eventLog[i + 1];
-    console.log(!!event.request, event.type);
-    if (nextEvent) {
-      const matched = event.metadata.nextEventId === nextEvent.metadata.eventId;
-    }
-  }
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await channel.close();
 
-  // const newChannes = new PostMessage({
-  //   spark: alice,
-  //   source: webWindow,
-  //   peer: { origin: webWindow.origin },
-  //   _window: aliceWindow,
-  // });
+  const backup = channel.export();
 
-  // newChannes.on(channel.eventTypes.ANY_EVENT, async (event) => {
-  //   console.log('a', channel.peer.origin, event.type);
-  // });
+  const newChannes = new PostMessage({
+    spark: alice,
+    source: webWindow,
+    peer: { origin: webWindow.origin },
+    _window: aliceWindow,
+  });
 
-  // await newChannes.import(backup);
-  // await newChannes.open();
-  
-  // await newChannes.close();
-  
+  newChannes.on(channel.eventTypes.ANY_EVENT, async (event) => {
+    console.log('a: ', event.type);
+  });
+
+  await newChannes.import(backup);
+  await newChannes.open();
+
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await newChannes.close();
+
+  console.log('done')
 }())

@@ -2,7 +2,7 @@ import Peer, { DataConnection } from "peerjs";
 import { ChannelConfirmEvent, ChannelRequestEvent } from "../../ChannelEvent";
 import { ChannelEventParams } from "../../ChannelEvent/types";
 import { CoreChannel } from "../../CoreChannel";
-import { ChannelReceive, CoreChannelInterface } from "../../types";
+import { ChannelReceive, ChannelRequestParams, CoreChannelInterface } from "../../types";
 import { WebRTCActions, WebRTCParams, WebRTCState } from "./types";
 import { ChannelErrors } from "../../../errors/channel";
 
@@ -23,11 +23,11 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
 
   constructor({ connection, ...params }: WebRTCParams) {
     const type = 'WebRTC';
-    super({ ...params, type, actions: [ ...WebRTCActions ] });
+    super({ ...params, type, actions: [...WebRTCActions] });
 
     this.state.streamable = null;
+    this.state.call = null;
     this.state.streams = {
-      call: null,
       local: null,
       remote: null,
     };
@@ -39,6 +39,11 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
 
     this.setStreamable();
     this.handleEvent = this.handleEvent.bind(this);
+
+    window.addEventListener('beforeunload', async () => {
+      await this.hangup();
+      await this.close();
+    });
   }
 
   public async setStreamable(): Promise<boolean> {
@@ -54,6 +59,22 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
     });
   }
 
+  public async getLocalStream(): Promise<MediaStream> {
+    if (!this.state.streamable) {
+      const metadata = { channelId: this.channelId };
+      return Promise.reject(ChannelErrors.NoStreamsAvailableError({ metadata }));
+    }
+
+    if (this.state.streams.local) {
+      return Promise.resolve(this.state.streams.local);
+    }
+
+    return await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+  }
+
   private async ensurePeerConnection(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.connection && this.connection.open) {
@@ -66,118 +87,106 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
         this.connection.on('data', this.handleEvent);
         resolve();
       });
+
+      setTimeout(() => {
+        if (connection.open) return;
+        reject(ChannelErrors.ConfirmTimeoutError({ metadata: { channelId: this.channelId } }));
+      }, 5000);
     });
   }
 
   public async handleEvent(event: ChannelEventParams) {
-    if (event.type === this.confirmTypes.CLOSE_CONFIRM) {
-      this.connection.close();
-    }
+    console.log('handleEvent', event.type)
     return super.handleEvent(event);
   }
 
   public async sendEvent(event: ChannelEventParams) {
+    console.log('sendEvent', event.type)
     this.connection.send(event);
     return Promise.resolve();
   }
 
-  public async open(): Promise<ChannelConfirmEvent> {
+  public async open() {
     await this.ensurePeerConnection();
-    return super.open();
+    return await super.open();
   }
 
-  public async close(): Promise<ChannelConfirmEvent> {
-    const confirm = await super.close();
-    this.connection.close();
-    return confirm;
+  public async onCloseRequested(request: ChannelRequestEvent): Promise<void> {
+    await super.onCloseRequested(request);
+    setTimeout(() => {
+      this.connection.close()
+    }, 200);
   }
 
-  public async confirmClose(request: ChannelRequestEvent): Promise<ChannelConfirmEvent> {
-    const confirm = await super.confirmClose(request);
-    // normally we would close the connection here, but we need to wait for the
-    // peerjs to emit the close event, it's unreliable to do it here so we do it
-    // in the handleEvent method which gives assurance that the confirmation is in
-    return confirm;
+  public async onCloseConfirmed(confirm: ChannelConfirmEvent): Promise<void> {
+    await super.onCloseConfirmed(confirm);
+    setTimeout(() => {
+      this.connection.close();
+    }, 200);
   }
 
   public async call(): Promise<ChannelConfirmEvent> {
-    return new Promise<ChannelConfirmEvent>(async (resolve, reject) => {
-      if (!this.state.open) {
-        const metadata = { channelId: this.channelId };
-        return Promise.reject(ChannelErrors.ChannelClosedError({ metadata }));
-      }
-  
-      const requestEvent = new ChannelRequestEvent({
-        type: this.requestTypes.CALL_REQUEST,
-        data: {},
-        metadata: { channelId: this.channelId },
-      });
-      
-      const confirmEvent = await this.dispatchRequest(requestEvent)
-      
-      // we have permission to call, so we call
+    const requestEvent = new ChannelRequestEvent({
+      type: this.requestTypes.CALL_REQUEST,
+      data: { identifier: this.spark.identifier },
+      metadata: { channelId: this.channelId },
+    });
+    const confirmEvent = await this.dispatchRequest(requestEvent, 10000);
+    return confirmEvent;
+  }
+
+  public async handleCallRequest(request: ChannelRequestEvent) {
+    return Promise.resolve();
+  }
+  public async onCallRequested(request: ChannelRequestEvent) {
+    return new Promise<void>(async (resolve, reject) => {
       const address = WebRTC.deriveAddress(this.peer.identifier);
-  
-      this.state.streams.local = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true,
-      });
-  
-      this.state.call = WebRTC.peerjs.call(address, this.state.streams.local);
-  
-      this.state.call.on('stream', (remote) => {
-        this.state.streams.remote = remote;
-        resolve(confirmEvent);
-      });
+      this.state.streams.local = await this.getLocalStream();
+      this.handleCallRequest(request)
+        .then(() => {
+          WebRTC.peerjs.once('call', async call => {
+            call.on('stream', (stream) => {
+              this.state.call = call;
+              this.state.streams.remote = stream;
+              resolve();
+            });
+
+            if (call.peer !== address) return;
+            call.answer(this.state.streams.local);
+          });
+          this.confirmCall(request);
+        })
+        .catch((error) => {
+          reject(error);
+        });
     });
   }
 
-  public async confirmCall(request: ChannelRequestEvent): Promise<ChannelConfirmEvent> {
+  public async onCallConfirmed(confirm: ChannelConfirmEvent): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      const address = WebRTC.deriveAddress(this.peer.identifier);
+      this.state.streams.local = await this.getLocalStream();
+      this.state.call = WebRTC.peerjs.call(address, this.state.streams.local);
+      this.state.call.on('stream', (remote) => {
+        this.state.streams.remote = remote;
+        resolve();
+      });
+    })
+  }
+
+  public async confirmCall(request: ChannelRequestEvent) {
     if (!this.state.open) {
       const metadata = { channelId: this.channelId };
       return Promise.reject(ChannelErrors.ChannelClosedError({ metadata }));
     }
-
-    // todo - handle accepting or rejecting the call via popup
-    // if this.acceptCall() or something
-
-    this.state.streams.local = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-
-    if (!this.state.streams.local) {
-      const metadata = { channelId: this.channelId };
-      return Promise.reject(ChannelErrors.NoStreamsAvailableError({ metadata }));
-    }
-
-    const sealData = {
-      type: request.type,
-      timestamp: request.timestamp,
-      metadata: request.metadata,
-    };
-
-    const encrypted = await this.spark.cipher.encrypt({ data: sealData, sharedKey: this.peer.sharedKey });
-    const seal = await this.spark.signer.seal({ data: encrypted });
-
+    const receipt = await this.sealEventData(request);
     const confirmEvent = new ChannelConfirmEvent({
       type: this.confirmTypes.CALL_CONFIRM,
       metadata: { channelId: this.channelId },
-      seal,
+      data: { identifier: this.spark.identifier, receipt },
     });
 
     await this.sendEvent(confirmEvent as ChannelConfirmEvent);
-
-    WebRTC.peerjs.once('call', async call => {
-      call.on('stream', (stream) => {
-        this.state.call = call;
-        this.state.streams.remote = stream;
-      });
-
-      call.answer(this.state.streams.local);
-    });
-
-    return Promise.resolve(confirmEvent);
   }
 
   private closeStreams() {
@@ -186,46 +195,47 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
     this.state.streams.remote.getTracks().forEach(track => track.stop());
     this.state.streams.local = null;
     this.state.streams.remote = null;
+    this.state.call = null;
   }
 
-  public async hangup(): Promise<ChannelConfirmEvent> {
-    if (!this.state.open) {
-      return Promise.reject(ChannelErrors.ChannelClosedError({ metadata: { channelId: this.channelId } }));
-    }
-
-    const type = this.requestTypes.CLOSE_REQUEST;
-    const metadata = { channelId: this.channelId };
-    const data = {};
-    const request = new ChannelRequestEvent({ type, metadata, data });
-    const confirm = await this.dispatchRequest(request);
-    this.closeStreams();
-
-    return Promise.resolve(confirm);
-  }
-
-  public async confirmHangup(request: ChannelRequestEvent): Promise<ChannelConfirmEvent> {
-    if (!this.state.open) {
-      return Promise.reject(ChannelErrors.ChannelClosedError({ metadata: { channelId: this.channelId } }));
-    }
-    const sealData = {
-      type: request.type,
-      timestamp: request.timestamp,
-      metadata: request.metadata,
-    };
-
-    const encrypted = await this.spark.cipher({ data: sealData, sharedKey: this.peer.sharedKey });
-    const seal = await this.spark.signer({ data: encrypted });
-
-    const confirm = new ChannelConfirmEvent({ 
-      type: this.confirmTypes.CLOSE_CONFIRM, 
-      metadata: { channelId: this.channelId }, 
-      seal 
+  public async hangup(params: ChannelRequestParams = {}): Promise<ChannelConfirmEvent> {
+    return new Promise(async (resolve, reject) => {
+      if (!this.state.open) {
+        return reject(ChannelErrors.ChannelClosedError({ metadata: { channelId: this.channelId } }));
+      }
+      const type = this.requestTypes.HANGUP_REQUEST;
+      const metadata = { channelId: this.channelId };
+      const data = {};
+      const request = new ChannelRequestEvent({ type, metadata, data });
+      this.dispatchRequest(request, params.timeout)
+        .then((confirm) => { resolve(confirm) })
+        .catch((error) => {
+          this.onHangupConfirmed(null);
+          reject(error);
+        });
     });
+  }
 
-    await this.sendEvent(confirm as ChannelConfirmEvent);
+  public async confirmHangup(request: ChannelRequestEvent) {
+    if (!this.state.open) {
+      return Promise.reject(ChannelErrors.ChannelClosedError({ metadata: { channelId: this.channelId } }));
+    }
+    const receipt = await this.sealEventData(request);
+    const confirm = new ChannelConfirmEvent({
+      type: this.confirmTypes.HANGUP_CONFIRM,
+      metadata: { channelId: this.channelId },
+      data: { receipt },
+    });
+    this.sendEvent(confirm as ChannelConfirmEvent);
+  }
+
+  public async onHangupRequested(request: ChannelRequestEvent) {
+    await this.confirmHangup(request);
     this.closeStreams();
-    
-    return Promise.resolve(confirm);
+  }
+
+  public async onHangupConfirmed(confirm: ChannelConfirmEvent) {
+    this.closeStreams();
   }
 
   protected static peerjs: Peer;

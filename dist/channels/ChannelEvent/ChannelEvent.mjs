@@ -12,26 +12,20 @@ function getUtcEpochTimestamp() {
   );
   return utcTimestamp;
 }
-const _ChannelEvent = class {
+export class ChannelEvent {
   constructor(params) {
     const { type, metadata, data = void 0, seal = void 0 } = params;
     this.type = type;
     this.data = data;
     this.seal = seal;
     this.timestamp = getUtcEpochTimestamp();
-    const eventId = metadata.eventId && metadata.nextEventId ? metadata.eventId : _ChannelEvent._nextEventId;
-    const nextEventId = metadata.eventId && metadata.nextEventId ? metadata.nextEventId : cuid();
-    _ChannelEvent._nextEventId = nextEventId;
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId,
-      nextEventId
+      eventId: metadata.eventId || cuid()
     };
   }
-};
-export let ChannelEvent = _ChannelEvent;
-ChannelEvent._nextEventId = cuid();
+}
 export class ChannelRequestEvent extends ChannelEvent {
   constructor(params) {
     super(params);

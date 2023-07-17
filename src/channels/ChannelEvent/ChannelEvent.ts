@@ -1,6 +1,6 @@
 import cuid from "cuid";
 import { 
-  ChannelNextEventId, ChannelEventInterface, ChannelEventRequestType, 
+  ChannelEventInterface, ChannelEventRequestType, 
   ChannelEventConfirmType, ChannelEventParams
 } from "./types";
 
@@ -19,8 +19,6 @@ function getUtcEpochTimestamp() {
 }
 
 export class ChannelEvent implements ChannelEventInterface {
-  private static _nextEventId: ChannelNextEventId = cuid();
-
   public readonly type: ChannelEventInterface['type'];
   public readonly timestamp: ChannelEventInterface['timestamp'];
   public readonly metadata: ChannelEventInterface['metadata'];
@@ -34,15 +32,10 @@ export class ChannelEvent implements ChannelEventInterface {
     this.seal = seal;
     this.timestamp = getUtcEpochTimestamp();
 
-    const eventId = metadata.eventId && metadata.nextEventId ? metadata.eventId : ChannelEvent._nextEventId;
-    const nextEventId = metadata.eventId && metadata.nextEventId ? metadata.nextEventId : cuid();
-    ChannelEvent._nextEventId = nextEventId;
-
     this.metadata = {
       ...metadata,
       channelId: metadata.channelId,
-      eventId: eventId,
-      nextEventId: nextEventId,
+      eventId: metadata.eventId || cuid(),
     };
   }
 }
