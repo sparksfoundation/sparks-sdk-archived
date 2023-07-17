@@ -205,9 +205,9 @@ const _WebRTC = class extends _CoreChannel.CoreChannel {
     await this.sendEvent(confirmEvent);
   }
   closeStreams() {
-    this.state.call.close();
-    this.state.streams.local.getTracks().forEach(track => track.stop());
-    this.state.streams.remote.getTracks().forEach(track => track.stop());
+    if (this.state.call) this.state.call.close();
+    if (this.state.streams.local) this.state.streams.local.getTracks().forEach(track => track.stop());
+    if (this.state.streams.remote) this.state.streams.remote.getTracks().forEach(track => track.stop());
     this.state.streams.local = null;
     this.state.streams.remote = null;
     this.state.call = null;
