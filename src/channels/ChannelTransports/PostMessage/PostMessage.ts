@@ -1,6 +1,6 @@
 import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../../ChannelEvent";
 import { CoreChannel } from "../../CoreChannel";
-import { ChannelReceive, CoreChannelActions, CoreChannelInterface } from "../../types";
+import { ChannelReceive, ChannelRequestParams, CoreChannelActions, CoreChannelInterface } from "../../types";
 import { PostMessageExport, PostMessageParams } from "./types";
 
 export class PostMessage extends CoreChannel implements CoreChannelInterface<CoreChannelActions>{
@@ -21,7 +21,7 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
     })
   }
 
-  public async open(params = {}) {
+  public async open(params: ChannelRequestParams = {}) {
     if (!this.state.source) {
       this.state.source = this.state.window.open(this.peer.origin, '_blank');
     }
@@ -38,9 +38,9 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
     await super.confirmOpen(request);
   }
 
-  public async close() {
+  public async close(params: ChannelRequestParams = {}) {
     return new Promise<ChannelConfirmEvent>((resolve, reject) => {
-      super.close()
+      super.close(params)
         .then(resolve)
         .catch(error => {
           // assume closed if we get an error

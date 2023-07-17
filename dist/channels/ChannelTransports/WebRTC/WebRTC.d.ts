@@ -13,10 +13,10 @@ export declare class WebRTC extends CoreChannel implements CoreChannelInterface<
     private ensurePeerConnection;
     handleEvent(event: ChannelEventParams): Promise<void>;
     sendEvent(event: ChannelEventParams): Promise<void>;
-    open(): Promise<CoreChannel>;
+    open(params?: ChannelRequestParams): Promise<CoreChannel>;
     onCloseRequested(request: ChannelRequestEvent): Promise<void>;
     onCloseConfirmed(confirm: ChannelConfirmEvent): Promise<void>;
-    call(): Promise<ChannelConfirmEvent>;
+    call(params?: ChannelRequestParams): Promise<ChannelConfirmEvent>;
     handleCallRequest(request: ChannelRequestEvent): Promise<void>;
     onCallRequested(request: ChannelRequestEvent): Promise<void>;
     onCallConfirmed(confirm: ChannelConfirmEvent): Promise<void>;
