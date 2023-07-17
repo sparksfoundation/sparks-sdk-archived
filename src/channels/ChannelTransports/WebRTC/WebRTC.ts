@@ -96,19 +96,17 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
   }
 
   public async handleEvent(event: ChannelEventParams) {
-    console.log('handleEvent', event.type)
     return super.handleEvent(event);
   }
 
   public async sendEvent(event: ChannelEventParams) {
-    console.log('sendEvent', event.type)
     this.connection.send(event);
     return Promise.resolve();
   }
 
-  public async open() {
+  public async open(params: ChannelRequestParams = {}) {
     await this.ensurePeerConnection();
-    return await super.open();
+    return await super.open(params);
   }
 
   public async onCloseRequested(request: ChannelRequestEvent): Promise<void> {
@@ -125,13 +123,13 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
     }, 200);
   }
 
-  public async call(): Promise<ChannelConfirmEvent> {
+  public async call(params: ChannelRequestParams = {}): Promise<ChannelConfirmEvent> {
     const requestEvent = new ChannelRequestEvent({
       type: this.requestTypes.CALL_REQUEST,
       data: { identifier: this.spark.identifier },
       metadata: { channelId: this.channelId },
     });
-    const confirmEvent = await this.dispatchRequest(requestEvent, 10000);
+    const confirmEvent = await this.dispatchRequest(requestEvent, params.timeout || 10000);
     return confirmEvent;
   }
 

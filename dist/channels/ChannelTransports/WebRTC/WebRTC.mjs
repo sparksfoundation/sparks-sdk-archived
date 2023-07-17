@@ -78,17 +78,15 @@ const _WebRTC = class extends CoreChannel {
     });
   }
   async handleEvent(event) {
-    console.log("handleEvent", event.type);
     return super.handleEvent(event);
   }
   async sendEvent(event) {
-    console.log("sendEvent", event.type);
     this.connection.send(event);
     return Promise.resolve();
   }
-  async open() {
+  async open(params = {}) {
     await this.ensurePeerConnection();
-    return await super.open();
+    return await super.open(params);
   }
   async onCloseRequested(request) {
     await super.onCloseRequested(request);
@@ -102,13 +100,13 @@ const _WebRTC = class extends CoreChannel {
       this.connection.close();
     }, 200);
   }
-  async call() {
+  async call(params = {}) {
     const requestEvent = new ChannelRequestEvent({
       type: this.requestTypes.CALL_REQUEST,
       data: { identifier: this.spark.identifier },
       metadata: { channelId: this.channelId }
     });
-    const confirmEvent = await this.dispatchRequest(requestEvent, 1e4);
+    const confirmEvent = await this.dispatchRequest(requestEvent, params.timeout || 1e4);
     return confirmEvent;
   }
   async handleCallRequest(request) {
