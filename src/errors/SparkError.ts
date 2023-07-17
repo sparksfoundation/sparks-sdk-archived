@@ -1,34 +1,34 @@
 import { utcEpochTimestamp } from "../utilities";
-import { AgentErrorName } from "./agent";
-import { ChannelErrorName } from "./channel";
-import { CipherErrorName } from "./cipher";
-import { ControllerErrorName } from "./controller";
-import { HasherErrorName } from "./hasher";
-import { SignerErrorName } from "./signer";
+import { AgentErrorType } from "./agent";
+import { ChannelErrorType } from "./channel";
+import { CipherErrorType } from "./cipher";
+import { ControllerErrorType } from "./controller";
+import { HasherErrorType } from "./hasher";
+import { SignerErrorType } from "./signer";
 
 export type SparkErrorMessage = string;                 // error message describing the error
 export type SparkErrorTimestampe = number;              // utc epoch time in ms
 export type SparkErrorMetadata = Record<string, any>;   // additional metadata about the error
-export type SparkErrorName = AgentErrorName | SignerErrorName | CipherErrorName | ControllerErrorName | HasherErrorName | ChannelErrorName;
+export type SparkErrorType = AgentErrorType | SignerErrorType | CipherErrorType | ControllerErrorType | HasherErrorType | ChannelErrorType;
 export type SparkErrorStack = string;
 
 export type SparkErrorParams = {
-  name?: SparkErrorName;
+  type?: SparkErrorType;
   message?: SparkErrorMessage;
   metadata?: SparkErrorMetadata;
   stack?: SparkErrorStack;
 }
 
 export class SparkError {
-  public name: SparkErrorName;
+  public type: SparkErrorType;
   public message: SparkErrorMessage;
   public timestamp: SparkErrorTimestampe;
   public metadata: SparkErrorMetadata;
   public stack: SparkErrorStack;
 
   constructor(error: SparkErrorParams) {
-    const { name, message = '', metadata = {}, stack } = error;
-    this.name = name;
+    const { type, message = '', metadata = {}, stack } = error;
+    this.type = type;
     this.message = message;
     this.timestamp = utcEpochTimestamp();
     this.metadata = { ...metadata };

@@ -3,27 +3,27 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.CipherErrors = exports.CipherErrorName = void 0;
+exports.CipherErrors = exports.CipherErrorType = void 0;
 var _SparkError = require("./SparkError.cjs");
-var CipherErrorName = /* @__PURE__ */(CipherErrorName2 => {
-  CipherErrorName2["GET_ENCRYPTION_PUBLIC_KEY_ERROR"] = "GET_ENCRYPTION_PUBLIC_KEY_ERROR";
-  CipherErrorName2["GET_ENCRYPTION_SECRET_KEY_ERROR"] = "GET_ENCRYPTION_SECRET_KEY_ERROR";
-  CipherErrorName2["GET_ENCRYPTION_KEYPAIR_ERROR"] = "GET_ENCRYPTION_KEYPAIR_ERROR";
-  CipherErrorName2["SET_ENCRYPTION_KEYPAIR_ERROR"] = "SET_ENCRYPTION_KEYPAIR_ERROR";
-  CipherErrorName2["GENERATE_ENCRYPTION_KEY_PAIR_ERROR"] = "GENERATE_ENCRYPTION_KEY_PAIR_ERROR";
-  CipherErrorName2["GENERATE_ENCRYPTION_SHARED_KEY_ERROR"] = "GENERATE_ENCRYPTION_SHARED_KEY_ERROR";
-  CipherErrorName2["ENCRYPT_ERROR"] = "ENCRYPT_ERROR";
-  CipherErrorName2["DECRYPT_ERROR"] = "DECRYPT_ERROR";
-  return CipherErrorName2;
-})(CipherErrorName || {});
-exports.CipherErrorName = CipherErrorName;
+var CipherErrorType = /* @__PURE__ */(CipherErrorType2 => {
+  CipherErrorType2["GET_ENCRYPTION_PUBLIC_KEY_ERROR"] = "GET_ENCRYPTION_PUBLIC_KEY_ERROR";
+  CipherErrorType2["GET_ENCRYPTION_SECRET_KEY_ERROR"] = "GET_ENCRYPTION_SECRET_KEY_ERROR";
+  CipherErrorType2["GET_ENCRYPTION_KEYPAIR_ERROR"] = "GET_ENCRYPTION_KEYPAIR_ERROR";
+  CipherErrorType2["SET_ENCRYPTION_KEYPAIR_ERROR"] = "SET_ENCRYPTION_KEYPAIR_ERROR";
+  CipherErrorType2["GENERATE_ENCRYPTION_KEY_PAIR_ERROR"] = "GENERATE_ENCRYPTION_KEY_PAIR_ERROR";
+  CipherErrorType2["GENERATE_ENCRYPTION_SHARED_KEY_ERROR"] = "GENERATE_ENCRYPTION_SHARED_KEY_ERROR";
+  CipherErrorType2["ENCRYPT_ERROR"] = "ENCRYPT_ERROR";
+  CipherErrorType2["DECRYPT_ERROR"] = "DECRYPT_ERROR";
+  return CipherErrorType2;
+})(CipherErrorType || {});
+exports.CipherErrorType = CipherErrorType;
 class CipherErrors {
   static GetCipherPublicKeyError({
     metadata = {},
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "GET_ENCRYPTION_PUBLIC_KEY_ERROR" /* GET_ENCRYPTION_PUBLIC_KEY_ERROR */,
+      type: "GET_ENCRYPTION_PUBLIC_KEY_ERROR" /* GET_ENCRYPTION_PUBLIC_KEY_ERROR */,
       message: `failed to get cipher public key$`,
       metadata: {
         ...metadata
@@ -36,7 +36,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "GET_ENCRYPTION_SECRET_KEY_ERROR" /* GET_ENCRYPTION_SECRET_KEY_ERROR */,
+      type: "GET_ENCRYPTION_SECRET_KEY_ERROR" /* GET_ENCRYPTION_SECRET_KEY_ERROR */,
       message: `failed to get cipher secret key$`,
       metadata: {
         ...metadata
@@ -49,7 +49,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "GET_ENCRYPTION_KEYPAIR_ERROR" /* GET_ENCRYPTION_KEYPAIR_ERROR */,
+      type: "GET_ENCRYPTION_KEYPAIR_ERROR" /* GET_ENCRYPTION_KEYPAIR_ERROR */,
       message: `failed to get cipher keypair$`,
       metadata: {
         ...metadata
@@ -62,7 +62,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "SET_ENCRYPTION_KEYPAIR_ERROR" /* SET_ENCRYPTION_KEYPAIR_ERROR */,
+      type: "SET_ENCRYPTION_KEYPAIR_ERROR" /* SET_ENCRYPTION_KEYPAIR_ERROR */,
       message: `failed to set cipher keypair$`,
       metadata: {
         ...metadata
@@ -75,7 +75,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "GENERATE_ENCRYPTION_KEY_PAIR_ERROR" /* GENERATE_ENCRYPTION_KEY_PAIR_ERROR */,
+      type: "GENERATE_ENCRYPTION_KEY_PAIR_ERROR" /* GENERATE_ENCRYPTION_KEY_PAIR_ERROR */,
       message: `failed to generate cipher keypair$`,
       metadata: {
         ...metadata
@@ -88,7 +88,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "GENERATE_ENCRYPTION_SHARED_KEY_ERROR" /* GENERATE_ENCRYPTION_SHARED_KEY_ERROR */,
+      type: "GENERATE_ENCRYPTION_SHARED_KEY_ERROR" /* GENERATE_ENCRYPTION_SHARED_KEY_ERROR */,
       message: `failed to generate cipher shared key$`,
       metadata: {
         ...metadata
@@ -101,7 +101,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "ENCRYPT_ERROR" /* ENCRYPT_ERROR */,
+      type: "ENCRYPT_ERROR" /* ENCRYPT_ERROR */,
       message: `failed to encrypt$`,
       metadata: {
         ...metadata
@@ -114,7 +114,7 @@ class CipherErrors {
     stack
   } = {}) {
     return new _SparkError.SparkError({
-      name: "DECRYPT_ERROR" /* DECRYPT_ERROR */,
+      type: "DECRYPT_ERROR" /* DECRYPT_ERROR */,
       message: `failed to decrypt$`,
       metadata: {
         ...metadata

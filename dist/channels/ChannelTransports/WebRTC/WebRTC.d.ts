@@ -1,0 +1,32 @@
+import Peer from "peerjs";
+import { ChannelConfirmEvent, ChannelRequestEvent } from "../../ChannelEvent";
+import { ChannelEventParams } from "../../ChannelEvent/types";
+import { CoreChannel } from "../../CoreChannel";
+import { ChannelReceive, ChannelRequestParams, CoreChannelInterface } from "../../types";
+import { WebRTCActions, WebRTCParams, WebRTCState } from "./types";
+export declare class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCActions> {
+    private connection;
+    get state(): WebRTCState;
+    constructor({ connection, ...params }: WebRTCParams);
+    setStreamable(): Promise<boolean>;
+    getLocalStream(): Promise<MediaStream>;
+    private ensurePeerConnection;
+    handleEvent(event: ChannelEventParams): Promise<void>;
+    sendEvent(event: ChannelEventParams): Promise<void>;
+    open(): Promise<CoreChannel>;
+    onCloseRequested(request: ChannelRequestEvent): Promise<void>;
+    onCloseConfirmed(confirm: ChannelConfirmEvent): Promise<void>;
+    call(): Promise<ChannelConfirmEvent>;
+    handleCallRequest(request: ChannelRequestEvent): Promise<void>;
+    onCallRequested(request: ChannelRequestEvent): Promise<void>;
+    onCallConfirmed(confirm: ChannelConfirmEvent): Promise<void>;
+    confirmCall(request: ChannelRequestEvent): Promise<undefined>;
+    private closeStreams;
+    hangup(params?: ChannelRequestParams): Promise<ChannelConfirmEvent>;
+    confirmHangup(request: ChannelRequestEvent): Promise<undefined>;
+    onHangupRequested(request: ChannelRequestEvent): Promise<void>;
+    onHangupConfirmed(confirm: ChannelConfirmEvent): Promise<void>;
+    protected static peerjs: Peer;
+    protected static deriveAddress(identifier: string): string;
+    static receive: ChannelReceive;
+}

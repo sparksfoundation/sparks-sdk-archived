@@ -1,6 +1,6 @@
 import { SparkError, SparkErrorParams } from "./SparkError";
 
-export enum ControllerErrorName {
+export enum ControllerErrorType {
   GET_IDENTIFIER_ERROR = 'GET_IDENTIFIER_ERROR',
   GET_KEY_EVENT_LOG_ERROR = 'GET_KEY_EVENT_LOG_ERROR',
   INCEPTION_ERROR = 'INCEPTION_ERROR',
@@ -13,7 +13,7 @@ export enum ControllerErrorName {
 export class ControllerErrors {
   public static GetIdentifierError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.GET_IDENTIFIER_ERROR,
+      type: ControllerErrorType.GET_IDENTIFIER_ERROR,
       message: `failed to get identifier`,
       metadata: { ...metadata },
       stack
@@ -22,7 +22,7 @@ export class ControllerErrors {
 
   public static GetKeyEventLogError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.GET_KEY_EVENT_LOG_ERROR,
+      type: ControllerErrorType.GET_KEY_EVENT_LOG_ERROR,
       message: `failed to get key event log`,
       metadata: { ...metadata },
       stack
@@ -31,7 +31,7 @@ export class ControllerErrors {
 
   public static InceptionError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.INCEPTION_ERROR,
+      type: ControllerErrorType.INCEPTION_ERROR,
       message: `failed to perform inception`,
       metadata: { ...metadata },
       stack
@@ -40,7 +40,7 @@ export class ControllerErrors {
 
   public static RotationError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.ROTATION_ERROR,
+      type: ControllerErrorType.ROTATION_ERROR,
       message: `failed to perform rotation`,
       metadata: { ...metadata },
       stack
@@ -49,7 +49,7 @@ export class ControllerErrors {
 
   public static DestroyError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.DESTROY_ERROR,
+      type: ControllerErrorType.DESTROY_ERROR,
       message: `failed to perform destroy`,
       metadata: { ...metadata },
       stack
@@ -58,7 +58,7 @@ export class ControllerErrors {
 
   public static KeyEventCreationError({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.KEY_EVENT_CREATION_ERROR,
+      type: ControllerErrorType.KEY_EVENT_CREATION_ERROR,
       message: `failed to create key event`,
       metadata: { ...metadata },
       stack
@@ -67,7 +67,7 @@ export class ControllerErrors {
 
   public static SparkInstanceAlreadySet({ metadata = {}, stack }: SparkErrorParams = {}): SparkError {
     return new SparkError({
-      name: ControllerErrorName.SPARK_INSTANCE_ALREADY_SET,
+      type: ControllerErrorType.SPARK_INSTANCE_ALREADY_SET,
       message: `spark instance already set`,
       metadata: { ...metadata },
       stack

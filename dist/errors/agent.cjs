@@ -3,6 +3,6 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.AgentErrorName = void 0;
-var AgentErrorName = /* @__PURE__ */(AgentErrorName2 => {})(AgentErrorName || {});
-exports.AgentErrorName = AgentErrorName;
+exports.AgentErrorType = void 0;
+var AgentErrorType = /* @__PURE__ */(AgentErrorType2 => {})(AgentErrorType || {});
+exports.AgentErrorType = AgentErrorType;

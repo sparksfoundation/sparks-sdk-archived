@@ -1,5 +1,5 @@
 import { SparkError, SparkErrorParams } from "./SparkError";
-export declare enum SignerErrorName {
+export declare enum SignerErrorType {
     GET_SIGNING_PUBLIC_KEY_ERROR = "GET_SIGNING_PUBLIC_KEY_ERROR",
     GET_SIGNING_SECRET_KEY_ERROR = "GET_SIGNING_SECRET_KEY_ERROR",
     GET_SIGNING_KEY_PAIR_ERROR = "GET_SIGNING_KEY_PAIR_ERROR",

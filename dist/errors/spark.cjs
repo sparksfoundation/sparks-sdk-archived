@@ -3,6 +3,6 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.SparkErrorName = void 0;
-var SparkErrorName = /* @__PURE__ */(SparkErrorName2 => {})(SparkErrorName || {});
-exports.SparkErrorName = SparkErrorName;
+exports.SparkErrorType = void 0;
+var SparkErrorType = /* @__PURE__ */(SparkErrorType2 => {})(SparkErrorType || {});
+exports.SparkErrorType = SparkErrorType;

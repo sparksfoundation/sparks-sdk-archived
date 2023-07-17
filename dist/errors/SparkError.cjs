@@ -8,12 +8,12 @@ var _utilities = require("../utilities/index.cjs");
 class SparkError {
   constructor(error) {
     const {
-      name,
+      type,
       message = "",
       metadata = {},
       stack
     } = error;
-    this.name = name;
+    this.type = type;
     this.message = message;
     this.timestamp = (0, _utilities.utcEpochTimestamp)();
     this.metadata = {

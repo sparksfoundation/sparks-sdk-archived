@@ -28,8 +28,11 @@
   "dependencies": {
     "@noble/hashes": "^1.3.1",
     "cuid": "^3.0.0",
+    "eventemitter3": "^5.0.1",
+    "lodash.merge": "^4.6.2",
     "peerjs": "^1.4.7",
     "scrypt-pbkdf": "^1.1.1",
+    "to-case": "^2.0.0",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1"
   },
@@ -54,20 +57,40 @@
       "import": "./dist/channels/index.mjs",
       "require": "./dist/channels/index.cjs"
     },
-    "./channels/Http": {
-      "types": "./dist/channels/Http/index.d.ts",
-      "import": "./dist/channels/Http/index.mjs",
-      "require": "./dist/channels/Http/index.cjs"
+    "./channels/ChannelEmitter": {
+      "types": "./dist/channels/ChannelEmitter/index.d.ts",
+      "import": "./dist/channels/ChannelEmitter/index.mjs",
+      "require": "./dist/channels/ChannelEmitter/index.cjs"
     },
-    "./channels/PostMessage": {
-      "types": "./dist/channels/PostMessage/index.d.ts",
-      "import": "./dist/channels/PostMessage/index.mjs",
-      "require": "./dist/channels/PostMessage/index.cjs"
+    "./channels/ChannelEvent": {
+      "types": "./dist/channels/ChannelEvent/index.d.ts",
+      "import": "./dist/channels/ChannelEvent/index.mjs",
+      "require": "./dist/channels/ChannelEvent/index.cjs"
     },
-    "./channels/WebRTC": {
-      "types": "./dist/channels/WebRTC/index.d.ts",
-      "import": "./dist/channels/WebRTC/index.mjs",
-      "require": "./dist/channels/WebRTC/index.cjs"
+    "./channels/ChannelTransports": {
+      "types": "./dist/channels/ChannelTransports/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/index.mjs",
+      "require": "./dist/channels/ChannelTransports/index.cjs"
+    },
+    "./channels/ChannelTransports/HttpFetch": {
+      "types": "./dist/channels/ChannelTransports/HttpFetch/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/HttpFetch/index.mjs",
+      "require": "./dist/channels/ChannelTransports/HttpFetch/index.cjs"
+    },
+    "./channels/ChannelTransports/HttpRest": {
+      "types": "./dist/channels/ChannelTransports/HttpRest/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/HttpRest/index.mjs",
+      "require": "./dist/channels/ChannelTransports/HttpRest/index.cjs"
+    },
+    "./channels/ChannelTransports/PostMessage": {
+      "types": "./dist/channels/ChannelTransports/PostMessage/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/PostMessage/index.mjs",
+      "require": "./dist/channels/ChannelTransports/PostMessage/index.cjs"
+    },
+    "./channels/ChannelTransports/WebRTC": {
+      "types": "./dist/channels/ChannelTransports/WebRTC/index.d.ts",
+      "import": "./dist/channels/ChannelTransports/WebRTC/index.mjs",
+      "require": "./dist/channels/ChannelTransports/WebRTC/index.cjs"
     },
     "./ciphers": {
       "types": "./dist/ciphers/index.d.ts",
