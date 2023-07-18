@@ -63,9 +63,10 @@ export type ChannelRequestParams = Partial<ChannelEventParams> & {
     timeout?: ChannelTimeout;
     [key: string]: any;
 };
-export type ChannelReceive = (callback: ({ event, confirmOpen }: {
+export type ChannelReceive = (callback: ({ event, confirmOpen, rejectOpen }: {
     event: ChannelEvent;
     confirmOpen: () => Promise<CoreChannel>;
+    rejectOpen: () => void;
 }) => Promise<void>, options: {
     spark: Spark<any, any, any, any, any>;
     [key: string]: any;

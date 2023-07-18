@@ -12,7 +12,7 @@ const ChannelErrorType = {
   INVALID_EVENT_TYPE_ERROR: "INVALID_EVENT_TYPE_ERROR",
   CONFIRM_TIMEOUT_ERROR: "CONFIRM_TIMEOUT_ERROR",
   CHANNEL_CLOSED_ERROR: "CHANNEL_CLOSED_ERROR",
-  CHANNEL_OPEN_ERROR: "CHANNEL_OPEN_ERROR",
+  OPEN_REJECTED_ERROR: "OPEN_REJECTED_ERROR",
   CHANNEL_NOT_FOUND_ERROR: "CHANNEL_NOT_FOUND_ERROR",
   NO_STREAMS_AVAILABLE_ERROR: "NO_STREAMS_AVAILABLE_ERROR"
 };
@@ -108,20 +108,6 @@ class ChannelErrors {
       stack
     });
   }
-  static ChannelOpenError({
-    metadata = {},
-    message,
-    stack
-  } = {}) {
-    return new ChannelError({
-      type: ChannelErrorType.CHANNEL_OPEN_ERROR,
-      message: `Channel open error${message ? `: ${message}` : ""}`,
-      metadata: {
-        ...metadata
-      },
-      stack
-    });
-  }
   static ChannelNotFoundError({
     metadata = {},
     message,
@@ -144,6 +130,20 @@ class ChannelErrors {
     return new ChannelError({
       type: ChannelErrorType.NO_STREAMS_AVAILABLE_ERROR,
       message: `No streams available error${message ? `: ${message}` : ""}`,
+      metadata: {
+        ...metadata
+      },
+      stack
+    });
+  }
+  static OpenRejectedError({
+    metadata = {},
+    message,
+    stack
+  } = {}) {
+    return new ChannelError({
+      type: ChannelErrorType.OPEN_REJECTED_ERROR,
+      message: `Open rejected error${message ? `: ${message}` : ""}`,
       metadata: {
         ...metadata
       },

@@ -76,9 +76,19 @@ HttpRest.receive = (callback, options) => {
           return resolveChannel(channel);
         });
       };
+      const rejectOpen = () => {
+        const error = _channel.ChannelErrors.OpenRejectedError({
+          metadata: {
+            channelId: metadata.channelId
+          },
+          message: "Channel rejected"
+        });
+        resolveRequest(event);
+      };
       return callback({
         event: event.data,
-        confirmOpen
+        confirmOpen,
+        rejectOpen
       });
     });
   };

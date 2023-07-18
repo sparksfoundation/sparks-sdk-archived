@@ -309,10 +309,21 @@ WebRTC.receive = (callback, options) => {
             return resolve(channel);
           });
         };
+        const rejectOpen = () => {
+          const error = _channel.ChannelErrors.OpenRejectedError({
+            metadata: {
+              channelId: metadata.channelId
+            },
+            message: "Channel rejected"
+          });
+          connection.send(error);
+          setTimeout(() => connection.close(), 200);
+        };
         connection.off("data", dataListener);
         return callback({
           event,
-          confirmOpen
+          confirmOpen,
+          rejectOpen
         });
       };
       connection.on("data", dataListener);

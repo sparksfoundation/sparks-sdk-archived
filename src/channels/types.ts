@@ -80,7 +80,7 @@ export type ChannelRequestParams = Partial<ChannelEventParams> & {
 }
 
 export type ChannelReceive = (
-  callback: ({ event, confirmOpen }: { event: ChannelEvent, confirmOpen: () => Promise<CoreChannel> }) => Promise<void>,
+  callback: ({ event, confirmOpen, rejectOpen }: { event: ChannelEvent, confirmOpen: () => Promise<CoreChannel>, rejectOpen: () => void }) => Promise<void>,
   options: { spark: Spark<any, any, any, any, any>, [key: string]: any }
 ) => void;
 

@@ -6,7 +6,7 @@ export declare const ChannelErrorType: {
     readonly INVALID_EVENT_TYPE_ERROR: "INVALID_EVENT_TYPE_ERROR";
     readonly CONFIRM_TIMEOUT_ERROR: "CONFIRM_TIMEOUT_ERROR";
     readonly CHANNEL_CLOSED_ERROR: "CHANNEL_CLOSED_ERROR";
-    readonly CHANNEL_OPEN_ERROR: "CHANNEL_OPEN_ERROR";
+    readonly OPEN_REJECTED_ERROR: "OPEN_REJECTED_ERROR";
     readonly CHANNEL_NOT_FOUND_ERROR: "CHANNEL_NOT_FOUND_ERROR";
     readonly NO_STREAMS_AVAILABLE_ERROR: "NO_STREAMS_AVAILABLE_ERROR";
 };
@@ -27,7 +27,7 @@ export declare class ChannelErrors {
     static InvalidEventTypeError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
     static ConfirmTimeoutError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
     static ChannelClosedError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
-    static ChannelOpenError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
     static ChannelNotFoundError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
     static NoStreamsAvailableError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
+    static OpenRejectedError({ metadata, message, stack }?: SparkErrorParams): ChannelError;
 }

@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.PostMessage = void 0;
+var _channel = require("../../../errors/channel.cjs");
 var _CoreChannel = require("../../CoreChannel.cjs");
 const _PostMessage = class extends _CoreChannel.CoreChannel {
   constructor(params) {
@@ -19,7 +20,8 @@ const _PostMessage = class extends _CoreChannel.CoreChannel {
       type,
       peer
     });
-    this.peer.origin = peer.origin;
+    this.peer.url = peer.url || peer.origin;
+    this.peer.origin = peer.origin || new URL(peer.url).origin;
     this.state.window = _window || window;
     this.state.source = source;
     this.handleEvent = this.handleEvent.bind(this);
@@ -31,21 +33,29 @@ const _PostMessage = class extends _CoreChannel.CoreChannel {
   }
   async open(params = {}) {
     if (!this.state.source) {
-      this.state.source = this.state.window.open(this.peer.origin, "_blank");
+      this.state.source = this.state.window.open(this.peer.url, "_blank");
     }
+    const {
+      data,
+      ...rest
+    } = params;
     return await super.open({
       data: {
+        ...data,
+        url: this.state.window.href,
         origin: this.state.window.origin
       },
-      ...params
+      ...rest
     });
   }
   async onOpenRequested(request) {
-    this.peer.origin = request.data.origin;
+    this.peer.url = request.data.url || request.data.origin;
+    this.peer.origin = request.data.origin || new URL(request.data.url).origin;
     await super.onOpenRequested(request);
   }
   async confirmOpen(request) {
     request.data.origin = this.state.window.origin;
+    request.data.url = this.state.window.href;
     await super.confirmOpen(request);
   }
   async close(params = {}) {
@@ -79,13 +89,15 @@ const _PostMessage = class extends _CoreChannel.CoreChannel {
       type: this.type,
       peer: {
         ...this.peer,
-        origin: this.peer.origin
+        origin: this.peer.origin,
+        url: this.peer.url
       }
     };
   }
   async import(data) {
     super.import(data);
-    this.peer.origin = data.peer.origin;
+    this.peer.origin = data.peer.origin || new URL(data.peer.url).origin;
+    this.peer.url = data.peer.url || data.peer.origin;
   }
 };
 let PostMessage = _PostMessage;
@@ -127,9 +139,19 @@ PostMessage.receive = (callback, options) => {
         return resolve(channel);
       });
     };
+    const rejectOpen = () => {
+      const error = _channel.ChannelErrors.OpenRejectedError({
+        metadata: {
+          channelId: metadata.channelId
+        },
+        message: "Channel rejected"
+      });
+      source.postMessage(error, origin);
+    };
     return callback({
       event: event.data,
-      confirmOpen
+      confirmOpen,
+      rejectOpen
     });
   });
 };
