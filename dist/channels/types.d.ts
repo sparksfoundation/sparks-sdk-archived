@@ -7,6 +7,12 @@ import { ChannelEventInterface, ChannelEventParams } from "./ChannelEvent/types"
 import { CoreChannel } from "./CoreChannel";
 export type ChannelId = string;
 export type ChannelType = 'WebRTC' | 'PostMessage' | 'HttpFetch' | 'HttpRest';
+export declare const ChannelType: {
+    readonly WebRTC: ChannelType;
+    readonly PostMessage: ChannelType;
+    readonly HttpFetch: ChannelType;
+    readonly HttpRest: ChannelType;
+};
 export type ChannelState = Record<string, any>;
 export type ChannelSettings = Record<string, any>;
 export type ChannelTimeout = number;
