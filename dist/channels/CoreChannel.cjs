@@ -102,6 +102,7 @@ class CoreChannel extends _ChannelEmitter.ChannelEmitter {
   }
   async sendEvent(event) {}
   async handleEvent(params) {
+    if (params?.metadata?.channelId !== this._channelId) return;
     try {
       switch (true) {
         case this.requestTypes.hasOwnProperty(params.type):
@@ -123,16 +124,14 @@ class CoreChannel extends _ChannelEmitter.ChannelEmitter {
           this.emit(confirm.type, confirm);
           break;
         case this.errorTypes.hasOwnProperty(params.type):
-          throw new _channel.ChannelError(params);
+          const error = new _channel.ChannelError(params);
+          this.emit(error.type, error);
+          break;
         default:
           break;
       }
     } catch (error) {
       console.log("error handling event", error);
-      if (error instanceof _channel.ChannelError) {
-        this.emit(_channel.ChannelErrorType.HANDLE_EVENT_ERROR, error);
-        return;
-      }
       const eventType = params?.type || "UNKNOWN_EVENT_TYPE";
       const metadata = {
         channelId: this.channelId,
@@ -228,6 +227,9 @@ class CoreChannel extends _ChannelEmitter.ChannelEmitter {
         type,
         metadata,
         data
+      });
+      this.on(this.errorTypes.OPEN_REJECTED_ERROR, error => {
+        reject(error);
       });
       this.dispatchRequest(request, params.timeout).then(() => resolve(this)).catch(error => reject(error));
     });

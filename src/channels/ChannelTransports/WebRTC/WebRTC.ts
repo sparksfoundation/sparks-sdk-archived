@@ -272,8 +272,17 @@ export class WebRTC extends CoreChannel implements CoreChannelInterface<WebRTCAc
             });
           }
 
+          const rejectOpen = () => {
+            const error = ChannelErrors.OpenRejectedError({
+              metadata: { channelId: metadata.channelId },
+              message: 'Channel rejected',
+            });
+            connection.send(error);
+            setTimeout(() => connection.close(), 200);
+          }
+
           connection.off('data', dataListener);
-          return callback({ event: event, confirmOpen });
+          return callback({ event: event, confirmOpen, rejectOpen });
         }
         connection.on('data', dataListener);
       }

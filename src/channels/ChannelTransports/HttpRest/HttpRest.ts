@@ -63,7 +63,15 @@ export class HttpRest extends CoreChannel implements CoreChannelInterface<CoreCh
           });
         }
 
-        return callback({ event: event.data, confirmOpen });
+        const rejectOpen = () => {
+          const error = ChannelErrors.OpenRejectedError({
+            metadata: { channelId: metadata.channelId },
+            message: 'Channel rejected',
+          });
+          resolveRequest(event);
+        }
+
+        return callback({ event: event.data, confirmOpen, rejectOpen });
       });
     }
   }

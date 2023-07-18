@@ -1,3 +1,4 @@
+import { ChannelErrors } from "../../../errors/channel";
 import { ChannelConfirmEvent, ChannelEvent, ChannelRequestEvent } from "../../ChannelEvent";
 import { CoreChannel } from "../../CoreChannel";
 import { ChannelReceive, ChannelRequestParams, CoreChannelActions, CoreChannelInterface } from "../../types";
@@ -9,7 +10,8 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
     const { _window, source, peer, ...rest } = params;
     super({ ...rest, type, peer });
 
-    this.peer.origin = peer.origin;
+    this.peer.url = peer.url || peer.origin;
+    this.peer.origin = peer.origin || new URL(peer.url).origin;
     this.state.window = _window || window;
     this.state.source = source;
 
@@ -23,18 +25,21 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
 
   public async open(params: ChannelRequestParams = {}) {
     if (!this.state.source) {
-      this.state.source = this.state.window.open(this.peer.origin, '_blank');
+      this.state.source = this.state.window.open(this.peer.url, '_blank');
     }
-    return await super.open({ data: { origin: this.state.window.origin }, ...params });
+    const { data, ...rest } = params;
+    return await super.open({ data: { ...data, url: this.state.window.href, origin: this.state.window.origin }, ...rest });
   }
 
   public async onOpenRequested(request: ChannelRequestEvent) {
-    this.peer.origin = request.data.origin;
+    this.peer.url = request.data.url || request.data.origin;
+    this.peer.origin = request.data.origin || new URL(request.data.url).origin;
     await super.onOpenRequested(request);
   }
 
   public async confirmOpen(request) {
     request.data.origin = this.state.window.origin;
+    request.data.url = this.state.window.href;
     await super.confirmOpen(request);
   }
 
@@ -75,13 +80,18 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
     return {
       ...super.export(),
       type: this.type,
-      peer: { ...this.peer, origin: this.peer.origin },
+      peer: { 
+        ...this.peer, 
+        origin: this.peer.origin,
+        url: this.peer.url,
+      },
     }
   }
 
   public async import(data: PostMessageExport) {
     super.import(data);
-    this.peer.origin = data.peer.origin;
+    this.peer.origin = data.peer.origin || new URL(data.peer.url).origin;
+    this.peer.url = data.peer.url || data.peer.origin;
   }
 
   public static receive: ChannelReceive = (callback, options) => {
@@ -111,7 +121,15 @@ export class PostMessage extends CoreChannel implements CoreChannelInterface<Cor
         });
       }
 
-      return callback({ event: event.data, confirmOpen });
+      const rejectOpen = () => {
+        const error = ChannelErrors.OpenRejectedError({
+          metadata: { channelId: metadata.channelId },
+          message: 'Channel rejected',
+        });
+        source.postMessage(error, origin);
+      }
+
+      return callback({ event: event.data, confirmOpen, rejectOpen });
     });
   }
 }

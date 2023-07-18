@@ -85,6 +85,8 @@ export class CoreChannel extends ChannelEmitter {
   async sendEvent(event) {
   }
   async handleEvent(params) {
+    if (params?.metadata?.channelId !== this._channelId)
+      return;
     try {
       switch (true) {
         case this.requestTypes.hasOwnProperty(params.type):
@@ -102,16 +104,14 @@ export class CoreChannel extends ChannelEmitter {
           this.emit(confirm.type, confirm);
           break;
         case this.errorTypes.hasOwnProperty(params.type):
-          throw new ChannelError(params);
+          const error = new ChannelError(params);
+          this.emit(error.type, error);
+          break;
         default:
           break;
       }
     } catch (error) {
       console.log("error handling event", error);
-      if (error instanceof ChannelError) {
-        this.emit(ChannelErrorType.HANDLE_EVENT_ERROR, error);
-        return;
-      }
       const eventType = params?.type || "UNKNOWN_EVENT_TYPE";
       const metadata = { channelId: this.channelId, eventType };
       const handleError = ChannelErrors.HandleEventError({ metadata });
@@ -176,6 +176,9 @@ export class CoreChannel extends ChannelEmitter {
         publicKeys: this.spark.publicKeys
       };
       const request = new ChannelRequestEvent({ type, metadata, data });
+      this.on(this.errorTypes.OPEN_REJECTED_ERROR, (error) => {
+        reject(error);
+      });
       this.dispatchRequest(request, params.timeout).then(() => resolve(this)).catch((error) => reject(error));
     });
   }
