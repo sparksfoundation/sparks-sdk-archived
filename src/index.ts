@@ -1,2 +1,1 @@
-export * from './Spark';
-export * from './types';
+export * from './spark/Spark';

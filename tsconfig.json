@@ -1,18 +1,17 @@
 {
+  "include": ["src"],
   "compilerOptions": {
-    "outDir": "./dist",
-    "target": "ESNext",
+    "module": "esnext",
+    "target": "esnext",
+    "declaration": true,
+    "strict": true,
     "moduleResolution": "node",
-    "declaration": false,
+    "jsx": "react",
     "skipLibCheck": true,
-    "esModuleInterop": true
-  },
-  "include": [
-    "src",
-    "tests/*",
-    "src/types"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+    "esModuleInterop": true,
+    "emitDeclarationOnly": true,
+    "strictPropertyInitialization": false,
+    "outDir": "dist",
+    "rootDir": "src"
+  }
 }

@@ -7,146 +7,93 @@
   "url": "https://github.com/sparksfoundation/sparks-identity/tree/master/libs/agent",
   "type": "module",
   "scripts": {
-    "build": "pnpm buildmjs && pnpm buildcjs && node package-update.js",
-    "buildcjs": "pnpm mkdist --src=./src --dist=./dist/cjs --format=cjs -d --ext=.cjs",
-    "buildmjs": "pnpm mkdist --src=./src --dist=./dist --format=esm -d --ext=.mjs",
-    "dev": "nodemon --watch src/ --exec 'pnpm buildmjs' -e ts"
+    "build": "tsup --dts",
+    "dev": "tsup --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "@types/node": "^20.2.5",
-    "jsonfile": "^6.1.0",
-    "list-paths": "^1.0.2",
-    "mkdist": "^1.2.0",
-    "move-file": "^3.1.0",
     "node-fetch": "^3.3.1",
-    "node-pre-gyp": "^0.17.0",
-    "nodemon": "^2.0.22",
-    "rimraf": "^5.0.1",
-    "typescript": "^5.1.3",
-    "unbuild": "^1.2.1"
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.6"
   },
   "dependencies": {
     "@noble/hashes": "^1.3.1",
-    "cuid": "^3.0.0",
+    "@paralleldrive/cuid2": "^2.2.1",
     "eventemitter3": "^5.0.1",
-    "lodash.merge": "^4.6.2",
+    "install": "^0.13.0",
+    "npm": "^9.8.1",
     "peerjs": "^1.4.7",
     "scrypt-pbkdf": "^1.1.1",
-    "to-case": "^2.0.0",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1"
   },
+  "main": "./dist/index.js",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    },
-    "./agents": {
-      "types": "./dist/agents/index.d.ts",
-      "import": "./dist/agents/index.mjs",
-      "require": "./dist/agents/index.cjs"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
     },
     "./agents/Profile": {
-      "types": "./dist/agents/Profile/index.d.ts",
-      "import": "./dist/agents/Profile/index.mjs",
-      "require": "./dist/agents/Profile/index.cjs"
+      "import": "./dist/agents/Profile/index.js",
+      "require": "./dist/agents/Profile/index.cjs",
+      "types": "./dist/agents/Profile/index.d.ts"
     },
-    "./channels": {
-      "types": "./dist/channels/index.d.ts",
-      "import": "./dist/channels/index.mjs",
-      "require": "./dist/channels/index.cjs"
+    "./channels/HttpRest": {
+      "import": "./dist/channels/HttpRest/index.js",
+      "require": "./dist/channels/HttpRest/index.cjs",
+      "types": "./dist/channels/HttpRest/index.d.ts"
     },
-    "./channels/ChannelEmitter": {
-      "types": "./dist/channels/ChannelEmitter/index.d.ts",
-      "import": "./dist/channels/ChannelEmitter/index.mjs",
-      "require": "./dist/channels/ChannelEmitter/index.cjs"
+    "./channels/HttpFetch": {
+      "import": "./dist/channels/HttpFetch/index.js",
+      "require": "./dist/channels/HttpFetch/index.cjs",
+      "types": "./dist/channels/HttpFetch/index.d.ts"
     },
-    "./channels/ChannelEvent": {
-      "types": "./dist/channels/ChannelEvent/index.d.ts",
-      "import": "./dist/channels/ChannelEvent/index.mjs",
-      "require": "./dist/channels/ChannelEvent/index.cjs"
+    "./channels/PostMessage": {
+      "import": "./dist/channels/PostMessage/index.js",
+      "require": "./dist/channels/PostMessage/index.cjs",
+      "types": "./dist/channels/PostMessage/index.d.ts"
     },
-    "./channels/ChannelTransports": {
-      "types": "./dist/channels/ChannelTransports/index.d.ts",
-      "import": "./dist/channels/ChannelTransports/index.mjs",
-      "require": "./dist/channels/ChannelTransports/index.cjs"
-    },
-    "./channels/ChannelTransports/HttpFetch": {
-      "types": "./dist/channels/ChannelTransports/HttpFetch/index.d.ts",
-      "import": "./dist/channels/ChannelTransports/HttpFetch/index.mjs",
-      "require": "./dist/channels/ChannelTransports/HttpFetch/index.cjs"
-    },
-    "./channels/ChannelTransports/HttpRest": {
-      "types": "./dist/channels/ChannelTransports/HttpRest/index.d.ts",
-      "import": "./dist/channels/ChannelTransports/HttpRest/index.mjs",
-      "require": "./dist/channels/ChannelTransports/HttpRest/index.cjs"
-    },
-    "./channels/ChannelTransports/PostMessage": {
-      "types": "./dist/channels/ChannelTransports/PostMessage/index.d.ts",
-      "import": "./dist/channels/ChannelTransports/PostMessage/index.mjs",
-      "require": "./dist/channels/ChannelTransports/PostMessage/index.cjs"
-    },
-    "./channels/ChannelTransports/WebRTC": {
-      "types": "./dist/channels/ChannelTransports/WebRTC/index.d.ts",
-      "import": "./dist/channels/ChannelTransports/WebRTC/index.mjs",
-      "require": "./dist/channels/ChannelTransports/WebRTC/index.cjs"
-    },
-    "./ciphers": {
-      "types": "./dist/ciphers/index.d.ts",
-      "import": "./dist/ciphers/index.mjs",
-      "require": "./dist/ciphers/index.cjs"
+    "./channels/WebRTC": {
+      "import": "./dist/channels/WebRTC/index.js",
+      "require": "./dist/channels/WebRTC/index.cjs",
+      "types": "./dist/channels/WebRTC/index.d.ts"
     },
     "./ciphers/X25519SalsaPoly": {
-      "types": "./dist/ciphers/X25519SalsaPoly/index.d.ts",
-      "import": "./dist/ciphers/X25519SalsaPoly/index.mjs",
-      "require": "./dist/ciphers/X25519SalsaPoly/index.cjs"
+      "import": "./dist/ciphers/X25519SalsaPoly/index.js",
+      "require": "./dist/ciphers/X25519SalsaPoly/index.cjs",
+      "types": "./dist/ciphers/X25519SalsaPoly/index.d.ts"
     },
-    "./controllers": {
-      "types": "./dist/controllers/index.d.ts",
-      "import": "./dist/controllers/index.mjs",
-      "require": "./dist/controllers/index.cjs"
+    "./ciphers/X25519SalsaPolyPassword": {
+      "import": "./dist/ciphers/X25519SalsaPolyPassword/index.js",
+      "require": "./dist/ciphers/X25519SalsaPolyPassword/index.cjs",
+      "types": "./dist/ciphers/X25519SalsaPolyPassword/index.d.ts"
     },
     "./controllers/Basic": {
-      "types": "./dist/controllers/Basic/index.d.ts",
-      "import": "./dist/controllers/Basic/index.mjs",
-      "require": "./dist/controllers/Basic/index.cjs"
-    },
-    "./errors": {
-      "types": "./dist/errors/index.d.ts",
-      "import": "./dist/errors/index.mjs",
-      "require": "./dist/errors/index.cjs"
-    },
-    "./hashers": {
-      "types": "./dist/hashers/index.d.ts",
-      "import": "./dist/hashers/index.mjs",
-      "require": "./dist/hashers/index.cjs"
+      "import": "./dist/controllers/Basic/index.js",
+      "require": "./dist/controllers/Basic/index.cjs",
+      "types": "./dist/controllers/Basic/index.d.ts"
     },
     "./hashers/Blake3": {
-      "types": "./dist/hashers/Blake3/index.d.ts",
-      "import": "./dist/hashers/Blake3/index.mjs",
-      "require": "./dist/hashers/Blake3/index.cjs"
-    },
-    "./signers": {
-      "types": "./dist/signers/index.d.ts",
-      "import": "./dist/signers/index.mjs",
-      "require": "./dist/signers/index.cjs"
+      "import": "./dist/hashers/Blake3/index.js",
+      "require": "./dist/hashers/Blake3/index.cjs",
+      "types": "./dist/hashers/Blake3/index.d.ts"
     },
     "./signers/Ed25519": {
-      "types": "./dist/signers/Ed25519/index.d.ts",
-      "import": "./dist/signers/Ed25519/index.mjs",
-      "require": "./dist/signers/Ed25519/index.cjs"
+      "import": "./dist/signers/Ed25519/index.js",
+      "require": "./dist/signers/Ed25519/index.cjs",
+      "types": "./dist/signers/Ed25519/index.d.ts"
+    },
+    "./signers/Ed25519Password": {
+      "import": "./dist/signers/Ed25519Password/index.js",
+      "require": "./dist/signers/Ed25519Password/index.cjs",
+      "types": "./dist/signers/Ed25519Password/index.d.ts"
     },
     "./utilities": {
-      "types": "./dist/utilities/index.d.ts",
-      "import": "./dist/utilities/index.mjs",
-      "require": "./dist/utilities/index.cjs"
+      "import": "./dist/utilities/index.js",
+      "require": "./dist/utilities/index.cjs",
+      "types": "./dist/utilities/index.d.ts"
     }
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ]
+  }
 }
