@@ -1,9 +1,9 @@
-import { Spark } from '../dist/index.mjs';
-import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
-import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Spark } from '../dist/index.js';
+import { Ed25519 } from '../dist/signers/Ed25519/index.js';
+import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.js';
+import { Blake3 } from '../dist/hashers/Blake3/index.js';
+import { Basic } from '../dist/controllers/Basic/index.js';
 import { assert } from 'console';
-import { Blake3 } from '../dist/hashers/Blake3/Blake3.mjs';
-import { Basic } from '../dist/controllers/Basic/index.mjs';
 
 (async function() {
     const alice = new Spark({

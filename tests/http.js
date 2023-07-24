@@ -1,9 +1,9 @@
-import { Spark } from '../dist/index.mjs';
-import { Ed25519 } from '../dist/signers/Ed25519/index.mjs';
-import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
-import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
-import { Basic } from '../dist/controllers/Basic/index.mjs';
-import { HttpFetch } from '../dist/channels/ChannelTransports/HttpFetch/index.mjs';
+import { Spark } from '../dist/index.js';
+import { Ed25519 } from '../dist/signers/Ed25519/index.js';
+import { X25519SalsaPoly } from '../dist/ciphers/X25519SalsaPoly/index.js';
+import { Blake3 } from '../dist/hashers/Blake3/index.js';
+import { Basic } from '../dist/controllers/Basic/index.js';
+import { HttpFetch } from '../dist/channels/HttpFetch/index.js';
 import { assert } from 'console';
 
 import fetch from 'node-fetch';
@@ -30,8 +30,9 @@ global.fetch = fetch;
             await channel.open();
             console.log('user', (i + 1), 'connected');
             channel.on('MESSAGE_CONFIRM', async (event) => {
-                const receipt = await channel.openEventData(event.data.receipt);
-                console.log(receipt.data);
+                const receipt = await channel.getReceiptData(event);
+                const data = receipt.data;
+                console.log(data);
             });
             channels.push(channel);
         }

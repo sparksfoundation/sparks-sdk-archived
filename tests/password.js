@@ -1,10 +1,10 @@
-import { Spark } from '../dist/index.mjs';
-import { Ed25519Password } from '../dist/signers/Ed25519/index.mjs';
-import { Blake3 } from '../dist/hashers/Blake3/index.mjs';
-import { Basic } from '../dist/controllers/Basic/index.mjs';
-import { X25519SalsaPolyPassword } from '../dist/ciphers/X25519SalsaPoly/index.mjs';
+import { Spark } from '../dist/index.js';
+import { Ed25519Password } from '../dist/signers/Ed25519Password/index.js';
+import { X25519SalsaPolyPassword } from '../dist/ciphers/X25519SalsaPolyPassword/index.js';
+import { Blake3 } from '../dist/hashers/Blake3/index.js';
+import { Basic } from '../dist/controllers/Basic/index.js';
+import { randomSalt } from '../dist/utilities/index.js';
 import { assert } from 'console';
-import cuid from 'cuid';
 
 (async function() {
     const alice = new Spark({
@@ -14,11 +14,13 @@ import cuid from 'cuid';
       signer: Ed25519Password,
     });
 
-    const salt = cuid();
+    const salt = randomSalt();
+
     await alice.incept({ 
       signer: { password: 'test', salt: salt },
       cipher: { password: 'test', salt: salt },
-    });
+    }).catch(console.log)
+    
     const firstKeys = alice.publicKeys
 
     const aliceLater = new Spark({

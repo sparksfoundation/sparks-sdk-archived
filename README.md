@@ -1,2 +1,0 @@
-# sparks-sdk
-sparks sdk
