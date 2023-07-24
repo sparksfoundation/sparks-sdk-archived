@@ -14,7 +14,7 @@ export type WebRTCMediaStreams = {
 }
 
 export type WebRTCState = ChannelState & {
-  streamable: boolean,
+  streamable: Nullable<boolean>,
   call: Nullable<MediaConnection>,
   streams: WebRTCMediaStreams,
 }

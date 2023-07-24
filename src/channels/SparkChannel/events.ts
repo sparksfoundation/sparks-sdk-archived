@@ -152,7 +152,7 @@ export const ChannelEvents = {
     metadata: { channelId: ChannelId },
     data: {},
   }) => createEvent({
-    type: ChannelEventTypes.CALL_REQUEST,
+    type: ChannelEventTypes.HANGUP_REQUEST,
     metadata: { ...metadata },
     data: { ...data }
   }),

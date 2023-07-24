@@ -26,7 +26,7 @@ export class WebRTC extends SparkChannel implements SparkChannelInterface<WebRTC
     const type = 'WebRTC';
     super({ ...params, type, actions: [...WebRTCActions] });
 
-    this.state.streamable = false;
+    this.state.streamable = null;
     this.state.call = null;
     this.state.streams = {
       local: null,

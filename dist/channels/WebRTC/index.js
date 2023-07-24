@@ -215,7 +215,7 @@ var ChannelEvents = {
     data: { ...data }
   }),
   HANGUP_REQUEST: ({ metadata, data }) => createEvent({
-    type: ChannelEventTypes.CALL_REQUEST,
+    type: ChannelEventTypes.HANGUP_REQUEST,
     metadata: { ...metadata },
     data: { ...data }
   }),
@@ -636,7 +636,7 @@ var WebRTC = class _WebRTC extends SparkChannel {
   constructor({ connection, ...params }) {
     const type = "WebRTC";
     super({ ...params, type, actions: [...WebRTCActions] });
-    this.state.streamable = false;
+    this.state.streamable = null;
     this.state.call = null;
     this.state.streams = {
       local: null,
