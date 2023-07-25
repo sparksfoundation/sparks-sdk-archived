@@ -1,7 +1,10 @@
 import { HashDigest, SparkHasherInterface } from "./types";
 
 export abstract class SparkHasher implements SparkHasherInterface {
-  constructor() {
+  public readonly algorithm: string;
+
+  constructor({ algorithm }: { algorithm: string }) {
+    this.algorithm = algorithm;
     this.hash = this.hash.bind(this);
   }
   
@@ -13,5 +16,5 @@ export abstract class SparkHasher implements SparkHasherInterface {
     return Promise.resolve({});
   }
 
-  public abstract hash(params?: Record<string, any>): Promise<HashDigest>;
+  public abstract hash(params?: Record<string, any>): HashDigest;
 }

@@ -8,6 +8,12 @@ import { CipherErrors } from "../../errors/ciphers";
 import { SparkEvent } from "../../events/SparkEvent";
 
 export class X25519SalsaPoly extends SparkCipher {
+  constructor() {
+    super({
+      algorithm: 'x25519-salsa20-poly1305',
+    });
+  }
+
   public async import(data: Record<string, any>): Promise<void> {
     if (!data) throw SparkErrors.SPARK_IMPORT_ERROR();
     await super.import(data);

@@ -1,9 +1,12 @@
-import { f as SparkSignerInterface, e as SignerPublicKey, g as SignerSecretKey, S as SignerKeyPair, c as Signature, b as SignatureVerified, d as SignatureData, a as SigatureDetached } from './types-14ae8009.js';
+import { e as SparkSignerInterface, f as SignerPublicKey, g as SignerSecretKey, S as SignerKeyPair, c as Signature, b as SignatureVerified, d as SignatureData, a as SigatureDetached } from './types-93f6b970.js';
 
 declare abstract class SparkSigner implements SparkSignerInterface {
+    readonly algorithm: string;
     protected _publicKey: SignerPublicKey;
     protected _secretKey: SignerSecretKey;
-    constructor();
+    constructor({ algorithm }: {
+        algorithm: string;
+    });
     get publicKey(): SignerPublicKey;
     get secretKey(): SignerSecretKey;
     get keyPair(): SignerKeyPair;
@@ -18,6 +21,7 @@ declare abstract class SparkSigner implements SparkSignerInterface {
 }
 
 declare class Ed25519 extends SparkSigner {
+    constructor();
     import(data: Record<string, any>): Promise<void>;
     export(): Promise<Record<string, any>>;
     generateKeyPair(params?: {

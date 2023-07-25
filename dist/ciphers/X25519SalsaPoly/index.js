@@ -139,9 +139,11 @@ var SparkErrors = {
 
 // src/ciphers/SparkCipher/index.ts
 var SparkCipher = class {
+  algorithm;
   _publicKey;
   _secretKey;
-  constructor() {
+  constructor({ algorithm }) {
+    this.algorithm = algorithm;
     this.setKeyPair = this.setKeyPair.bind(this);
     this.generateKeyPair = this.generateKeyPair.bind(this);
     this.generateSharedKey = this.generateSharedKey.bind(this);
@@ -179,6 +181,11 @@ var SparkCipher = class {
 
 // src/ciphers/X25519SalsaPoly/index.ts
 var X25519SalsaPoly = class extends SparkCipher {
+  constructor() {
+    super({
+      algorithm: "x25519-salsa20-poly1305"
+    });
+  }
   async import(data) {
     if (!data)
       throw SparkErrors.SPARK_IMPORT_ERROR();

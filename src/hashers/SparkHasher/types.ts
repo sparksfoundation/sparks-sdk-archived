@@ -10,5 +10,5 @@ export interface SparkHasherInterface {
   import(data: Record<string, any>): Promise<void>;
   export(): Promise<Record<string, any>>;
 
-  hash(params?: Record<string, any>): Promise<HashDigest>;
+  hash(params?: Record<string, any>): HashDigest;
 }

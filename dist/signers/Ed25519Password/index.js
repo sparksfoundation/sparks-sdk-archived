@@ -132,9 +132,11 @@ var SignerErrors = {
 
 // src/signers/SparkSigner/index.ts
 var SparkSigner = class {
+  algorithm;
   _publicKey;
   _secretKey;
-  constructor() {
+  constructor({ algorithm }) {
+    this.algorithm = algorithm;
     this.setKeyPair = this.setKeyPair.bind(this);
     this.generateKeyPair = this.generateKeyPair.bind(this);
     this.sign = this.sign.bind(this);
@@ -182,6 +184,11 @@ var SparkSigner = class {
 import nacl2 from "tweetnacl";
 import util2 from "tweetnacl-util";
 var Ed25519 = class extends SparkSigner {
+  constructor() {
+    super({
+      algorithm: "ed25519"
+    });
+  }
   async import(data) {
     await super.import(data);
     return Promise.resolve();
@@ -287,7 +294,9 @@ var Ed25519Password = class extends SparkSigner {
   Ed25519;
   _salt;
   constructor() {
-    super();
+    super({
+      algorithm: "ed25519"
+    });
     this.Ed25519 = new Ed25519();
   }
   get salt() {

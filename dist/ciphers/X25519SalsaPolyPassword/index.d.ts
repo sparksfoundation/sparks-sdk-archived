@@ -1,5 +1,5 @@
 import { C as CipherKeyPair, a as CipherPublicKey, b as CipherSecretKey, D as DecryptedData, E as EncryptedData } from '../../types-188a9fde.js';
-import { S as SparkCipher, X as X25519SalsaPoly } from '../../index-df9876fd.js';
+import { S as SparkCipher, X as X25519SalsaPoly } from '../../index-df13929e.js';
 
 type CipherKeyPairWithSalt = CipherKeyPair & {
     salt: string;

@@ -7,6 +7,12 @@ import { SignerErrors } from "../../errors/signers";
 import { SparkEvent } from "../../events/SparkEvent";
 
 export class Ed25519 extends SparkSigner {
+  constructor() {
+    super({
+      algorithm: 'ed25519',
+    });
+  }
+
   public async import(data: Record<string, any>): Promise<void> {
     await super.import(data);
     return Promise.resolve();

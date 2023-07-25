@@ -27,12 +27,12 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/agents/Profile/index.ts
-var Profile_exports = {};
-__export(Profile_exports, {
-  Profile: () => Profile
+// src/agents/Attester/index.ts
+var Attester_exports = {};
+__export(Attester_exports, {
+  Attester: () => Attester
 });
-module.exports = __toCommonJS(Profile_exports);
+module.exports = __toCommonJS(Attester_exports);
 
 // src/utilities/index.ts
 var import_tweetnacl = __toESM(require("tweetnacl"), 1);
@@ -130,26 +130,104 @@ var SparkAgent = class {
   }
 };
 
-// src/agents/Profile/index.ts
-var Profile = class extends SparkAgent {
-  avatar;
-  handle;
+// src/agents/Attester/index.ts
+var import_ajv = __toESM(require("ajv"), 1);
+var import_merkletreejs = require("merkletreejs");
+var Attester = class extends SparkAgent {
+  constructor(spark) {
+    super(spark);
+    this.buildCredential = this.buildCredential.bind(this);
+    this.hash = this.hash.bind(this);
+  }
+  hash(data) {
+    return this._spark.hasher.hash({ data });
+  }
+  getLeafHashes(data) {
+    return Object.keys(data).flatMap((key) => {
+      if (Array.isArray(data[key])) {
+        return data[key].map((element) => {
+          return typeof element === "object" ? JSON.stringify(element) : element.toString();
+        }).map(this.hash);
+      }
+      const value = typeof data[key] === "object" ? JSON.stringify(data[key]) : data[key].toString();
+      return this.hash(value);
+    });
+  }
+  async getMerkleAttributeProofs(tree, leaves, data) {
+    const proofs = Object.keys(data).flatMap((attributeKey, index) => {
+      if (Array.isArray(data[attributeKey])) {
+        return data[attributeKey].map((element, childIndex) => {
+          const proofIndex = index + childIndex;
+          const proof2 = tree.getProof(leaves[proofIndex], proofIndex);
+          return {
+            attribute: `${attributeKey}.${childIndex}`,
+            proof: proof2.map((node) => node.data.toString("hex"))
+          };
+        });
+      }
+      const proof = tree.getProof(leaves[index], index);
+      return {
+        attribute: attributeKey,
+        proof: proof.map((node) => node.data.toString("hex"))
+      };
+    });
+    return {
+      "merkleRoot": tree.getHexRoot(),
+      "attributes": proofs
+    };
+  }
+  async buildCredential({ schema, data }) {
+    const ajv = new import_ajv.default();
+    const validate = ajv.compile(schema.properties.credentialSubject);
+    const isValid = validate(data);
+    if (!isValid)
+      return null;
+    const verifiableCredential = {
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        "https://sparks.foundation/credentials/ethereum/schema"
+      ],
+      "id": schema["id"],
+      "type": ["VerifiableCredential", schema["name"].replace(" ", "")],
+      "issuer": this._spark.identifier,
+      "issuanceDate": (/* @__PURE__ */ new Date()).toISOString(),
+      "properties": {
+        "credentialSubject": {
+          ...data
+        }
+      }
+    };
+    const leaves = this.getLeafHashes(data);
+    const merkleTree = new import_merkletreejs.MerkleTree(leaves, this.hash);
+    const merkle = await this.getMerkleAttributeProofs(merkleTree, leaves, data);
+    const proofs = [
+      {
+        "type": "DataIntegrityProof",
+        "created": (/* @__PURE__ */ new Date()).toISOString(),
+        "verificationMethod": this._spark.identifier,
+        "signatureValue": await this._spark.signer.seal({ data: verifiableCredential })
+      },
+      {
+        "type": "MerkleProof",
+        "signatureAlgorithm": this._spark.signer.algorithm,
+        "digestAlgorithm": this._spark.hasher.algorithm,
+        "signatureValue": await this._spark.signer.seal({ data: merkle })
+      }
+    ];
+    verifiableCredential.proofs = proofs;
+    return verifiableCredential;
+  }
   async import(data) {
     if (!data)
       throw SparkErrors.SPARK_IMPORT_ERROR();
-    this.avatar = data.avatar;
-    this.handle = data.handle;
     return Promise.resolve();
   }
   async export() {
-    return Promise.resolve({
-      avatar: this.avatar,
-      handle: this.handle
-    });
+    return Promise.resolve({});
   }
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  Profile
+  Attester
 });
 //# sourceMappingURL=index.cjs.map

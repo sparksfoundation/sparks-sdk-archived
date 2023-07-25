@@ -13,7 +13,9 @@ export class Ed25519Password extends SparkSigner {
   private _salt: string;
 
   constructor() {
-    super();
+    super({
+      algorithm: 'ed25519'
+    });
     this.Ed25519 = new Ed25519();
   }
 

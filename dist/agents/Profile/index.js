@@ -80,6 +80,10 @@ var SparkErrors = {
 
 // src/agents/SparkAgent/index.ts
 var SparkAgent = class {
+  _spark;
+  constructor(spark) {
+    this._spark = spark;
+  }
   async import(data) {
     if (!data)
       throw SparkErrors.SPARK_IMPORT_ERROR();

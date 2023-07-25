@@ -15,7 +15,9 @@ export class X25519SalsaPolyPassword extends SparkCipher {
   private _salt: string;
   
   constructor() {
-    super();
+    super({
+      algorithm: 'x25519-salsa20-poly1305',
+    });
     this._X25519SalsaPoly = new X25519SalsaPoly();
   }
 

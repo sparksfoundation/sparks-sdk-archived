@@ -3,10 +3,13 @@ import { CipherErrors } from "../../errors/ciphers";
 import { CipherKeyPair, CipherPublicKey, CipherSecretKey, DecryptedData, EncryptedData, EncryptionSharedKey, SparkCipherInterface } from "./types";
 
 export abstract class SparkCipher implements SparkCipherInterface {
+  public readonly algorithm: string;
+
   private _publicKey: string;
   private _secretKey: string;
 
-  constructor() {
+  constructor({ algorithm }: { algorithm: string}) {
+    this.algorithm = algorithm;
     this.setKeyPair = this.setKeyPair.bind(this);
     this.generateKeyPair = this.generateKeyPair.bind(this);
     this.generateSharedKey = this.generateSharedKey.bind(this);

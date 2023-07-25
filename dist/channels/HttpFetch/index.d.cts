@@ -1,11 +1,10 @@
-import { S as SparkChannelParams, C as ChannelPeer, a as SparkChannel, b as SparkChannelInterface, c as SparkChannelActions, d as SparkEvent } from '../../index-e16de22b.js';
+import { S as SparkChannelParams, C as ChannelPeer, a as SparkChannel, b as SparkChannelInterface, c as SparkChannelActions, d as SparkEvent } from '../../index-66e3d0ba.js';
 import 'eventemitter3';
-import '../../index-cf660960.js';
-import '../../types-d473a34c.js';
+import '../../index-bc7739d8.js';
+import '../../types-064649ae.js';
 import '../../types-188a9fde.js';
-import '../../types-c76b4006.js';
-import '../../types-40269ceb.js';
-import '../../types-14ae8009.js';
+import '../../types-d4be7460.js';
+import '../../types-93f6b970.js';
 
 type HttpFetchParams = SparkChannelParams & {
     peer: ChannelPeer & {

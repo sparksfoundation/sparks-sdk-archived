@@ -35,7 +35,7 @@ export class Spark<
 
     if (agents && Array.isArray(agents) && agents.length > 0) {
       agents.forEach((agent) => {
-        const _agent = new agent(this) as InstanceType<Constructable<Agents[number]>>;
+        const _agent = new agent(this);
         const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
         this.agents[name] = _agent;
       });

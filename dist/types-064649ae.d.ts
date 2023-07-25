@@ -1,7 +1,11 @@
-import { S as SparkAgentInterface } from './types-d473a34c.js';
 import { C as CipherKeyPair, S as SparkCipherInterface } from './types-188a9fde.js';
-import { H as HashDigest, S as SparkHasherInterface } from './types-40269ceb.js';
-import { e as SignerPublicKey, S as SignerKeyPair, f as SparkSignerInterface } from './types-14ae8009.js';
+import { H as HashDigest, S as SparkHasherInterface } from './types-d4be7460.js';
+import { f as SignerPublicKey, S as SignerKeyPair, e as SparkSignerInterface } from './types-93f6b970.js';
+
+interface SparkAgentInterface {
+    import(data: Record<string, any>): Promise<void>;
+    export(): Promise<Record<string, any>>;
+}
 
 type Identifier = string;
 type SigningThreshold = number;
@@ -129,4 +133,4 @@ interface SparkInterface<Agents extends SparkAgentInterface[], Cipher extends Sp
     export: () => Promise<SignedEncryptedData>;
 }
 
-export { Identifier as I, KeyEventLog as K, PublicKeys as P, SparkControllerInterface as S, SparkInterface as a, KeyPairs as b, SignedEncryptedData as c };
+export { Identifier as I, KeyEventLog as K, PublicKeys as P, SparkAgentInterface as S, SparkInterface as a, SparkControllerInterface as b, KeyPairs as c, SignedEncryptedData as d };
