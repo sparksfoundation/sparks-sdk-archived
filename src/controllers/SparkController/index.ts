@@ -24,14 +24,14 @@ export abstract class SparkController implements SparkControllerInterface {
   }
 
   public async import(data: Record<string, any>): Promise<void> {
-    if (!data.identifier || !data.keyEventLog) throw SparkErrors.SPARK_IMPORT_ERROR();
-    this._identifier = data.identifier;
-    this._keyEventLog = data.keyEventLog;
+    if (data?.identifier && data?.keyEventLog) {
+      this._identifier = data.identifier;
+      this._keyEventLog = data.keyEventLog;
+    }
     return Promise.resolve();
   }
   
   public async export(): Promise<Record<string, any>> {
-    if (!this._identifier || !this._keyEventLog) throw SparkErrors.SPARK_EXPORT_ERROR();
     return Promise.resolve({
       identifier: this._identifier,
       keyEventLog: this._keyEventLog,

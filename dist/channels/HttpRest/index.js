@@ -398,7 +398,7 @@ var SparkChannel = class extends EventEmitter {
     }
   }
   import(params) {
-    const { channelId, type, peer, eventLog } = params;
+    const { channelId, type, peer, eventLog } = params || {};
     this._channelId = channelId;
     this._type = type;
     this._peer = peer;

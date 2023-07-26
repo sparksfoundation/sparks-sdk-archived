@@ -32,7 +32,6 @@ export abstract class SparkCipher implements SparkCipherInterface {
   }
 
   public async import(data: Record<string, any>): Promise<void> {
-    if (!data) throw SparkErrors.SPARK_IMPORT_ERROR();
     return Promise.resolve();
   }
 

@@ -136,7 +136,7 @@ var Profile = class extends SparkAgent {
   handle;
   async import(data) {
     if (!data)
-      throw SparkErrors.SPARK_IMPORT_ERROR();
+      return Promise.resolve();
     this.avatar = data.avatar;
     this.handle = data.handle;
     return Promise.resolve();

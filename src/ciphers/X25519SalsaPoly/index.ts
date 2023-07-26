@@ -15,7 +15,6 @@ export class X25519SalsaPoly extends SparkCipher {
   }
 
   public async import(data: Record<string, any>): Promise<void> {
-    if (!data) throw SparkErrors.SPARK_IMPORT_ERROR();
     await super.import(data);
     return Promise.resolve();
   }

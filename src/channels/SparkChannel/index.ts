@@ -218,7 +218,7 @@ export abstract class SparkChannel extends EventEmitter implements SparkChannelI
   }
 
   import(params: ChannelExport): void {
-    const { channelId, type, peer, eventLog } = params;
+    const { channelId, type, peer, eventLog } = params || {};
     this._channelId = channelId;
     this._type = type;
     this._peer = peer;

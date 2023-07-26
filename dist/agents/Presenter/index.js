@@ -114,15 +114,13 @@ var Presenter = class extends SparkAgent {
   removeCredential(credential) {
     this._credentials = this._credentials.filter((c) => {
       const aProof = c.proofs[0].signatureValue;
-      console.log(credential);
       const bProof = credential.proofs[0].signatureValue;
       return aProof !== bProof;
     });
   }
   async import(data) {
-    if (!data)
-      throw SparkErrors.SPARK_IMPORT_ERROR();
-    this._credentials = data.credentials;
+    if (data?.credentials)
+      this._credentials = data.credentials;
     return Promise.resolve();
   }
   async export() {

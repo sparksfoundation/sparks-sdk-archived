@@ -131,10 +131,9 @@ export class Spark<
 
     const opened = await this.signer.open({ signature: data, publicKey: this.publicKeys.signer });
     const decrypted = await this.cipher.decrypt({ data: opened }) as Record<string, any>;
-
+    
     await Promise.all(
       Object.entries(this.agents).map(async ([key, agent]) => {
-
         await agent.import(decrypted.agents[key]);
       })
     );

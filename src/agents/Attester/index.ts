@@ -60,7 +60,10 @@ export class Attester extends SparkAgent {
     const validate = ajv.compile(schema.properties.credentialSubject); // Compile the schema
     const isValid = validate(data);
 
-    if (!isValid) return null;
+    if (!isValid) {
+      console.log(validate.errors);
+      return null;
+    }
 
     const verifiableCredential = {
       "@context": [
@@ -71,11 +74,9 @@ export class Attester extends SparkAgent {
       "type": ["VerifiableCredential", schema["name"].replace(" ", "")],
       "issuer": this._spark.identifier,
       "issuanceDate": new Date().toISOString(),
-      "properties": {
-        "credentialSubject": {
-          ...data,
-        }
-      },
+      "credentialSubject": {
+        ...data,
+      }
     } as any;
 
     const leaves = this.getLeafHashes(data);
@@ -104,12 +105,10 @@ export class Attester extends SparkAgent {
   }
 
   public async import(data: Record<string, any>): Promise<void> {
-    if (!data) throw SparkErrors.SPARK_IMPORT_ERROR();
     return Promise.resolve();
   }
 
   public async export(): Promise<Record<string, any>> {
-    return Promise.resolve({
-    });
+    return Promise.resolve({});
   }
 }

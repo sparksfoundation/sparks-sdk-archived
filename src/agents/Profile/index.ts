@@ -6,7 +6,7 @@ export class Profile extends SparkAgent {
   public handle: string;
 
   public async import(data: Record<string, any>): Promise<void> {
-    if (!data) throw SparkErrors.SPARK_IMPORT_ERROR();
+    if (!data) return Promise.resolve();
     this.avatar = data.avatar
     this.handle = data.handle
     return Promise.resolve();

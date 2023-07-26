@@ -337,17 +337,15 @@ var Ed25519Password = class extends SparkSigner {
     return this._salt;
   }
   async import(data) {
-    this._salt = data.salt;
-    if (!data.salt)
-      throw SignerErrors.SIGNER_INVALID_SALT_ERROR();
+    if (data.salt) {
+      this._salt = data.salt;
+    }
     await super.import(data);
     return Promise.resolve();
   }
   async export() {
     const data = await super.export();
     data.salt = this._salt;
-    if (!data.salt)
-      throw SignerErrors.SIGNER_INVALID_SALT_ERROR();
     return Promise.resolve(data);
   }
   async generateKeyPair({ password, salt: nonce }) {
