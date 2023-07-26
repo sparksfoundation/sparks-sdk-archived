@@ -15,7 +15,9 @@ export class X25519SalsaPolyPassword extends SparkCipher {
   private _salt: string;
   
   constructor() {
-    super();
+    super({
+      algorithm: 'x25519-salsa20-poly1305',
+    });
     this._X25519SalsaPoly = new X25519SalsaPoly();
   }
 
@@ -37,15 +39,13 @@ export class X25519SalsaPolyPassword extends SparkCipher {
   }
 
   public async import(data: Record<string, any>): Promise<void> {
-    if (!data.salt) throw SparkErrors.SPARK_IMPORT_ERROR();
-    this._salt = data.salt;
+    if (data?.salt) this._salt = data.salt;
     await super.import(data);
     return Promise.resolve();
   }
 
   public async export(): Promise<Record<string, any>> {
     const data = await super.export();
-    if (!this._salt) throw SparkErrors.SPARK_EXPORT_ERROR();
     data.salt = this._salt;
     return Promise.resolve(data);
   }

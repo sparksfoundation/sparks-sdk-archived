@@ -89,8 +89,11 @@ export class PostMessage extends SparkChannel implements SparkChannelInterface<S
 
   public async import(data: PostMessageExport) {
     super.import(data);
-    this.peer.origin = data.peer.origin || new URL(data.peer.url).origin;
-    this.peer.url = data.peer.url || data.peer.origin;
+    if (!data?.peer) return;
+    if (data.peer.origin || data.peer.url) {
+      this.peer.origin = data.peer.origin || new URL(data.peer.url).origin;
+      this.peer.url = data.peer.url || data.peer.origin;
+    }
   }
 
   public static receive: ChannelReceive = (callback, options) => {

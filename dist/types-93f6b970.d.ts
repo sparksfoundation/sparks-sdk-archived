@@ -22,4 +22,4 @@ interface SparkSignerInterface {
     export(): Promise<Record<string, any>>;
 }
 
-export { SignerKeyPair as S, SigatureDetached as a, SignatureVerified as b, Signature as c, SignatureData as d, SignerPublicKey as e, SparkSignerInterface as f, SignerSecretKey as g };
+export { SignerKeyPair as S, SigatureDetached as a, SignatureVerified as b, Signature as c, SignatureData as d, SparkSignerInterface as e, SignerPublicKey as f, SignerSecretKey as g };

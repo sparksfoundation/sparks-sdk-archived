@@ -42,6 +42,39 @@ var KeyEventType = /* @__PURE__ */ ((KeyEventType2) => {
   return KeyEventType2;
 })(KeyEventType || {});
 
+// src/controllers/SparkController/index.ts
+var SparkController = class {
+  _spark;
+  _identifier;
+  _keyEventLog;
+  constructor(spark) {
+    this._spark = spark;
+    this._keyEventLog = [];
+    this.incept = this.incept.bind(this);
+    this.rotate = this.rotate.bind(this);
+    this.destroy = this.destroy.bind(this);
+  }
+  get identifier() {
+    return this._identifier;
+  }
+  get keyEventLog() {
+    return this._keyEventLog;
+  }
+  async import(data) {
+    if (data?.identifier && data?.keyEventLog) {
+      this._identifier = data.identifier;
+      this._keyEventLog = data.keyEventLog;
+    }
+    return Promise.resolve();
+  }
+  async export() {
+    return Promise.resolve({
+      identifier: this._identifier,
+      keyEventLog: this._keyEventLog
+    });
+  }
+};
+
 // src/utilities/index.ts
 var import_tweetnacl = __toESM(require("tweetnacl"), 1);
 var import_tweetnacl_util = __toESM(require("tweetnacl-util"), 1);
@@ -158,70 +191,9 @@ var ControllerErrors = {
   })
 };
 
-// src/errors/spark.ts
-var SparkErrorTypes = {
-  SPARK_IMPORT_ERROR: "SPARK_IMPORT_ERROR",
-  SPARK_EXPORT_ERROR: "SPARK_EXPORT_ERROR",
-  SPARK_UNEXPECTED_ERROR: "SPARK_UNEXPECTED_ERROR"
-};
-var SparkErrors = {
-  SPARK_IMPORT_ERROR: ({ metadata = {} } = {}) => createEvent({
-    type: SparkErrorTypes.SPARK_IMPORT_ERROR,
-    metadata: { ...metadata },
-    data: { message: "Failed to import data." }
-  }),
-  SPARK_EXPORT_ERROR: ({ metadata = {} } = {}) => createEvent({
-    type: SparkErrorTypes.SPARK_EXPORT_ERROR,
-    metadata: { ...metadata },
-    data: { message: "Failed to export data." }
-  }),
-  SPARK_UNEXPECTED_ERROR: ({ metadata = {}, message } = {}) => createEvent({
-    type: SparkErrorTypes.SPARK_UNEXPECTED_ERROR,
-    metadata: { ...metadata },
-    data: { message: message || "Unexpected spark error." }
-  })
-};
-
-// src/controllers/SparkController/index.ts
-var SparkController = class {
-  _identifier;
-  _keyEventLog;
-  _spark;
-  constructor(spark) {
-    this._spark = spark;
-    this._keyEventLog = [];
-    this.incept = this.incept.bind(this);
-    this.rotate = this.rotate.bind(this);
-    this.destroy = this.destroy.bind(this);
-  }
-  get identifier() {
-    return this._identifier;
-  }
-  get keyEventLog() {
-    return this._keyEventLog;
-  }
-  async import(data) {
-    if (!data.identifier || !data.keyEventLog)
-      throw SparkErrors.SPARK_IMPORT_ERROR();
-    this._identifier = data.identifier;
-    this._keyEventLog = data.keyEventLog;
-    return Promise.resolve();
-  }
-  async export() {
-    if (!this._identifier || !this._keyEventLog)
-      throw SparkErrors.SPARK_EXPORT_ERROR();
-    return Promise.resolve({
-      identifier: this._identifier,
-      keyEventLog: this._keyEventLog
-    });
-  }
-};
-
 // src/controllers/Basic/index.ts
 var Basic = class extends SparkController {
   async import(data) {
-    if (!data)
-      throw SparkErrors.SPARK_IMPORT_ERROR();
     await super.import(data);
     return Promise.resolve();
   }

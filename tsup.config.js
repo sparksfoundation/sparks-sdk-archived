@@ -3,6 +3,8 @@ import { defineConfig } from 'tsup'
 export default defineConfig({
   entry: [
     'src/index.ts',
+    'src/agents/Attester/index.ts',
+    'src/agents/Presenter/index.ts',
     'src/agents/Profile/index.ts',
     'src/channels/HttpFetch/index.ts',
     'src/channels/HttpRest/index.ts',

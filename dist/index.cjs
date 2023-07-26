@@ -38,7 +38,7 @@ var Spark = class {
     this.signer = new signer(this);
     this.controller = new controller(this);
     if (agents && Array.isArray(agents) && agents.length > 0) {
-      agents.forEach((agent) => {
+      agents.forEach((agent, index) => {
         const _agent = new agent(this);
         const name = agent.name.charAt(0).toLowerCase() + agent.name.slice(1);
         this.agents[name] = _agent;

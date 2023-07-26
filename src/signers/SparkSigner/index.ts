@@ -2,10 +2,12 @@ import { SignerErrors } from "../../errors/signers";
 import { Signature, SignatureData, SignatureVerified, SignerKeyPair, SignerPublicKey, SignerSecretKey, SparkSignerInterface } from "./types";
 
 export abstract class SparkSigner implements SparkSignerInterface {
+  public readonly algorithm: string;
   protected _publicKey: SignerPublicKey;
   protected _secretKey: SignerSecretKey;
 
-  constructor() {
+  constructor({ algorithm }: { algorithm: string }) {
+    this.algorithm = algorithm;
     this.setKeyPair = this.setKeyPair.bind(this);
     this.generateKeyPair = this.generateKeyPair.bind(this);
     this.sign = this.sign.bind(this);

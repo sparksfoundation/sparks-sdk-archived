@@ -1,13 +1,12 @@
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
-import { S as SparkChannelParams, k as ChannelState, c as SparkChannelActions, a as SparkChannel, b as SparkChannelInterface, d as SparkEvent, R as RequestParams, h as SparkRequestEvent, j as SparkConfirmEvent, e as ChannelReceive } from '../../index-e16de22b.js';
-import { N as Nullable } from '../../index-cf660960.js';
+import { S as SparkChannelParams, k as ChannelState, c as SparkChannelActions, a as SparkChannel, b as SparkChannelInterface, d as SparkEvent, R as RequestParams, h as SparkRequestEvent, j as SparkConfirmEvent, e as ChannelReceive } from '../../index-a15b0d2c.js';
+import { N as Nullable } from '../../index-09aeb339.js';
 import { RequestOptions } from 'https';
 import 'eventemitter3';
-import '../../types-c76b4006.js';
-import '../../types-d473a34c.js';
+import '../../types-ea65808d.js';
 import '../../types-188a9fde.js';
-import '../../types-40269ceb.js';
-import '../../types-14ae8009.js';
+import '../../types-d4be7460.js';
+import '../../types-93f6b970.js';
 
 type WebRTCParams = SparkChannelParams & {
     connection?: DataConnection;

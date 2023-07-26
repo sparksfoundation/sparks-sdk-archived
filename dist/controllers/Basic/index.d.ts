@@ -1,13 +1,12 @@
-import { S as SparkControllerInterface, I as Identifier, K as KeyEventLog, a as SparkInterface, b as KeyPairs } from '../../types-c76b4006.js';
-import '../../types-d473a34c.js';
+import { b as SparkControllerInterface, S as SparkInterface, I as Identifier, K as KeyEventLog, c as KeyPairs } from '../../types-ea65808d.js';
 import '../../types-188a9fde.js';
-import '../../types-40269ceb.js';
-import '../../types-14ae8009.js';
+import '../../types-d4be7460.js';
+import '../../types-93f6b970.js';
 
 declare abstract class SparkController implements SparkControllerInterface {
+    protected _spark: SparkInterface<any, any, any, any, any>;
     protected _identifier: Identifier;
     protected _keyEventLog: KeyEventLog;
-    protected _spark: SparkInterface<any, any, any, any, any>;
     constructor(spark: SparkInterface<any, any, any, any, any>);
     get identifier(): Identifier;
     get keyEventLog(): KeyEventLog;

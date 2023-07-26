@@ -6,6 +6,12 @@ import { HasherErrors } from "../../errors/hashers";
 import { SparkEvent } from "../../events/SparkEvent";
 
 export class Blake3 extends SparkHasher {
+  constructor() {
+    super({
+      algorithm: 'blake3',
+    });
+  }
+
   public async import(data: Record<string, any>): Promise<void> {
     await super.import(data);
     return Promise.resolve();
@@ -16,7 +22,7 @@ export class Blake3 extends SparkHasher {
     return Promise.resolve(data);
   }
 
-  public async hash({ data }: { data: HashData }): ReturnType<SparkHasher['hash']> {
+  public hash({ data }: { data: HashData }): ReturnType<SparkHasher['hash']> {
     try {
       const stringData = typeof data !== 'string' ? JSON.stringify(data) : data;
       const hashedString = blake3(stringData);
@@ -24,10 +30,10 @@ export class Blake3 extends SparkHasher {
       if (!b64DHash) throw HasherErrors.HASING_ERROR();
       return b64DHash as HashDigest;
     } catch (error: any) {
-      if (error instanceof SparkEvent) return Promise.reject(error);
-      return Promise.reject(HasherErrors.HASHER_UNEXPECTED_ERROR({
+      if (error instanceof SparkEvent) throw error;
+      throw HasherErrors.HASHER_UNEXPECTED_ERROR({
         message: `Failed to hash data. ${error?.message || ''}`,
-      }));
+      });
     }
   }
 }

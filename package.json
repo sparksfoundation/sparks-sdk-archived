@@ -20,8 +20,10 @@
   "dependencies": {
     "@noble/hashes": "^1.3.1",
     "@paralleldrive/cuid2": "^2.2.1",
+    "ajv": "^8.12.0",
     "eventemitter3": "^5.0.1",
     "install": "^0.13.0",
+    "merkletreejs": "^0.3.10",
     "npm": "^9.8.1",
     "peerjs": "^1.4.7",
     "scrypt-pbkdf": "^1.1.1",
@@ -34,6 +36,16 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
+    },
+    "./agents/Attester": {
+      "import": "./dist/agents/Attester/index.js",
+      "require": "./dist/agents/Attester/index.cjs",
+      "types": "./dist/agents/Attester/index.d.ts"
+    },
+    "./agents/Presenter": {
+      "import": "./dist/agents/Presenter/index.js",
+      "require": "./dist/agents/Presenter/index.cjs",
+      "types": "./dist/agents/Presenter/index.d.ts"
     },
     "./agents/Profile": {
       "import": "./dist/agents/Profile/index.js",

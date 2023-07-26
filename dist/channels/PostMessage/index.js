@@ -398,7 +398,7 @@ var SparkChannel = class extends EventEmitter {
     }
   }
   import(params) {
-    const { channelId, type, peer, eventLog } = params;
+    const { channelId, type, peer, eventLog } = params || {};
     this._channelId = channelId;
     this._type = type;
     this._peer = peer;
@@ -682,8 +682,12 @@ var PostMessage = class _PostMessage extends SparkChannel {
   }
   async import(data) {
     super.import(data);
-    this.peer.origin = data.peer.origin || new URL(data.peer.url).origin;
-    this.peer.url = data.peer.url || data.peer.origin;
+    if (!data?.peer)
+      return;
+    if (data.peer.origin || data.peer.url) {
+      this.peer.origin = data.peer.origin || new URL(data.peer.url).origin;
+      this.peer.url = data.peer.url || data.peer.origin;
+    }
   }
   static receive = (callback, options) => {
     const { _window, _source, spark } = options;

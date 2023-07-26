@@ -4,7 +4,9 @@ import { blake3 } from "@noble/hashes/blake3";
 
 // src/hashers/SparkHasher/index.ts
 var SparkHasher = class {
-  constructor() {
+  algorithm;
+  constructor({ algorithm }) {
+    this.algorithm = algorithm;
     this.hash = this.hash.bind(this);
   }
   async import(data) {
@@ -91,6 +93,11 @@ var HasherErrors = {
 
 // src/hashers/Blake3/index.ts
 var Blake3 = class extends SparkHasher {
+  constructor() {
+    super({
+      algorithm: "blake3"
+    });
+  }
   async import(data) {
     await super.import(data);
     return Promise.resolve();
@@ -99,7 +106,7 @@ var Blake3 = class extends SparkHasher {
     const data = await super.export();
     return Promise.resolve(data);
   }
-  async hash({ data }) {
+  hash({ data }) {
     try {
       const stringData = typeof data !== "string" ? JSON.stringify(data) : data;
       const hashedString = blake3(stringData);
@@ -109,10 +116,10 @@ var Blake3 = class extends SparkHasher {
       return b64DHash;
     } catch (error) {
       if (error instanceof SparkEvent)
-        return Promise.reject(error);
-      return Promise.reject(HasherErrors.HASHER_UNEXPECTED_ERROR({
+        throw error;
+      throw HasherErrors.HASHER_UNEXPECTED_ERROR({
         message: `Failed to hash data. ${error?.message || ""}`
-      }));
+      });
     }
   }
 };

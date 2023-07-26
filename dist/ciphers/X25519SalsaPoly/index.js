@@ -113,35 +113,13 @@ var CipherErrors = {
   })
 };
 
-// src/errors/spark.ts
-var SparkErrorTypes = {
-  SPARK_IMPORT_ERROR: "SPARK_IMPORT_ERROR",
-  SPARK_EXPORT_ERROR: "SPARK_EXPORT_ERROR",
-  SPARK_UNEXPECTED_ERROR: "SPARK_UNEXPECTED_ERROR"
-};
-var SparkErrors = {
-  SPARK_IMPORT_ERROR: ({ metadata = {} } = {}) => createEvent({
-    type: SparkErrorTypes.SPARK_IMPORT_ERROR,
-    metadata: { ...metadata },
-    data: { message: "Failed to import data." }
-  }),
-  SPARK_EXPORT_ERROR: ({ metadata = {} } = {}) => createEvent({
-    type: SparkErrorTypes.SPARK_EXPORT_ERROR,
-    metadata: { ...metadata },
-    data: { message: "Failed to export data." }
-  }),
-  SPARK_UNEXPECTED_ERROR: ({ metadata = {}, message } = {}) => createEvent({
-    type: SparkErrorTypes.SPARK_UNEXPECTED_ERROR,
-    metadata: { ...metadata },
-    data: { message: message || "Unexpected spark error." }
-  })
-};
-
 // src/ciphers/SparkCipher/index.ts
 var SparkCipher = class {
+  algorithm;
   _publicKey;
   _secretKey;
-  constructor() {
+  constructor({ algorithm }) {
+    this.algorithm = algorithm;
     this.setKeyPair = this.setKeyPair.bind(this);
     this.generateKeyPair = this.generateKeyPair.bind(this);
     this.generateSharedKey = this.generateSharedKey.bind(this);
@@ -160,8 +138,6 @@ var SparkCipher = class {
     return { publicKey, secretKey };
   }
   async import(data) {
-    if (!data)
-      throw SparkErrors.SPARK_IMPORT_ERROR();
     return Promise.resolve();
   }
   async export() {
@@ -179,9 +155,12 @@ var SparkCipher = class {
 
 // src/ciphers/X25519SalsaPoly/index.ts
 var X25519SalsaPoly = class extends SparkCipher {
+  constructor() {
+    super({
+      algorithm: "x25519-salsa20-poly1305"
+    });
+  }
   async import(data) {
-    if (!data)
-      throw SparkErrors.SPARK_IMPORT_ERROR();
     await super.import(data);
     return Promise.resolve();
   }

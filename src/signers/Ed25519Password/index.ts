@@ -13,7 +13,9 @@ export class Ed25519Password extends SparkSigner {
   private _salt: string;
 
   constructor() {
-    super();
+    super({
+      algorithm: 'ed25519'
+    });
     this.Ed25519 = new Ed25519();
   }
 
@@ -22,8 +24,9 @@ export class Ed25519Password extends SparkSigner {
   }
 
   public async import(data: Record<string, any>): Promise<void> {
-    this._salt = data.salt;
-    if (!data.salt) throw SignerErrors.SIGNER_INVALID_SALT_ERROR();
+    if (data.salt) {
+      this._salt = data.salt;
+    }
     await super.import(data);
     return Promise.resolve();
   }
@@ -31,7 +34,6 @@ export class Ed25519Password extends SparkSigner {
   public async export(): Promise<Record<string, any>> {
     const data = await super.export();
     data.salt = this._salt;
-    if (!data.salt) throw SignerErrors.SIGNER_INVALID_SALT_ERROR();
     return Promise.resolve(data);
   }
 
