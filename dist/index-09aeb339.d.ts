@@ -1,4 +1,4 @@
-import { S as SparkAgentInterface, b as SparkControllerInterface, a as SparkInterface, d as SignedEncryptedData } from './types-064649ae.js';
+import { a as SparkAgentInterface, b as SparkControllerInterface, S as SparkInterface, d as SignedEncryptedData } from './types-ea65808d.js';
 import { S as SparkCipherInterface } from './types-188a9fde.js';
 import { S as SparkHasherInterface } from './types-d4be7460.js';
 import { e as SparkSignerInterface } from './types-93f6b970.js';

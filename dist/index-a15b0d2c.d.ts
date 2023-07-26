@@ -1,6 +1,6 @@
 import EventEmitter from 'eventemitter3';
-import { S as Spark, C as CamelCase } from './index-bc7739d8.js';
-import { I as Identifier, P as PublicKeys } from './types-064649ae.js';
+import { S as Spark, C as CamelCase } from './index-09aeb339.js';
+import { I as Identifier, P as PublicKeys } from './types-ea65808d.js';
 
 type RequestEventType = `${string}_REQUEST`;
 type ConfirmEventType = `${string}_CONFIRM`;

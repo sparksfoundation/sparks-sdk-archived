@@ -1,9 +1,9 @@
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
-import { S as SparkChannelParams, k as ChannelState, c as SparkChannelActions, a as SparkChannel, b as SparkChannelInterface, d as SparkEvent, R as RequestParams, h as SparkRequestEvent, j as SparkConfirmEvent, e as ChannelReceive } from '../../index-66e3d0ba.js';
-import { N as Nullable } from '../../index-bc7739d8.js';
+import { S as SparkChannelParams, k as ChannelState, c as SparkChannelActions, a as SparkChannel, b as SparkChannelInterface, d as SparkEvent, R as RequestParams, h as SparkRequestEvent, j as SparkConfirmEvent, e as ChannelReceive } from '../../index-a15b0d2c.js';
+import { N as Nullable } from '../../index-09aeb339.js';
 import { RequestOptions } from 'https';
 import 'eventemitter3';
-import '../../types-064649ae.js';
+import '../../types-ea65808d.js';
 import '../../types-188a9fde.js';
 import '../../types-d4be7460.js';
 import '../../types-93f6b970.js';

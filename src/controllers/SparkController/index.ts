@@ -3,9 +3,9 @@ import { SparkInterface } from "../../spark/types";
 import { Identifier, KeyEventLog, SparkControllerInterface } from "./types";
 
 export abstract class SparkController implements SparkControllerInterface {
+  protected _spark: SparkInterface<any, any, any, any, any>;
   protected _identifier: Identifier;
   protected _keyEventLog: KeyEventLog;
-  protected _spark: SparkInterface<any, any, any, any, any>;
 
   constructor(spark: SparkInterface<any, any, any, any, any>) {
     this._spark = spark;

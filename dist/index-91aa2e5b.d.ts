@@ -1,4 +1,4 @@
-import { S as SparkAgentInterface, a as SparkInterface } from './types-064649ae.js';
+import { a as SparkAgentInterface, S as SparkInterface } from './types-ea65808d.js';
 
 declare abstract class SparkAgent implements SparkAgentInterface {
     protected _spark: SparkInterface<any, any, any, any, any>;

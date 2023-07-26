@@ -42,6 +42,11 @@
       "require": "./dist/agents/Attester/index.cjs",
       "types": "./dist/agents/Attester/index.d.ts"
     },
+    "./agents/Presenter": {
+      "import": "./dist/agents/Presenter/index.js",
+      "require": "./dist/agents/Presenter/index.cjs",
+      "types": "./dist/agents/Presenter/index.d.ts"
+    },
     "./agents/Profile": {
       "import": "./dist/agents/Profile/index.js",
       "require": "./dist/agents/Profile/index.cjs",

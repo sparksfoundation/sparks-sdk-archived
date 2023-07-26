@@ -184,9 +184,9 @@ var SparkErrors = {
 
 // src/controllers/SparkController/index.ts
 var SparkController = class {
+  _spark;
   _identifier;
   _keyEventLog;
-  _spark;
   constructor(spark) {
     this._spark = spark;
     this._keyEventLog = [];

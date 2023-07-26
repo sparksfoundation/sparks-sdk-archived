@@ -133,4 +133,4 @@ interface SparkInterface<Agents extends SparkAgentInterface[], Cipher extends Sp
     export: () => Promise<SignedEncryptedData>;
 }
 
-export { Identifier as I, KeyEventLog as K, PublicKeys as P, SparkAgentInterface as S, SparkInterface as a, SparkControllerInterface as b, KeyPairs as c, SignedEncryptedData as d };
+export { Identifier as I, KeyEventLog as K, PublicKeys as P, SparkInterface as S, SparkAgentInterface as a, SparkControllerInterface as b, KeyPairs as c, SignedEncryptedData as d };
